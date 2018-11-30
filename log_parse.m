@@ -62,6 +62,9 @@ while(all(~isnumeric(l)))
             %set opperation
             log(idx).opperation=op;
             
+            %flag entry as incomplete
+            log(idx).complete=false;
+            
             %set status to preamble
             status='preamble';
         case 'preamble'
@@ -76,6 +79,8 @@ while(all(~isnumeric(l)))
                 elseif(startsWith(l,'===End'))
                     %end of entry, go into search mode
                     status='searching';
+                    %mark entry as complete
+                    log(idx).complete=true;
                 else
                     switch(l)
                         case '===Pre-Test Notes==='
@@ -123,6 +128,8 @@ while(all(~isnumeric(l)))
                 elseif(startsWith(l,'===End'))
                     %end of entry, go into search mode
                     status='searching';
+                    %mark entry as complete
+                    log(idx).complete=true;
                 else
                     switch(l)
                         case '===Post-Test Notes==='
@@ -150,6 +157,8 @@ while(all(~isnumeric(l)))
                 elseif(startsWith(l,'===End'))
                     %end of entry, go into search mode
                     status='searching';
+                    %mark entry as complete
+                    log(idx).complete=true;
                 else
                     warning('Unknown seperator found in %s at line %d : %s',status,lc,l);
                     %drop back to search mode
