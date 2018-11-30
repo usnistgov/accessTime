@@ -46,7 +46,7 @@ while(all(~isnumeric(l)))
             parts=strsplit(strtrim(l),' at ');
             
             %set date
-            log(idx).date=parts{2};
+            log(idx).date=datetime(parts{2},'InputFormat','dd-MMM-yyyy HH:mm:ss');
             
             %opperation is the first bit
             op=parts{1};
