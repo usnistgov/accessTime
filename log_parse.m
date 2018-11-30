@@ -65,6 +65,9 @@ while(all(~isnumeric(l)))
             %flag entry as incomplete
             log(idx).complete=false;
             
+            %initialize error flag
+            log(idx).error=false;
+            
             %set status to preamble
             status='preamble';
         case 'preamble'
@@ -136,6 +139,11 @@ while(all(~isnumeric(l)))
                             status='post-notes';
                             %create empty post test notes field
                             log(idx).post_notes='';
+                        case '===Test-Error Notes==='
+                            status='post-notes';
+                            %create empty test error notes field
+                            log(idx).error_notes='';
+                            log(idx).error=true;
                         otherwise
                             warning('Unknown seperator found in %s at line %d : %s',status,lc,l);
                             %drop back to search mode
@@ -146,8 +154,13 @@ while(all(~isnumeric(l)))
         case 'post-notes'
             %check that the first charecter is a tab
             if(~isempty(l) && l(1)==9)
-                %add in line, skip leading tab
-                log(idx).post_notes=strcat(log(idx).post_notes,l(2:end));
+                if(log(idx).error)
+                    %add in line, skip leading tab
+                    log(idx).error_notes=strcat(log(idx).error_notes,l(2:end));
+                else
+                    %add in line, skip leading tab
+                    log(idx).post_notes=strcat(log(idx).post_notes,l(2:end));
+                end
             else
                 %check for three equal signs
                 if(~startsWith(l,'==='))
