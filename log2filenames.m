@@ -4,7 +4,7 @@ end
 
 function [fn]=log2filename(log,searchpath)
     %handle diffrent opperations differently
-    switch(log.opperation)
+    switch(log.operation)
         case 'Test'
             prefix={'capture_'};
             folder={'data'};
@@ -19,15 +19,15 @@ function [fn]=log2filename(log,searchpath)
             folder={'rx-data','rx-data'};
         otherwise
             
-            %check if this was a copy opperation
-            if(startsWith(log.opperation,'Copy'))
-                %no datafile for Copy opperation
+            %check if this was a copy operation
+            if(startsWith(log.operation,'Copy'))
+                %no datafile for Copy operation
                 fn=':None';
                 return;
             end
             
-            %otherwise this is an unknown opperation
-            error('Unknown opperation ''%s''',log.opperation);
+            %otherwise this is an unknown operation
+            error('Unknown operation ''%s''',log.operation);
     end
 
     %check if entry is incomplete

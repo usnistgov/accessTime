@@ -42,13 +42,13 @@ while(all(~isnumeric(l)))
             %advance index
             idx=idx+1;
             
-            %split string into date and opperation
+            %split string into date and operation
             parts=strsplit(strtrim(l),' at ');
             
             %set date
             log(idx).date=datetime(parts{2},'InputFormat','dd-MMM-yyyy HH:mm:ss');
             
-            %opperation is the first bit
+            %operation is the first bit
             op=parts{1};
             
             %remove >>'s from the begining
@@ -59,8 +59,8 @@ while(all(~isnumeric(l)))
                 op=op(1:(end-length(' started')));
             end
             
-            %set opperation
-            log(idx).opperation=op;
+            %set operation
+            log(idx).operation=op;
             
             %flag entry as incomplete
             log(idx).complete=false;
