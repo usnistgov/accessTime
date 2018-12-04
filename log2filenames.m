@@ -1,4 +1,13 @@
 function [names] = log2filenames(log,searchpath)
+% log2filenames is used to find datafiles corosponding to log entries
+%
+%   [names] = log2filenames(log,searchpath) Returns the filenames as a cell
+%   array of the data files corosponding to the log entries in the log
+%   structure given in log. The path of the folder that the logfile is in
+%   is given in searchpath, this is how log2filenames knows where to look
+%   for files
+
+
     names=arrayfun(@(l)log2filename(l,searchpath),log,'UniformOutput',false);
 end
 

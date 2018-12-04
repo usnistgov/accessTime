@@ -1,4 +1,10 @@
 function log=log_parse(fname)
+% log_parse is used to parse a MCV log file so that it can be searched.
+%
+%   [log] = log_parse(fname) parses a MCV log file given by fname. where
+%   log is a structure array that contains the information from the log
+%   entries in the log file
+%
 
 f=fopen(fname,'r');
 

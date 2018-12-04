@@ -1,4 +1,32 @@
 function [idx] = log_MfSearch(log,search)
+% log_MfSearch search a log structure for a test matching given criteria
+%   [idx] = log_MfSearch(log,search) searches log for entries that match
+%   the search criteria given in search. The indices of the matching
+%   entries are returned in idx
+%
+%   log is a structure array of log entries returned by log_search
+%
+%   search is a structure that contains the search criteria. With the
+%   exception of the date field, to search for a field in the log structure
+%   a corosponding field in the search structure will search for a matching
+%   field in the log structure. 
+%
+%   Fieldname(s)    Datatype        Matching type
+%
+%   date            DateTime        in the search structure there are two
+%                                   fields date_befor and date_after. These
+%                                   specify a range of log timestamps to
+%                                   search for that is after date_after and
+%                                   before date before.
+%
+%   error,complete  logical         all returned log entries match the
+%                                   value in the search structure exactly
+%
+%   others          char array      log entries are scanned for matching
+%                                   strings using regexp with the pattern
+%                                   in the search structure
+%
+
 
     %make sure that search_field is a field
     if(~isstruct(search))
