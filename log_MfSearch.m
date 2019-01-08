@@ -42,7 +42,7 @@ end
 
 function res=logMatch(l,s)
     %get fieldnames
-    sfeilds=fieldnames(s);
+    sfields=fieldnames(s);
     
     %get boolean fields, these are treated differently
     boolFields=log_bool();
@@ -51,9 +51,9 @@ function res=logMatch(l,s)
     res=true;
     
     %loop over field names and check for match
-    for k=1:length(sfeilds)
+    for k=1:length(sfields)
         %check if date_before is given
-        if(strcmp(sfeilds{k},'date_before'))
+        if(strcmp(sfields{k},'date_before'))
             %check if field is nonempty, if not skip it
             if(~isempty(s.date_before) && ~isnat(s.date_before))
                 if(s.date_before>l.date)
@@ -66,7 +66,7 @@ function res=logMatch(l,s)
                     return;
                 end
             end
-        elseif(strcmp(sfeilds{k},'date_after'))
+        elseif(strcmp(sfields{k},'date_after'))
             %check if field is nonempty, if not skip it
             if(~isempty(s.date_after) && ~isnat(s.date_after))
                 if(s.date_after<l.date)
@@ -79,11 +79,11 @@ function res=logMatch(l,s)
                     return;
                 end
             end
-        elseif(any(strcmp(sfeilds{k},boolFields)))
+        elseif(any(strcmp(sfields{k},boolFields)))
             %check if field is nonempty, if not skip it
-            if(~isempty(s.(sfeilds{k})))
+            if(~isempty(s.(sfields{k})))
                 %check that field matches
-                if(s.(sfeilds{k})==l.(sfeilds{k}))
+                if(s.(sfields{k})==l.(sfields{k}))
                     %fields match
                     res=true;
                 else
@@ -95,9 +95,9 @@ function res=logMatch(l,s)
             end
         else
             %check if field is nonempty, if not skip it
-            if(~isempty(s.(sfeilds{k})))
+            if(~isempty(s.(sfields{k})))
                 %check if fields match
-                if(ischar(l.(sfeilds{k})) && ~isempty(regexp(l.(sfeilds{k}),s.(sfeilds{k}),'once')))
+                if(ischar(l.(sfields{k})) && ~isempty(regexp(l.(sfields{k}),s.(sfields{k}),'once')))
                     %fields match
                     res=true;
                 else
