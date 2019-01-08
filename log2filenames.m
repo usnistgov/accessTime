@@ -77,7 +77,7 @@ function [fn]=log2filename(log,searchpath)
             warning('No matching file for ''%s'' in ''%s''',date_str,foldPath);
             fn='';
         elseif(num_match==1)
-            fn=filenames{match};
+            fn=fullfile(foldPath,filenames{match});
             return;
         end
     end
