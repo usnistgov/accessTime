@@ -15,11 +15,11 @@ function [fn]=log2filename(log,searchpath)
     %handle diffrent opperations differently
     switch(log.operation)
         case 'Test'
-            prefix={'capture_'};
-            folder={'data'};
+            prefix={'capture_','capture_'};
+            folder={'data', 'raw-data'};
         case 'Training'
-            prefix={'Training_','Training_'};
-            folder={'training','data'};
+            prefix={'Training_','Training_','Training_'};
+            folder={'training','data', 'raw-data'};
         case 'Tx Two Loc Test'
             prefix={'Tx_capture','capture'};
             folder={'tx-data','tx-data'};
