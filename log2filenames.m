@@ -74,7 +74,7 @@ function [fn]=log2filename(log,searchpath)
             warning('More than one file found matching ''%s'' in ''%s''',date_str,foldPath);
             fn='Multiple';
         elseif(num_match==0 && k==length(folder))
-            warning('No matching file for ''%s'' in ''%s''',date_str,foldPath);
+            warning('No matching file for ''%s'' in ''%s''',date_str,searchpath);
             fn='';
         elseif(num_match==1)
             fn=fullfile(foldPath,filenames{match});
