@@ -58,4 +58,8 @@ end
 log.searchPath = local_searchpath;
 filenames = log.datafilenames()';
 filenames = filenames(~tossSessions);
+
+if(isempty(filenames))
+    error('Could not find any files meeting search criteria')
+end
 end
