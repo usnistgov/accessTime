@@ -1,4 +1,4 @@
-function Vol_Search(varargin)
+function [Results] = Vol_Search(varargin)
 %Vol_Search Read in desired search parameters, such as a radio type, audio
 %clip name, or both. Searches the database for the ideal volume settings
 %and prints out values related to the input parameters.
@@ -23,18 +23,11 @@ addParameter(p,'Audio_Name',[],@(d)validateattributes(d,{'char','string'},{'scal
 
 parse(p,varargin{:});
 
-% Check for radio type input
-if p.Results.Radio_Type == 1
-    Radio_Type = p.Results.Radio_Type;
-else 
-    Radio_Type = 'All';
-end    
-% Check for audio clip name input
-if p.Results.Audio_Name == 1
-    Audio_Name = p.Results.Audio_Name;
-else
-    Audio_Name = 'All';
-end   
+% Load radio type input
+Radio_Type = p.Results.Radio_Type;  
+% Load audio clip name input
+Audio_Name = p.Results.Audio_Name;
+
 %Load database file
 Database = readtable('O:\Users\cjg2\VolumeSettingsDatabase.csv');
 Database(21:end,:) = [];
@@ -42,12 +35,14 @@ Database = table2cell(Database);
 %% Search database for Vtx and Vrx settings for given input
 %Check through input conditions. For those conditions, print the found
 %results
-if Audio_Name == 'All' & Radio_Type == 'All'
-    disp(Database
-elseif Audio_Name == 'All' 
-    Radio_Spec = (strcmp(Database(:,:),Radio_Type) == true)
-    disp(Radio_Spec,:)
-elseif Radio_Type == 'All'
-    Audio_Spec = (strcmp(Database(:,:),Audio_Name) == true)
-    disp(Audio_Spec,:)
+if (strcmp(Audio_Name, 'all') == true) && (strcmp(Radio_Type, 'all') == true)
+    Results = Database(:,:);
+elseif (strcmp(Audio_Name, 'all') == true) 
+    Radio_Spec = (strcmp(Database(:,:),Radio_Type) == true);
+    Results = Database(Radio_Spec,:);
+elseif (strcmp(Radio_Type, 'all') == true)
+    Audio_Spec = (strcmp(Database(:,:),Audio_Name) == true);
+    %Debug here%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Results = Database(:,Audio_Spec);
+%Case where both are not all    
 end    
