@@ -28,21 +28,30 @@ Radio_Type = p.Results.Radio_Type;
 % Load audio clip name input
 Audio_Name = p.Results.Audio_Name;
 
-%Load database file
-Database = readtable('O:\Users\cjg2\VolumeSettingsDatabase.csv');
-Database(21:end,:) = [];
-Database = table2cell(Database);
+% Load database file
+Data = readtable('O:\Users\cjg2\VolumeSettingsDatabase.csv');
+Data(21:end,:) = [];
+Data = table2cell(Data);
+Headings = {'Radio' 'Audio' 'Vtx' ' Vrx'};
+Database = [Headings;Data];
 %% Search database for Vtx and Vrx settings for given input
-%Check through input conditions. For those conditions, print the found
-%results
+% Check through input conditions. For those conditions, print the found
+% results
+% Both conditions are all
 if (strcmp(Audio_Name, 'all') == true) && (strcmp(Radio_Type, 'all') == true)
     Results = Database(:,:);
+% Audio name is all, radio type is specific   
 elseif (strcmp(Audio_Name, 'all') == true) 
     Radio_Spec = (strcmp(Database(:,:),Radio_Type) == true);
     Results = Database(Radio_Spec,:);
+%Radio type is all, audio name is specific    
 elseif (strcmp(Radio_Type, 'all') == true)
     Audio_Spec = (strcmp(Database(:,:),Audio_Name) == true);
-    %Debug here%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    Results = Database(:,Audio_Spec);
-%Case where both are not all    
+%%%%%Debug here%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Results = Database(Audio_Spec,:);
+%Case where both are not all, are specific
+elseif (strcmp(Audio_Name, 'all') == false) && (strcmp(Radio_Type, 'all') == false)
+    Spec = (strcmp(Database(:,1),Radio_Type) == true) & (strcmp(Database(:,:),Audio_Name) == true);
+%%%%%Debug here%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Results = Database(:,Spec);
 end    
