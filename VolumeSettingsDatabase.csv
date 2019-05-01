@@ -1,0 +1,21 @@
+Radio	Audio File	Vtx	Vrx
+APX 6000	F1_b39_w4_hook	-13	9 oclock
+APX 6000	F3_b15_w5_west	-13	9 oclock
+APX 6000	M3_b22_w3_cop	-13	9 oclock
+APX 6000	M4_b18_w4_pay	-13	9 oclock
+APX 8000	F1_b39_w4_hook	-10	9.5 oclock
+APX 8000	F3_b15_w5_west	-10	9.5 oclock
+APX 8000	M3_b22_w3_cop	-10	9.5 oclock
+APX 8000	M4_b18_w4_pay	-10	9.5 oclock
+XL-200	F1_b39_w4_hook	-8	1 oclock
+XL-200	F3_b15_w5_west	-8	1 oclock
+XL-200	M3_b22_w3_cop	-8	1 oclock
+XL-200	M4_b18_w4_pay	-8	1 oclock
+Kenwood	F1_b39_w4_hook	-12	9 oclock
+Kenwood	F3_b15_w5_west	-12	9 oclock
+Kenwood	M3_b22_w3_cop	-12	9 oclock
+Kenwood	M4_b18_w4_pay	-12	9 oclock
+PTT Gate	F1_b39_w4_hook	0	2 oclock
+PTT Gate	F3_b15_w5_west	0	2 oclock
+PTT Gate	M3_b22_w3_cop	0	2 oclock
+PTT Gate	M4_b18_w4_pay	0	2 oclock
