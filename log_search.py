@@ -118,7 +118,7 @@ class log_search():
 						if(line and (not line[0]=='\t')):
 							#check for three equal signs
 							if(not line.startswith('===')):
-								print(f'Unknown sequence found in preamble at line {lc} of file {short_name} : {line}')
+								print(f'Unknown sequence found in preamble at line {lc} of file {short_name} : {repr(line)}')
 								#drop back to search mode
 								status='searching'
 							elif(line.startswith('===End')):
@@ -135,7 +135,7 @@ class log_search():
 								#create empty post test notes field
 								self.log[idx]['post_notes']='';
 							else:
-								print(f'Unknown separator found in preamble at line {lc} of file {short_name} : {line}')
+								print(f'Unknown separator found in preamble at line {lc} of file {short_name} : {repr(line)}')
 								#drop back to search mode
 								status='searching'
 						elif(not line):
@@ -165,7 +165,7 @@ class log_search():
 						else:
 							#check for three equal signs
 							if(not line.startswith('===')):
-								print(f'Unknown sequence found at line {lc} of file {short_name} : {line}')
+								print(f'Unknown sequence found at line {lc} of file {short_name} : {repr(line)}')
 								#drop back to search mode
 								status='searching'
 							elif(line.startswith('===End')):
@@ -184,7 +184,7 @@ class log_search():
 									self.log[idx]['error_notes']='';
 									self.log[idx]['error']=True;
 								else:
-									print('Unknown separator found at line {lc} of file {short_name} : {line}')
+									print('Unknown separator found at line {lc} of file {short_name} : {repr(line)}')
 									#drop back to search mode
 									status='searching';
 					
@@ -201,7 +201,7 @@ class log_search():
 						else:
 							#check for three equal signs
 							if(not line.startswith('===')):
-								print(f'Unknown sequence found at line {lc} of file {short_name} : {line}')
+								print(f'Unknown sequence found at line {lc} of file {short_name} : {repr(line)}')
 								#drop back to search mode
 								status='searching'
 							elif(line.startswith('===End')):
@@ -210,7 +210,7 @@ class log_search():
 								#mark entry as complete
 								self.log[idx]['complete']=True
 							else:
-								print('Unknown separator found at line {lc} of file {short_name} : {line}')
+								print('Unknown separator found at line {lc} of file {short_name} : {repr(line)}')
 								#drop back to search mode
 								status='searching'
 							
