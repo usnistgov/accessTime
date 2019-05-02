@@ -59,12 +59,8 @@ class log_search():
 				
 				for lc,line in enumerate(f):
 					
-					print(f'Status : {status}')
-					
 					#strip newlines from line
 					line=line.strip('\r\n')
-					
-					print(repr(line))
 					
 					if(line.startswith('>>')):
 						if(status == 'searching'):
