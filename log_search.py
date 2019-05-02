@@ -9,6 +9,7 @@ class log_search():
 	stringSearchMode='OR'
 	found=[]
 	log=[]
+	fixedFields=['error','complete','operation','GitHash','logFile','amendedBy','date','Arguments','filename','InputFile','OutputFile']
 	def __init__(self,fname,addendumName=[],LogParseAction='Warn'):
 		
 		if(os.path.isdir(fname)):
@@ -213,8 +214,100 @@ class log_search():
 								print('Unknown separator found at line {lc} of file {short_name} : {repr(line)}')
 								#drop back to search mode
 								status='searching'
+		
+		for fn in adnames:
+			print(f'Opening addendum file {fn}')
+			with open(fn,'r') as f:
+				
+				#create filename without path
+				(_,short_name)=os.path.split(fn)
+				
+				#init status
+				status='searching'
+				
+				for lc,line in enumerate(f):
+					#always check for start of entry
+					if(line.startswith('>>')):
+						#check if we were in search mode
+						if(not status=='searching'):
+							#give error when start found out of sequence
+							raise ValueError(f"Start of addendum found at line {lc} of file {short_name} while in {status} mode")
+
+						#start of entry found, now we will parse the preamble
+						status='preamble-st'
+
+					if(status == 'searching'):
+						pass
+					elif(status == 'preamble-st'):
+					
+						#split string into date and operation
+						parts=line.strip().split(' at ')
+
+						#set date
+						date=datetime.strptime(parts[1],'%d-%b-%Y %H:%M:%S')
+
+						#operation is the first bit
+						op=parts[0]
+						
+						#remove >>'s from the beginning
+						op=op[2:]
+
+						#remove trailing ' started'
+						if(op.endswith(' started')):
+							op=op[:-len(' started')]
+
+						#set operation
+						self.log[idx]['operation']=op;
+
+						idx=self.logMatch({'date':date,'operation':op});
+
+						if(not idx):
+							raise ValueError(f"no matching entry found for '{line.strip()}' from file {short_name}")
+						elif(len(idx)>1):
+							raise ValueError(f"multiple matching entries found for '{line.strip()}' from file {short_name}")
+
+						#check if this log entry has been amended
+						if(self.log[idx]['amendedBy']):
+							#indicate which file amended this entry
+							self.log[idx]['amendedBy']=short_name
+						else:
+							ValueError(f"log entry already amended at line {lc} of '{short_name}'")
+
+						#set status to preamble
+						status='preamble';
+					
+					elif(status=='preamble'):
+
+						#check that the first character is not tab
+						if(line and not line[0]=='\t'):
+							#check for end marker
+							if(not line.startswith('<<')):
+								raise ValueError(f"Unknown sequence found in entry at line {lc} of file {short_name} : {line}")
+							else:
+								#end of entry, go into search mode
+								status='searching'
+						else:
+							#split line on colon
+							lp=line.strsplit(':');
 							
+							#the MATLAB version uses genvarname but we just strip whitespace cause dict doesn't care
+							name=lp[0].strip()
+							#reconstruct the rest of line
+							arg=':'.join(lp[1:])
 							
+							#check if field is amendable
+							if(name in self.fixedFields):
+								raise ValueError(f"At line {lc} of file {short_name} : field '{name}' is not amendable")
+
+							#check if field exists in structure
+							if(name in self.log[idx].keys()):
+								self.log[idx][name]=arg
+							else:
+								raise ValueError(f"Invalid field {repr(name)} at line {lc} of {short_name}")
+	
+	def logMatch(self,match):
+		return []
+	
 ls=log_search('\\\\cfs2w.nist.gov\\671\\Projects\\MCV\\Access-Time\\')
 #print(ls.log)
 
