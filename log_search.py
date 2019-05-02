@@ -63,7 +63,7 @@ class log_search():
 					line=line.strip('\r\n')
 					
 					if(line.startswith('>>')):
-						if(status == 'searching'):
+						if(not status == 'searching'):
 							print(f'Start of packet found at line {lc} of {short_name} while in {status} mode')
 						
 						#start of entry found, now we will parse the preamble
