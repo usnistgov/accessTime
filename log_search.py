@@ -132,8 +132,12 @@ class log_search():
 								self.log[idx]['complete']=True;
 							elif(line == '===Pre-Test Notes==='):
 								status='pre-notes';
+								#create empty pre test notes field
+								self.log[idx]['pre_notes']='';
 							elif(line == '===Post-Test Notes==='):
 								status='post-notes';
+								#create empty post test notes field
+								self.log[idx]['post_notes']='';
 							else:
 								print(f'Unknown separator found in preamble at line {lc} of file {short_name} : {line}')
 								#drop back to search mode
@@ -157,15 +161,11 @@ class log_search():
 					elif(status == 'pre-notes'):
 						#check that the first character is not tab
 						if(line and line[0]=='\t'):
-							#check if we already have some pr_notes
-							if('pre_notes' in self.log[idx]):
-								#none, no separator
-								sep=''
-							else:
-								#separate with newline
-								sep='\n'
+							#set sep based on if we have pre_notes
+							sep='\n' if(self.log[idx]['pre_notes']) else ''
+								
 							#add in line, skip leading tab
-							self.log[idx]['pre_notes']=sep+line.strip()
+							self.log[idx]['pre_notes']+=sep+line.strip()
 						else:
 							#check for three equal signs
 							if(not line.startswith('===')):
@@ -198,7 +198,7 @@ class log_search():
 							field='post_notes' if(not self.log[idx]['error']) else 'error_notes'
 
 							#set sep based on if we already have notes
-							sep= '' if(field in self.log[idx]) else '\n'
+							sep= '' if(self.log[idx][field]) else '\n'
 
 							#add in line, skip leading tab
 							self.log[idx][field]+=sep+line.strip()						
