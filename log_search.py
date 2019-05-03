@@ -256,15 +256,16 @@ class log_search():
 						if(op.endswith(' started')):
 							op=op[:-len(' started')]
 
-						#set operation
-						self.log[idx]['operation']=op;
-
-						idx=self.logMatch({'date':date,'operation':op});
+						#get index from _logMatch
+						idx=self._logMatch({'date':date,'operation':op});
 
 						if(not idx):
 							raise ValueError(f"no matching entry found for '{line.strip()}' from file {short_name}")
 						elif(len(idx)>1):
 							raise ValueError(f"multiple matching entries found for '{line.strip()}' from file {short_name}")
+
+						#get index from list
+						idx=idx[0]
 
 						#check if this log entry has been amended
 						if(self.log[idx]['amendedBy']):
@@ -288,7 +289,7 @@ class log_search():
 								status='searching'
 						else:
 							#split line on colon
-							lp=line.strsplit(':');
+							lp=line.split(':');
 							
 							#the MATLAB version uses genvarname but we just strip whitespace cause dict doesn't care
 							name=lp[0].strip()
@@ -305,8 +306,19 @@ class log_search():
 							else:
 								raise ValueError(f"Invalid field {repr(name)} at line {lc} of {short_name}")
 	
-	def logMatch(self,match):
-		return []
+	def _logMatch(self,match):
+		m=[]
+		for n,x in enumerate(self.log):
+			eq=[False]*len(match)
+			for i,k in enumerate(match.keys()):
+				if(x[k]==match[k]):
+					eq[i]=True
+				else:
+					eq[i]=False
+			if(all(eq)):
+				m.append(n)
+		return m
+		
 	
 ls=log_search('\\\\cfs2w.nist.gov\\671\\Projects\\MCV\\Access-Time\\')
 #print(ls.log)
