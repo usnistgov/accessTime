@@ -264,8 +264,8 @@ class log_search():
 						elif(len(idx)>1):
 							raise ValueError(f"multiple matching entries found for '{line.strip()}' from file {short_name}")
 
-						#get index from list
-						idx=idx[0]
+						#get index from set
+						idx=idx.pop()
 
 						#check if this log entry has been amended
 						if(self.log[idx]['amendedBy']):
@@ -307,7 +307,7 @@ class log_search():
 								raise ValueError(f"Invalid field {repr(name)} at line {lc} of {short_name}")
 	
 	def _logMatch(self,match):
-		m=[]
+		m=set()
 		for n,x in enumerate(self.log):
 			eq=[False]*len(match)
 			for i,k in enumerate(match.keys()):
@@ -316,7 +316,7 @@ class log_search():
 				else:
 					eq[i]=False
 			if(all(eq)):
-				m.append(n)
+				m.add(n)
 		return m
 		
 	
