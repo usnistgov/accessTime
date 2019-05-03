@@ -9,3 +9,5 @@ ls.MfSearch({'operation':'Test','System':' Direct'})
 ls.clear()
 #run another search
 print(ls.MfSearch({'operation':'Test','Rx Device':' 3506'}))
+#find files
+print(ls.datafilenames())

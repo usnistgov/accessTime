@@ -371,3 +371,55 @@ class log_search():
 		self.found=set()
 		self.foundCleared=True;
 				
+	def datafilenames(self):
+		fn=[None]*len(self.found)
+		for i,idx in enumerate(self.found):
+			if(self.log[idx]['operation'] == 'Test'):
+				prefix=['capture_']
+				folder=['data']
+			elif(self.log[idx]['operation'] == 'Training'):
+				prefix=['Training_']*2
+				folder=['training','data']
+			elif(self.log[idx]['operation'] == 'Tx Two Loc Test'):
+				prefix=['Tx_capture','capture']
+				folder=['tx-data']*len(prefix)
+			elif(self.log[idx]['operation'] == 'Rx Two Loc Test'):
+				prefix=['Rx_capture','capture']
+				folder=['rx-data']*len(prefix)
+			elif(self.log[idx]['operation'].startswith('Copy')):
+				fn[i]=':None'
+				continue
+			else:
+				raise ValueError(f"Unknown operation '{self.log[idx]['operation']}'")
+
+			if(not self.log[idx]['complete']):
+				fn[i]=':Incomplete'
+				continue
+
+			if(self.log[idx]['error']):
+				fn[i]=':Error'
+
+			#get date string in file format
+			date_str=self.log[idx]['date'].strftime('%d-%b-%Y_%H-%M-%S')
+
+			for f,p in zip(folder,prefix):
+
+				foldPath=os.path.join(self.searchPath,f)
+
+				filenames=glob.glob(os.path.join(foldPath,p+'*'))
+
+				match=[f for f in filenames if date_str in f ]
+
+				if(len(match)>1):
+					print(f"More than one file found matching '{date_str}' in '{f}")
+					fn[i]='Multiple'
+				elif(not match and fn[i] is not None):
+					fn[i]=''
+				elif(len(match)==1):
+					fn[i]=os.path.join(foldPath,match[0])
+					break
+			else:
+				if(fn[i] is ''):
+					print(f"No matching files for '{date_str}' in '{foldPath}'")
+
+		return fn
