@@ -365,4 +365,9 @@ class log_search():
 		self._foundUpdate(idx)
 		
 		return idx
+		
+	def clear(self):
+		#clear found
+		self.found=set()
+		self.foundCleared=True;
 				
