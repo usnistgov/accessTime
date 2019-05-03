@@ -362,8 +362,3 @@ class log_search():
 		
 		return idx
 				
-	
-ls=log_search('\\\\cfs2w.nist.gov\\671\\Projects\\MCV\\Access-Time\\')
-#print(ls.log)
-
-print(ls.log[-2])
