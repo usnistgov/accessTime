@@ -319,6 +319,49 @@ class log_search():
 				m.add(n)
 		return m
 		
+	def _foundUpdate(self,idx):
+		#make idx a set
+		idx=set(idx)
+		if(self.foundCleared):
+			self.found=idx
+		else:
+			if(self.updateMode=='Replace'):
+				self.found=idx;
+			elif(self.updateMode=='AND'):
+				self.found&=idx
+			elif(self.updateMode=='OR'):
+				self.found|=idx
+			elif(self.updateMode=='XOR'):
+				self.found^=idx
+			else:
+				raise ValueError(f"Unknown updateMode '{self.updateMode}'")
+		#clear cleared
+		self.foundCleared=False
+		
+	def Qsearch(self,search_field,search_term):
+		
+		#find matching entries
+		idx=self.logMatch({search_field:search_term})
+		
+		#update found array
+		self._foundUpdate(idx)
+		
+		return idx
+		
+	def MfSearch(self,search):
+		
+		#search must be a dictionary
+		if(not isinstance(search,dict)):
+			raise ValueError("the search argument must be a dictionary")
+		
+		#search for matching log entries
+		idx=self._logMatch(search)
+		
+		#update found array
+		self._foundUpdate(idx)
+		
+		return idx
+				
 	
 ls=log_search('\\\\cfs2w.nist.gov\\671\\Projects\\MCV\\Access-Time\\')
 #print(ls.log)
