@@ -312,9 +312,12 @@ class log_search():
 		for n,x in enumerate(self.log):
 			eq=[False]*len(match)
 			for i,k in enumerate(match.keys()):
-				if(x[k]==match[k]):
-					eq[i]=True
-				else:
+				try:
+					if(x[k]==match[k]):
+						eq[i]=True
+					else:
+						eq[i]=False
+				except KeyError:			
 					eq[i]=False
 			if(all(eq)):
 				m.add(n)
