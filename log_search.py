@@ -9,6 +9,7 @@ class log_search():
 	stringSearchMode='OR'
 	found=[]
 	log=[]
+	foundCleared=True
 	fixedFields=['error','complete','operation','GitHash','logFile','amendedBy','date','Arguments','filename','InputFile','OutputFile']
 	def __init__(self,fname,addendumName=[],LogParseAction='Warn'):
 		
