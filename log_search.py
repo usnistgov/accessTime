@@ -2,6 +2,7 @@
 import os
 import glob
 from datetime import datetime
+import re
 
 class log_search():
 	searchPath=''
@@ -313,23 +314,32 @@ class log_search():
 			eq=[False]*len(match)
 			for i,k in enumerate(match.keys()):
 				if(k == 'date_before'):
-					if(match[k]>x['date']):
-						eq[i]=True;
-					else:
-						eq[i]=False;
+					eq[i]=match[k]>x['date']
 				elif(k == 'date_after'):
-					if(match[k]<x['date']):
-						eq[i]=True;
-					else:
-						eq[i]=False;
+					eq[i]=match[k]<x['date']
 				else:
 					try:
-						if(x[k]==match[k]):
-							eq[i]=True
-						else:
-							eq[i]=False
+						val=x[k]
 					except KeyError:			
 						eq[i]=False
+						#done here, continue
+						continue
+					#check for strings and handle differently
+					if(isinstance(val,str)):
+						if(isinstance(match[k],list)):
+							str_eq=[(re.compile(s).search(val)) is not None for s in match[k]]
+							if(self.stringSearchMode=='AND'):
+								eq[i]=all(str_eq)
+							elif(self.stringSearchMode=='OR'):
+								eq[i]=any(str_eq)
+							elif(self.stringSearchMode=='XOR'):
+								#check if exactly one string matched
+								eq[i]=(1==str_eq.count(True))
+						else:
+							eq[i]=re.compile(match[k]).search(val) is not None
+					else:
+						#fall back to equals comparison
+						eq[i]=(val==match[k])
 			if(all(eq)):
 				m.add(n)
 		return m
