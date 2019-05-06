@@ -312,13 +312,24 @@ class log_search():
 		for n,x in enumerate(self.log):
 			eq=[False]*len(match)
 			for i,k in enumerate(match.keys()):
-				try:
-					if(x[k]==match[k]):
-						eq[i]=True
+				if(k == 'date_before'):
+					if(match[k]>x['date']):
+						eq[i]=True;
 					else:
+						eq[i]=False;
+				elif(k == 'date_after'):
+					if(match[k]<x['date']):
+						eq[i]=True;
+					else:
+						eq[i]=False;
+				else:
+					try:
+						if(x[k]==match[k]):
+							eq[i]=True
+						else:
+							eq[i]=False
+					except KeyError:			
 						eq[i]=False
-				except KeyError:			
-					eq[i]=False
 			if(all(eq)):
 				m.add(n)
 		return m
