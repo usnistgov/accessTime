@@ -444,3 +444,7 @@ class log_search():
 					print(f"No matching files for '{date_str}' in '{foldPath}'")
 
 		return fn
+
+	@property
+	def flog(self):
+		return [self.log[i] for i in self.found]

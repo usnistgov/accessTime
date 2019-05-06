@@ -19,5 +19,7 @@ testSearch(ls,{'operation':'Test','Rx Device':' 3506'})
 testSearch(ls,{'Arguments':'test.wav'})
 #test regexp search
 testSearch(ls,{'post_notes':r'Optimal volume = [+-]?[0-9]+\.[0-9]+ dB'})
+#test flog
+print(f"flog : {repr(ls.flog)}")
 #find files
 print(f"datafilenames returned : {ls.datafilenames()}")
