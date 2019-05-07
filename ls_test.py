@@ -3,12 +3,16 @@ import re
 
 def testSearch(ls,test):
 	print(f"searching with '{repr(test)}'")
-	print(ls.MfSearch(test))
+	print(repr(ls.MfSearch(test))+'\n')
 
+def printDatafiles(ls):
+	print(f"datafilenames returned :")
+	print(repr(ls.datafilenames())+"\n")
 
+print('Opening log:')
 ls=log_search('\\\\cfs2w.nist.gov\\671\\Projects\\MCV\\Access-Time\\')
 
-print(ls.log[-2])
+print(f"\n\nLog opened!\nExample entry :\n{ls.log[-2]}\n")
 #run a search
 testSearch(ls,{'operation':'Test','System':' Direct'})
 #clear found
@@ -24,6 +28,6 @@ print(f"flog : {repr(ls.flog)}")
 #test isAncestor
 hash='e29daa8dba5fe2e0ed0f5808064234261ad8ce41'
 anc=ls.isAncestor(hash,'https://gitlab.nist.gov/gitlab/PSCR/MCV/access-time.git')
-print(f"Ancestors of {hash} : {anc}")
+print(f"Ancestors of {hash} : {anc}\n")
 #find files
-print(f"datafilenames returned : {ls.datafilenames()}")
+printDatafiles(ls)
