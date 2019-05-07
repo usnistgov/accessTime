@@ -22,6 +22,8 @@ testSearch(ls,{'post_notes':r'Optimal volume = [+-]?[0-9]+\.[0-9]+ dB'})
 #test flog
 print(f"flog : {repr(ls.flog)}")
 #test isAncestor
-print(ls.isAncestor('e29daa8dba5fe2e0ed0f5808064234261ad8ce41','https://gitlab.nist.gov/gitlab/PSCR/MCV/access-time.git'))
+hash='e29daa8dba5fe2e0ed0f5808064234261ad8ce41'
+anc=ls.isAncestor(hash,'https://gitlab.nist.gov/gitlab/PSCR/MCV/access-time.git')
+print(f"Ancestors of {hash} : {anc}")
 #find files
 print(f"datafilenames returned : {ls.datafilenames()}")

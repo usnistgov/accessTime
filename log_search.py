@@ -5,6 +5,8 @@ from datetime import datetime
 import re
 import subprocess
 import tempfile
+import shutil
+import stat
 
 class log_search():
 	searchPath=''
@@ -452,16 +454,19 @@ class log_search():
 		if(git_path is None):
 			git_path='git'
 			
-		#generate temp dir in case we need it
-		with tempfile.TemporaryDirectory() as tmpdirname:
+		#dummy name in case it is not used
+		tmpdir=None
+		try:
 			
 			if(isGitURL(repo_path)):
 				#save URL
 				repo_url=repo_path
+				#generate temp dir
+				tmpdir=tempfile.TemporaryDirectory()
 				#print message to inform the user
 				print(f"Cloning : {repo_path}")
 				#set repo path to temp dir
-				repo_path=tmpdirname
+				repo_path=tmpdir.name
 				#clone repo
 				p=subprocess.run([git_path,'clone',repo_url,repo_path],capture_output=True)
 				#check return code
@@ -504,16 +509,33 @@ class log_search():
 				if(p.returncode):
 					print(f"Could not get the status of log entry {k} git returned : {base}")
 					
-				if('\n' in base and base == rev_p):
+				if(base == rev_p):
 					match.append(k)
+		finally:
+			if(tmpdir):
+				#must delete directory manually because of a bug in TemporaryDirectory
+				#see https://bugs.python.org/issue26660
+				#.git has read only files
+				shutil.rmtree(os.path.join(tmpdir.name,'.git'),onerror=del_rw)
+				#cleanup dir
+				tmpdir.cleanup()
+				
+				
 					
 		self._foundUpdate(match)
+		
+		return match
 
 
 	@property
 	def flog(self):
 		return [self.log[i] for i in self.found]
 		
+#workaround for deleting read only files
+#code from : https://bugs.python.org/issue19643#msg208662
+def del_rw(action, name, exc):
+	os.chmod(name, stat.S_IWRITE)
+	os.remove(name)
 
 def isGitURL(str):
 	if(str.startswith('git@')):
