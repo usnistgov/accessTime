@@ -45,17 +45,11 @@ class log_search():
 				adnames=(addendumName,)
 			else:
 				adnames=()
-			
-		print('Addendum Names :')
-		print(adnames)
-		print('Filenames :')
-		print(filenames)
 		
 		#initialize idx
 		idx=-1
 		
 		for fn in filenames:
-			print(f'Opening file {fn}')
 			with open(fn,'r') as f:
 				
 				#create filename without path
@@ -222,7 +216,6 @@ class log_search():
 								status='searching'
 		
 		for fn in adnames:
-			print(f'Opening addendum file {fn}')
 			with open(fn,'r') as f:
 				
 				#create filename without path
