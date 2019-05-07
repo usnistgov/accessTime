@@ -3,6 +3,8 @@ import os
 import glob
 from datetime import datetime
 import re
+import subprocess
+import tempfile
 
 class log_search():
 	searchPath=''
@@ -445,6 +447,80 @@ class log_search():
 
 		return fn
 
+	def isAncestor(self,rev,repo_path,git_path=None):
+		
+		if(git_path is None):
+			git_path='git'
+			
+		#generate temp dir in case we need it
+		with tempfile.TemporaryDirectory() as tmpdirname:
+			
+			if(isGitURL(repo_path)):
+				#save URL
+				repo_url=repo_path
+				#print message to inform the user
+				print(f"Cloning : {repo_path}")
+				#set repo path to temp dir
+				repo_path=tmpdirname
+				#clone repo
+				p=subprocess.run([git_path,'clone',repo_url,repo_path],capture_output=True)
+				#check return code
+				if(p.returncode):
+					#TODO: error
+					raise RuntimeError(p.stderr)
+			
+			#get the full has of the commit described by rev
+			p=subprocess.run([git_path,'-C',repo_path,'rev-parse','--verify',rev],capture_output=True)
+			#convert to string and trim whitespace
+			rev_p=p.stdout.decode("utf-8").strip()
+			#check for success
+			if(p.returncode):
+				raise RuntimeError(f"Failed to parse rev : {rev_p}")
+				
+			match=[]
+			
+			for k,l in enumerate(self.log):
+				hash=l['Git Hash'].strip()
+				
+				if(not hash):
+					#skip this one
+					continue
+				
+				#dump dty flag
+				hash=hash.split()[0]
+			
+				#check that hash is valid
+				p=subprocess.run([git_path,'-C',repo_path,'cat-file','-t',hash],capture_output=True)
+				
+				if(p.returncode):
+					print(f"Could not get hash for {hash} {p.stderr.decode('utf-8').strip()}")
+					#skip this one
+					continue
+					
+				p=subprocess.run([git_path,'-C',repo_path,'show-branch','--merge-base',rev_p,hash],capture_output=True)
+				#remove spaces from base
+				base=p.stdout.decode("utf-8").strip()
+				#check for errors
+				if(p.returncode):
+					print(f"Could not get the status of log entry {k} git returned : {base}")
+					
+				if('\n' in base and base == rev_p):
+					match.append(k)
+					
+		self._foundUpdate(match)
+
+
 	@property
 	def flog(self):
 		return [self.log[i] for i in self.found]
+		
+
+def isGitURL(str):
+	if(str.startswith('git@')):
+		return True
+	elif(str.startswith('https://')):
+		return True
+	elif(str.startswith('http://')):
+		return True
+	else:
+		return False
