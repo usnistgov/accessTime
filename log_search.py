@@ -484,6 +484,8 @@ class log_search():
 				
 			match=[]
 			
+			hashCache={}
+			
 			for k,l in enumerate(self.log):
 				hash=l['Git Hash'].strip()
 				
@@ -493,23 +495,29 @@ class log_search():
 				
 				#dump dty flag
 				hash=hash.split()[0]
-			
-				#check that hash is valid
-				p=subprocess.run([git_path,'-C',repo_path,'cat-file','-t',hash],capture_output=True)
 				
-				if(p.returncode):
-					print(f"Could not get hash for {hash} {p.stderr.decode('utf-8').strip()}")
-					#skip this one
-					continue
+				if(hash not in hashCache.keys()):
+				
+					#check that hash is valid
+					p=subprocess.run([git_path,'-C',repo_path,'cat-file','-t',hash],capture_output=True)
 					
-				p=subprocess.run([git_path,'-C',repo_path,'show-branch','--merge-base',rev_p,hash],capture_output=True)
-				#remove spaces from base
-				base=p.stdout.decode("utf-8").strip()
-				#check for errors
-				if(p.returncode):
-					print(f"Could not get the status of log entry {k} git returned : {base}")
-					
-				if(base == rev_p):
+					if(p.returncode):
+						print(f"Could not get hash for {hash} {p.stderr.decode('utf-8').strip()}")
+						#store result in hash cache
+						hashCache[hash]=False
+						#skip this one
+						continue
+						
+					p=subprocess.run([git_path,'-C',repo_path,'show-branch','--merge-base',rev_p,hash],capture_output=True)
+					#remove spaces from base
+					base=p.stdout.decode("utf-8").strip()
+					#check for errors
+					if(p.returncode):
+						print(f"Could not get the status of log entry {k} git returned : {base}")
+						
+					hashCache[hash]=(base == rev_p)
+				
+				if(hashCache[hash]):
 					match.append(k)
 		finally:
 			if(tmpdir):
