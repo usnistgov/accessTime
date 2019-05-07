@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import shutil
 import stat
+import warnings
 
 class log_search():
 	searchPath=''
@@ -17,6 +18,19 @@ class log_search():
 	foundCleared=True
 	fixedFields=['error','complete','operation','GitHash','logFile','amendedBy','date','Arguments','filename','InputFile','OutputFile']
 	def __init__(self,fname,addendumName=[],LogParseAction='Warn'):
+		
+		if(LogParseAction=='Warn'):
+			msgFcn= lambda m: warnings.warn(RuntimeWarning(m),stacklevel=3)
+		elif(LogParseAction=='Error'):
+			def errMsg(e):
+				raise RuntimeError(e)
+			msgFcn=errMsg
+		elif(LogParseAction == 'Ignore'):
+			def noMsg(m):
+				pass
+			msgFcn = noMsg
+		else:
+			raise ValueError(f"invalid value '{LogParseAction}' for LogParseAction")
 		
 		if(os.path.isdir(fname)):
 			#set searchpath to folder
@@ -65,7 +79,7 @@ class log_search():
 					
 					if(line.startswith('>>')):
 						if(not status == 'searching'):
-							print(f'Start of packet found at line {lc} of {short_name} while in {status} mode')
+							msgFcn(f"Start of packet found at line {lc} of {short_name} while in {status} mode")
 						
 						#start of entry found, now we will parse the preamble
 						status='preamble-st';
@@ -119,7 +133,7 @@ class log_search():
 						if(line and (not line[0]=='\t')):
 							#check for three equal signs
 							if(not line.startswith('===')):
-								print(f'Unknown sequence found in preamble at line {lc} of file {short_name} : {repr(line)}')
+								msgFcn(f"Unknown sequence found in preamble at line {lc} of file {short_name} : {repr(line)}")
 								#drop back to search mode
 								status='searching'
 							elif(line.startswith('===End')):
@@ -136,11 +150,11 @@ class log_search():
 								#create empty post test notes field
 								self.log[idx]['post_notes']='';
 							else:
-								print(f'Unknown separator found in preamble at line {lc} of file {short_name} : {repr(line)}')
+								msgFcn(f"Unknown separator found in preamble at line {lc} of file {short_name} : {repr(line)}")
 								#drop back to search mode
 								status='searching'
 						elif(not line):
-							print('Empty line in preamble at line {lc} of file {short_name}');
+							msgFcn('Empty line in preamble at line {lc} of file {short_name}');
 						else:
 							#split line on colon
 							lp=line.split(':')
@@ -151,7 +165,7 @@ class log_search():
 
 							#check if key exists in dictionary
 							if(name in self.log[idx].keys()):
-								print(f'Duplicate field {name} found at line {lc} of file {short_name}')
+								msgFcn(f"Duplicate field {name} found at line {lc} of file {short_name}")
 							else:
 								self.log[idx][name]=arg
 								
@@ -166,7 +180,7 @@ class log_search():
 						else:
 							#check for three equal signs
 							if(not line.startswith('===')):
-								print(f'Unknown sequence found at line {lc} of file {short_name} : {repr(line)}')
+								msgFcn(f"Unknown sequence found at line {lc} of file {short_name} : {repr(line)}")
 								#drop back to search mode
 								status='searching'
 							elif(line.startswith('===End')):
@@ -185,7 +199,7 @@ class log_search():
 									self.log[idx]['error_notes']='';
 									self.log[idx]['error']=True;
 								else:
-									print('Unknown separator found at line {lc} of file {short_name} : {repr(line)}')
+									msgFcn('Unknown separator found at line {lc} of file {short_name} : {repr(line)}')
 									#drop back to search mode
 									status='searching';
 					
@@ -202,7 +216,7 @@ class log_search():
 						else:
 							#check for three equal signs
 							if(not line.startswith('===')):
-								print(f'Unknown sequence found at line {lc} of file {short_name} : {repr(line)}')
+								msgFcn(f"Unknown sequence found at line {lc} of file {short_name} : {repr(line)}")
 								#drop back to search mode
 								status='searching'
 							elif(line.startswith('===End')):
@@ -211,7 +225,7 @@ class log_search():
 								#mark entry as complete
 								self.log[idx]['complete']=True
 							else:
-								print('Unknown separator found at line {lc} of file {short_name} : {repr(line)}')
+								msgFcn('Unknown separator found at line {lc} of file {short_name} : {repr(line)}')
 								#drop back to search mode
 								status='searching'
 		
