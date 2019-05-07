@@ -430,6 +430,7 @@ class log_search():
 
 			if(self.log[idx]['error']):
 				fn[i]=':Error'
+				continue
 
 			#get date string in file format
 			date_str=self.log[idx]['date'].strftime('%d-%b-%Y_%H-%M-%S')
@@ -445,13 +446,11 @@ class log_search():
 				if(len(match)>1):
 					print(f"More than one file found matching '{date_str}' in '{f}")
 					fn[i]='Multiple'
-				elif(not match and fn[i] is not None):
-					fn[i]=''
 				elif(len(match)==1):
 					fn[i]=os.path.join(foldPath,match[0])
 					break
 			else:
-				if(fn[i] is ''):
+				if(fn[i] is None):
 					print(f"No matching files for '{date_str}' in '{foldPath}'")
 
 		return fn
