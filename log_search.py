@@ -455,12 +455,8 @@ class log_search():
 
 		return fn
 
-	def findFiles(self,network_path):
-		locpath = self.searchPath
-		loc_names = self.datafilenames()
-		
-		# Identify all sessions marked error locally
-		loc_errSessions = [name == ":Error" for name in loc_names]
+	def findFiles(self,locpath):
+		network_path = self.searchPath
 		
 		self.searchPath = network_path
 		net_names = self.datafilenames()
@@ -477,6 +473,12 @@ class log_search():
 		if(any(net_notFound)):
 			warnings.warn(RuntimeWarning(f"'{sum(net_notFound)}' files not found on network"),stacklevel=2)
 		
+		# Switch to searching localpath
+		self.searchPath = locpath
+		loc_names = self.datafilenames()
+		
+		# Identify all sessions marked error locally
+		loc_errSessions = [name == ":Error" for name in loc_names]
 		# Combine all sessions we want to ignore
 		tossSessions = [loc_errSessions[i] or net_errSessions[i] or net_incSessions[i] or net_notFound[i] for i in range(0,len(loc_errSessions))]
 		
@@ -499,7 +501,7 @@ class log_search():
 					print(f"Copying from:\n -- {netpath}")
 					print(f"Copying to:\n -- {localpath}")
 					shutil.copy2(netpath,localpath)
-		self.searchPath = locpath
+		self.searchPath = network_path
 		filenames = self.datafilenames()
 		filenames = [filenames[i] for i in range(0,len(filenames)) if(not(tossSessions[i]))]
 		if(filenames == []):
