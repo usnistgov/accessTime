@@ -501,11 +501,12 @@ class log_search():
 					print(f"Copying from:\n -- {netpath}")
 					print(f"Copying to:\n -- {localpath}")
 					shutil.copy2(netpath,localpath)
-		self.searchPath = network_path
+		
 		filenames = self.datafilenames()
 		filenames = [filenames[i] for i in range(0,len(filenames)) if(not(tossSessions[i]))]
 		if(filenames == []):
 			raise RuntimeError("Could not find any files meeting search criteria")
+		self.searchPath = network_path
 		return(filenames)
 
 	def isAncestor(self,rev,repo_path,git_path=None):
