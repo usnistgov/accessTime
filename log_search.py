@@ -447,7 +447,7 @@ class log_search():
 					print(f"More than one file found matching '{date_str}' in '{f}")
 					fn[i]='Multiple'
 				elif(len(match)==1):
-					fn[i]=os.path.join(foldPath,match[0])
+					fn[i]=match[0]
 					break
 			else:
 				if(fn[i] is None):
