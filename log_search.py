@@ -456,6 +456,29 @@ class log_search():
 
 		return fn
 
+	def findFiles(self,network_path):
+		locpath = self.searchPath
+		loc_names = self.datafilenames()
+		
+		# Identify all sessions marked error locally
+		loc_errSessions = [name == ":Error" for name in loc_names]
+		
+		self.searchPath = network_path
+		net_names = self.datafilenames()
+		
+		# Identify all sessions marked error on network
+		net_errSessions = [name == ":Error" for name in net_names]
+		
+		# Identify all sessions marked Incomplete on network
+		net_incSessions = [name == ":Incomplete" for name in net_names]
+		
+		# Identify all sessoins that could not be identified on netowkr
+		net_notFound = [name == "" for name in net_names]
+		
+		if(any(net_noutFound)):
+			
+		return()
+
 	def isAncestor(self,rev,repo_path,git_path=None):
 		
 		if(git_path is None):
