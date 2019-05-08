@@ -472,7 +472,7 @@ class log_search():
 		net_incSessions = [name == ":Incomplete" for name in net_names]
 		
 		# Identify all sessoins that could not be identified on netowkr
-		net_notFound = [name == "" for name in net_names]
+		net_notFound = [name == None for name in net_names]
 		
 		if(any(net_notFound)):
 			warnings.warn(RuntimeWarning(f"'{sum(net_notFound)}' files not found on network"),stacklevel=2)
@@ -485,7 +485,7 @@ class log_search():
 		net_names = [net_names[i] for i in range(0,len(net_names)) if(not(tossSessions[i]))]
 		
 		# Find remaining files missing locally
-		loc_notFound = [name == "" for name in loc_names]
+		loc_notFound = [name == None for name in loc_names]
 		
 		if(any(loc_notFound)):
 			
