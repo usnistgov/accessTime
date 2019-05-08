@@ -562,7 +562,7 @@ class log_search():
 					p=subprocess.run([git_path,'-C',repo_path,'cat-file','-t',hash],capture_output=True)
 					
 					if(p.returncode):
-						warnings.warn(GitWarning(f"Could not get hash for {hash} {p.stderr.decode('utf-8').strip()}"),stacklevel=2)
+						warnings.warn(RuntimeWarning(f"Could not get hash for {hash} {p.stderr.decode('utf-8').strip()}"),stacklevel=2)
 						#store result in hash cache
 						hashCache[hash]=False
 						#skip this one
@@ -573,7 +573,7 @@ class log_search():
 					base=p.stdout.decode("utf-8").strip()
 					#check for errors
 					if(p.returncode):
-						warnings.warn(GitWarning(f"Could not get the status of log entry {k} git returned : {base}"),stacklevel=2)
+						warnings.warn(RuntimeWarning(f"Could not get the status of log entry {k} git returned : {base}"),stacklevel=2)
 						
 					hashCache[hash]=(base == rev_p)
 				
@@ -598,9 +598,7 @@ class log_search():
 	@property
 	def flog(self):
 		return [self.log[i] for i in self.found]
-		
-	class GitWarning(RuntimeWarning):
-		pass
+
 		
 #workaround for deleting read only files
 #code from : https://bugs.python.org/issue19643#msg208662
