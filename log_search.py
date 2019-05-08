@@ -475,8 +475,36 @@ class log_search():
 		net_notFound = [name == "" for name in net_names]
 		
 		if(any(net_noutFound)):
+			warnings.warn(RuntimeWarning(f"'{sum(net_notFound)}' files not found on network"),stacklevel=2)
+		
+		# Combine all sessions we want to ignore
+		tossSessions = [loc_errSessions[i] or net_errSessions[i] or net_incSessions[i] or net_notFound[i] for i in range(0,len(loc_errSessions))]
+		
+		# Toss unwanted sessions
+		loc_names = [loc_names[i] for i in range(0,len(loc_names)) if(not(tossSessions[i]))]
+		net_names = [net_names[i] for i in range(0,len(net_names)) if(not(tossSessions[i]))]
+		
+		# Find remaining files missing locally
+		loc_notFound = [name == "" for name in loc_names]
+		
+		if(any(loc_notFound)):
 			
-		return()
+			filenames_parts = [os.path.split(x) for x in net_names)]
+			filenames_elev = [os.path.basename(x) for x in fielenames_parts[0]]
+			for i in range(0,len(loc_notFound)):
+				if(loc_notFound):
+					netpath = net_names[i]
+					
+					localpath = os.path.join(locpath,filenames_elev[i],filenames_parts[i][1])
+					print(f"Copying from:\n -- {netpath}")
+					print(f"Copying to:\n -- {localpath}")
+					shutil.copy2(netpath,localpath)
+		self.searchPath = locpath
+		filenames = log.datafilenames()
+		filenames = [filenames[i] for i in range(0,len(filenames)) if(not(tossSessions[i]))]
+		if(filenames == []):
+			raise RuntimeError("Could not find any files meeting search criteria")
+		return(filenames)
 
 	def isAncestor(self,rev,repo_path,git_path=None):
 		
