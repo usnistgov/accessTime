@@ -430,6 +430,7 @@ class log_search():
 
 			if(self.log[idx]['error']):
 				fn[i]=':Error'
+				continue
 
 			#get date string in file format
 			date_str=self.log[idx]['date'].strftime('%d-%b-%Y_%H-%M-%S')
@@ -445,14 +446,12 @@ class log_search():
 				if(len(match)>1):
 					print(f"More than one file found matching '{date_str}' in '{f}")
 					fn[i]='Multiple'
-				elif(not match and fn[i] is not None):
-					fn[i]=''
 				elif(len(match)==1):
-					fn[i]=os.path.join(foldPath,match[0])
+					fn[i]=match[0]
 					break
 			else:
-				if(fn[i] is ''):
-					print(f"No matching files for '{date_str}' in '{foldPath}'")
+				if(fn[i] is None):
+					warnings.warn(RuntimeWarning(f"No matching files for '{date_str}' in '{foldPath}'"),stacklevel=2)
 
 		return fn
 
@@ -532,7 +531,7 @@ class log_search():
 					p=subprocess.run([git_path,'-C',repo_path,'cat-file','-t',hash],capture_output=True)
 					
 					if(p.returncode):
-						print(f"Could not get hash for {hash} {p.stderr.decode('utf-8').strip()}")
+						warnings.warn(GitWarning(f"Could not get hash for {hash} {p.stderr.decode('utf-8').strip()}"),stacklevel=2)
 						#store result in hash cache
 						hashCache[hash]=False
 						#skip this one
@@ -543,7 +542,7 @@ class log_search():
 					base=p.stdout.decode("utf-8").strip()
 					#check for errors
 					if(p.returncode):
-						print(f"Could not get the status of log entry {k} git returned : {base}")
+						warnings.warn(GitWarning(f"Could not get the status of log entry {k} git returned : {base}"),stacklevel=2)
 						
 					hashCache[hash]=(base == rev_p)
 				
@@ -568,6 +567,9 @@ class log_search():
 	@property
 	def flog(self):
 		return [self.log[i] for i in self.found]
+		
+	class GitWarning(RuntimeWarning):
+		pass
 		
 #workaround for deleting read only files
 #code from : https://bugs.python.org/issue19643#msg208662
