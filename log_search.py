@@ -474,7 +474,7 @@ class log_search():
 		# Identify all sessoins that could not be identified on netowkr
 		net_notFound = [name == "" for name in net_names]
 		
-		if(any(net_noutFound)):
+		if(any(net_notFound)):
 			warnings.warn(RuntimeWarning(f"'{sum(net_notFound)}' files not found on network"),stacklevel=2)
 		
 		# Combine all sessions we want to ignore
@@ -489,8 +489,8 @@ class log_search():
 		
 		if(any(loc_notFound)):
 			
-			filenames_parts = [os.path.split(x) for x in net_names)]
-			filenames_elev = [os.path.basename(x) for x in fielenames_parts[0]]
+			filenames_parts = [os.path.split(x) for x in net_names]
+			filenames_elev = [os.path.basename(x) for x in filenames_parts[0]]
 			for i in range(0,len(loc_notFound)):
 				if(loc_notFound):
 					netpath = net_names[i]
@@ -500,7 +500,7 @@ class log_search():
 					print(f"Copying to:\n -- {localpath}")
 					shutil.copy2(netpath,localpath)
 		self.searchPath = locpath
-		filenames = log.datafilenames()
+		filenames = self.datafilenames()
 		filenames = [filenames[i] for i in range(0,len(filenames)) if(not(tossSessions[i]))]
 		if(filenames == []):
 			raise RuntimeError("Could not find any files meeting search criteria")
