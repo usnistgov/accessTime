@@ -17,6 +17,9 @@ net_names = log.datafilenames()';
 % Idenfity all sessions on network marked error
 net_errSessions = cellfun(@(x) strcmp(':Error',x),net_names);
 
+% Identify all sessions on network marked Incomplete
+net_incSessions = cellfun(@(x) strcmp(':Incomplete',x),net_names);
+
 % Identify all sessions that could not be identified on network
 net_notFound = cellfun(@isempty, net_names);
 if(any(net_notFound))
@@ -24,7 +27,7 @@ if(any(net_notFound))
 end
 
 % Total error sessions are either local or net
-tossSessions = loc_errSessions | net_errSessions | net_notFound;
+tossSessions = loc_errSessions | net_errSessions | net_notFound | net_incSessions;
 
 % Toss errSessions
 loc_names = loc_names(~tossSessions);
