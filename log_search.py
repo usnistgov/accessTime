@@ -406,21 +406,46 @@ class log_search():
 		self.found=set()
 		self.foundCleared=True;
 				
-	def datafilenames(self):
+	def datafilenames(self,type='mat'):
+		
+		types=re.compile(r"\.?(?P<csv>csv)|(?P<mat>mat)|(?P<wav>wav)|(?P<sm_mat>sm(?:all)?_mat)",re.IGNORECASE)
+		
+		m=types.match(type)
+		
+		if(m.group('mat')):
+			tstFiles={'ext':'.mat','path':'data','singular':True}
+		elif(m.group('csv')):
+			tstFiles={'ext':'.csv','path':'post-processed-data/csv','singular':False}
+		elif(m.group('wav')):
+			tstFiles={'ext':'','path':'post-processed-data/wav','singular':True}
+		elif(m.group('sm_mat')):
+			tstFiles={'ext':'.mat','path':'post-processed-data/mat','singular':True}
+		else:
+			raise RuntimeError(f"'{type}' is an invalid file type")
+			
+		
 		fn=[None]*len(self.found)
 		for i,idx in enumerate(self.found):
 			if(self.log[idx]['operation'] == 'Test'):
 				prefix=['capture_']
-				folder=['data']
+				folder=[tstFiles['path']]
+				ext=tstFiles['ext']
+				singular=tstFiles['singular']
 			elif(self.log[idx]['operation'] == 'Training'):
 				prefix=['Training_']*2
 				folder=['training','data']
+				ext='.mat'
+				singular=True
 			elif(self.log[idx]['operation'] == 'Tx Two Loc Test'):
 				prefix=['Tx_capture','capture']
 				folder=['tx-data']*len(prefix)
+				ext='.mat'
+				singular=True
 			elif(self.log[idx]['operation'] == 'Rx Two Loc Test'):
 				prefix=['Rx_capture','capture']
 				folder=['rx-data']*len(prefix)
+				ext='.mat'
+				singular=True
 			elif(self.log[idx]['operation'].startswith('Copy')):
 				fn[i]=':None'
 				continue
@@ -442,11 +467,14 @@ class log_search():
 
 				foldPath=os.path.join(self.searchPath,f)
 
-				filenames=glob.glob(os.path.join(foldPath,p+'*'))
+				filenames=glob.glob(os.path.join(foldPath,p+'*'+ext))
 
 				match=[f for f in filenames if date_str in f ]
 
-				if(len(match)>1):
+				if(not singular and len(match)>=1):
+					fn[i]=match
+					break
+				elif(len(match)>1):
 					print(f"More than one file found matching '{date_str}' in '{f}")
 					fn[i]='Multiple'
 				elif(len(match)==1):
