@@ -168,6 +168,9 @@ class log_search():
 								msgFcn(f"Duplicate field {name} found at line {lc} of file {short_name}")
 							else:
 								self.log[idx][name]=arg
+								#check for arguments
+								if(name=='Arguments'):
+									self.log[idx]['_Arguments']=self._argParse(arg)
 								
 					elif(status == 'pre-notes'):
 						#check that the first character is not tab
@@ -377,7 +380,7 @@ class log_search():
 	def Qsearch(self,search_field,search_term):
 		
 		#find matching entries
-		idx=self.logMatch({search_field:search_term})
+		idx=self._logMatch({search_field:search_term})
 		
 		#update found array
 		self._foundUpdate(idx)
@@ -595,7 +598,6 @@ class log_search():
 		return match
 
 	def argSearch(self,name,value):
-		args=self._argParse()
 		
 		def listCmp(l1,l2):
 			
@@ -628,9 +630,9 @@ class log_search():
 				return arg==val
 		
 		match=[]
-		for i,arg in enumerate(args):
+		for i,l in enumerate(self.log):
 			try:
-				if(valCmp(arg[name],value)):
+				if(valCmp(l['_Arguments'][name],value)):
 					match.append(i)
 			except KeyError:
 				#argument not found, not a match
@@ -640,64 +642,50 @@ class log_search():
 		
 		return match
 
-	def _argParse(self):
-		
-		argsl=[{}]*len(self.log)
-		
-		for i,l in enumerate(self.log):
-			
-			def str_or_float(val):
-				if(not val):
-					return None
-				m=re.match(r"(?P<str>'(?P<s>[^']*)')|(?P<true>true)|(?P<false>false)",val)
-				if(m):
-					if(m.group('str')):
-						return m.group('s')
-					elif(m.group('true')):
-						return True
-					elif(m.group('false')):
-						return False
-					else:
-						raise RuntimeError('Internal Error')
+	def _argParse(self,args):
+					
+		def str_or_float(val):
+			if(not val):
+				return None
+			m=re.match(r"(?P<str>'(?P<s>[^']*)')|(?P<true>true)|(?P<false>false)",val)
+			if(m):
+				if(m.group('str')):
+					return m.group('s')
+				elif(m.group('true')):
+					return True
+				elif(m.group('false')):
+					return False
 				else:
-					try:
-						return float(val)
-					except ValueError:
-						warnings.warn(RuntimeWarning(f"Could not convert '{val}'"),stacklevel=3)
-						return val
-			
-			if('Arguments' not in l.keys()):
-				#print('No arguments, skipping')
-				continue
-			
-			args=l['Arguments']
-			
-			#print(args)
-			
-			match_args=re.finditer(r"'(?P<name>[^']*)',(?P<value>(?P<cell_m>\{(?P<cell>[^}]*)\})|(?P<arr_m>\[(?P<arr>[^]]*)\])|(?:[^{[][^,]*))",args)
-			
-			arg_d={}
-			
-			for m in match_args:
-				#check for cell array
-				if(m.group('cell_m')):
-					if(m.group('cell')):
-						arg_d[m.group('name')]=[str_or_float(v) for v in re.split(';|,',m.group('cell'))]
-					else:
-						arg_d[m.group('name')]=[]
-				#check for a array
-				elif(m.group('arr_m')):
-					if(m.group('arr')):
-						arg_d[m.group('name')]=[str_or_float(v) for v in re.split(';|,',m.group('arr'))]
-					else:
-						arg_d[m.group('name')]=[]
-				else:
-					arg_d[m.group('name')]=str_or_float(m.group('value'))
-			
-			#print(arg_d)
-			argsl[i]=arg_d
+					raise RuntimeError('Internal Error')
+			else:
+				try:
+					return float(val)
+				except ValueError:
+					warnings.warn(RuntimeWarning(f"Could not convert '{val}'"),stacklevel=2)
+					return val
+
+		match_args=re.finditer(r"'(?P<name>[^']*)',(?P<value>(?P<cell_m>\{(?P<cell>[^}]*)\})|(?P<arr_m>\[(?P<arr>[^]]*)\])|(?:[^{[][^,]*))",args)
 		
-		return argsl
+		#dictionary for args
+		arg_d={}
+		
+		for m in match_args:
+			#check for cell array
+			if(m.group('cell_m')):
+				if(m.group('cell')):
+					arg_d[m.group('name')]=[str_or_float(v) for v in re.split(';|,',m.group('cell'))]
+				else:
+					arg_d[m.group('name')]=[]
+			#check for a array
+			elif(m.group('arr_m')):
+				if(m.group('arr')):
+					arg_d[m.group('name')]=[str_or_float(v) for v in re.split(';|,',m.group('arr'))]
+				else:
+					arg_d[m.group('name')]=[]
+			else:
+				arg_d[m.group('name')]=str_or_float(m.group('value'))
+		
+		return arg_d
 		
 	@property
 	def flog(self):
