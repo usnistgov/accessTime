@@ -594,7 +594,111 @@ class log_search():
 		
 		return match
 
+	def argSearch(self,name,value):
+		args=self._argParse()
+		
+		def listCmp(l1,l2):
+			
+			m=[False]*len(l2)
+			
+			for a in l1:
+				res=[valCmp(a,b) for b in l2]
+				
+				#make sure that there was a match
+				if(not any(res)):
+					return False
+				
+				#OR lists together
+				m=[a|b for a,b in zip(m,res)]
+			
+			return all(m)
+				
+		
+		def valCmp(arg,val):
+			if(isinstance(arg,list) and isinstance(val,list)):
+				return listCmp(arg,val)
+			elif(isinstance(arg,list) and not isinstance(val,list)):
+				return listCmp(arg,[val])
+			elif((not isinstance(arg,list)) and isinstance(val,list)):
+				return listCmp([arg],val)
+			elif(isinstance(arg,str)):
+				m=re.search(val,arg)
+				return not not m
+			else:
+				return arg==val
+		
+		match=[]
+		for i,arg in enumerate(args):
+			try:
+				if(valCmp(arg[name],value)):
+					match.append(i)
+			except KeyError:
+				#argument not found, not a match
+				pass
+				
+		self._foundUpdate(match)
+		
+		return match
 
+	def _argParse(self):
+		
+		argsl=[{}]*len(self.log)
+		
+		for i,l in enumerate(self.log):
+			
+			def str_or_float(val):
+				if(not val):
+					return None
+				m=re.match(r"(?P<str>'(?P<s>[^']*)')|(?P<true>true)|(?P<false>false)",val)
+				if(m):
+					if(m.group('str')):
+						return m.group('s')
+					elif(m.group('true')):
+						return True
+					elif(m.group('false')):
+						return False
+					else:
+						raise RuntimeError('Internal Error')
+				else:
+					try:
+						return float(val)
+					except ValueError:
+						warnings.warn(RuntimeWarning(f"Could not convert '{val}'"),stacklevel=3)
+						return val
+			
+			if('Arguments' not in l.keys()):
+				#print('No arguments, skipping')
+				continue
+			
+			args=l['Arguments']
+			
+			#print(args)
+			
+			match_args=re.finditer(r"'(?P<name>[^']*)',(?P<value>(?P<cell_m>\{(?P<cell>[^}]*)\})|(?P<arr_m>\[(?P<arr>[^]]*)\])|(?:[^{[][^,]*))",args)
+			
+			arg_d={}
+			
+			for m in match_args:
+				#check for cell array
+				if(m.group('cell_m')):
+					if(m.group('cell')):
+						arg_d[m.group('name')]=[str_or_float(v) for v in re.split(';|,',m.group('cell'))]
+					else:
+						arg_d[m.group('name')]=[]
+				#check for a array
+				elif(m.group('arr_m')):
+					if(m.group('arr')):
+						arg_d[m.group('name')]=[str_or_float(v) for v in re.split(';|,',m.group('arr'))]
+					else:
+						arg_d[m.group('name')]=[]
+				else:
+					arg_d[m.group('name')]=str_or_float(m.group('value'))
+			
+			#print(arg_d)
+			argsl[i]=arg_d
+		
+		return argsl
+		
 	@property
 	def flog(self):
 		return [self.log[i] for i in self.found]

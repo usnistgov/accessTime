@@ -31,3 +31,11 @@ anc=ls.isAncestor(hash,'https://gitlab.nist.gov/gitlab/PSCR/MCV/access-time.git'
 print(f"Ancestors of {hash} : {anc}\n")
 #find files
 printDatafiles(ls)
+
+args=ls.argSearch('PTTrep',30);
+print(f"argSearch for PTTrep == 30 : {args}")
+
+clipname = ['F1_b39_w4_hook.wav','F3_b15_w5_west.wav','M4_b18_w4_pay.wav','M3_b22_w3_cop.wav']
+args=ls.argSearch('AudioFile',clipname)
+print(f"argSearch for AudioFiles : {args}")
+printDatafiles(ls)
