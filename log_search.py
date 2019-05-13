@@ -415,11 +415,11 @@ class log_search():
 		if(m.group('mat')):
 			tstFiles={'ext':'.mat','path':'data','singular':True}
 		elif(m.group('csv')):
-			tstFiles={'ext':'.csv','path':'post-processed data\\csv','singular':False}
+			tstFiles={'ext':'.csv','path':os.path.join('post-processed data','csv'),'singular':False}
 		elif(m.group('wav')):
-			tstFiles={'ext':'','path':'post-processed data\\wav','singular':True}
+			tstFiles={'ext':'','path':os.path.join('post-processed data','wav'),'singular':True}
 		elif(m.group('sm_mat')):
-			tstFiles={'ext':'.mat','path':'post-processed data\\mat','singular':True}
+			tstFiles={'ext':'.mat','path':os.path.join('post-processed data','mat'),'singular':True}
 		else:
 			raise RuntimeError(f"'{ftype}' is an invalid file type")
 			
