@@ -406,11 +406,11 @@ class log_search():
 		self.found=set()
 		self.foundCleared=True;
 				
-	def datafilenames(self,type='mat'):
+	def datafilenames(self,ftype='mat'):
 		
 		types=re.compile(r"\.?(?P<csv>csv)|(?P<mat>mat)|(?P<wav>wav)|(?P<sm_mat>sm(?:all)?_mat)",re.IGNORECASE)
 		
-		m=types.match(type)
+		m=types.match(ftype)
 		
 		if(m.group('mat')):
 			tstFiles={'ext':'.mat','path':'data','singular':True}
@@ -421,7 +421,7 @@ class log_search():
 		elif(m.group('sm_mat')):
 			tstFiles={'ext':'.mat','path':'post-processed-data/mat','singular':True}
 		else:
-			raise RuntimeError(f"'{type}' is an invalid file type")
+			raise RuntimeError(f"'{ftype}' is an invalid file type")
 			
 		
 		fn=[None]*len(self.found)
