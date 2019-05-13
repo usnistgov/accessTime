@@ -523,9 +523,9 @@ class log_search():
 		if(any(loc_notFound)):
 			
 			filenames_parts = [os.path.split(x) for x in net_names]
-			filenames_elev = [os.path.basename(x) for x in filenames_parts[0]]
+			filenames_elev = [os.path.basename(x[0]) for x in filenames_parts]
 			for i in range(0,len(loc_notFound)):
-				if(loc_notFound):
+				if(loc_notFound[i]):
 					netpath = net_names[i]
 					
 					localpath = os.path.join(locpath,filenames_elev[i],filenames_parts[i][1])
