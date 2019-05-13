@@ -486,10 +486,10 @@ class log_search():
 
 		return fn
 
-	def findFiles(self,locpath):
+	def findFiles(self,locpath,ftype='mat'):
 		network_path = self.searchPath
 		
-		self.searchPath = network_path
+#		self.searchPath = network_path
 		net_names = self.datafilenames()
 		
 		# Identify all sessions marked error on network
@@ -533,7 +533,7 @@ class log_search():
 					print(f"Copying to:\n -- {localpath}")
 					shutil.copy2(netpath,localpath)
 		
-		filenames = self.datafilenames()
+		filenames = self.datafilenames(ftype=ftype)
 		filenames = [filenames[i] for i in range(0,len(filenames)) if(not(tossSessions[i]))]
 		if(filenames == []):
 			raise RuntimeError("Could not find any files meeting search criteria")
