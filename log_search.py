@@ -10,14 +10,15 @@ import stat
 import warnings
 
 class log_search():
-	searchPath=''
-	updateMode ='Replace'
-	stringSearchMode='OR'
-	found=[]
-	log=[]
-	foundCleared=True
 	fixedFields=['error','complete','operation','GitHash','logFile','amendedBy','date','Arguments','filename','InputFile','OutputFile']
 	def __init__(self,fname,addendumName=[],LogParseAction='Warn'):
+		
+		self.found=[]
+		self.log=[]
+		self.searchPath=''
+		self.updateMode ='Replace'
+		self.stringSearchMode='OR'
+		self.foundCleared=True
 		
 		if(LogParseAction=='Warn'):
 			msgFcn= lambda m: warnings.warn(RuntimeWarning(m),stacklevel=3)
