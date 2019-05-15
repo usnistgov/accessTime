@@ -11,7 +11,7 @@ import warnings
 
 class log_search():
 	fixedFields=['error','complete','operation','GitHash','logFile','amendedBy','date','Arguments','filename','InputFile','OutputFile']
-	def __init__(self,fname,addendumName=[],LogParseAction='Warn'):
+	def __init__(self,fname,addendumName=[],LogParseAction='Warn',groupName=[]):
 		
 		self.found=[]
 		self.log=[]
@@ -49,6 +49,14 @@ class log_search():
 			#check if we found any files
 			if(adnames):
 				adnames[:]=[os.path.join(fname,n) for n in adnames]
+				
+			#look for group files
+			groupnames=glob.glob(os.path.join(fname,'*.gr-log'))
+			
+			#check if we found any files
+			if(groupnames):
+				groupnames[:]=[os.path.join(fname,n) for n in groupnames]
+			
 		else:
 			
 			(self.searchPath,_)=os.path.split(fname)
@@ -60,6 +68,11 @@ class log_search():
 				adnames=(addendumName,)
 			else:
 				adnames=()
+				
+			if(groupName):
+				groupnames=(groupName,)
+			else:
+				groupnames=()
 		
 		#initialize idx
 		idx=-1
@@ -112,19 +125,22 @@ class log_search():
 							op=op[:-len(' started')]
 
 						#set operation
-						self.log[idx]['operation']=op;
+						self.log[idx]['operation']=op
 
 						#flag entry as incomplete
-						self.log[idx]['complete']=False;
+						self.log[idx]['complete']=False
 
 						#initialize error flag
-						self.log[idx]['error']=False;
+						self.log[idx]['error']=False
 
 						#set source file
-						self.log[idx]['logFile']=short_name;
+						self.log[idx]['logFile']=short_name
 
 						#dummy field for amendments
-						self.log[idx]['amendedBy']='';
+						self.log[idx]['amendedBy']=''
+						
+						#initialize groups
+						self.log[idx]['groups']=[]
 
 						#set status to preamble
 						status='preamble'
@@ -322,6 +338,44 @@ class log_search():
 								self.log[idx][name]=arg
 							else:
 								raise ValueError(f"Invalid field {repr(name)} at line {lc} of {short_name}")
+								
+		for fn in groupName:
+			with open(fn,'r') as f:
+				
+				#create filename without path
+				(_,short_name)=os.path.split(fn)
+				
+				for lc,line in enumerate(f):
+					#remove whitespace
+					line=line.strip()
+
+					#check for blank lines
+					if(not line):
+						continue
+
+					#check for comments
+					if(line[0]=='#'):
+						continue
+						
+					parts=line.split(':')
+					
+					groupName=parts[0].strip()
+					
+					members=parts[1].split(',')
+					
+					for ds in members:
+
+						#set date
+						date=datetime.strptime(ds.strip(),'%d-%b-%Y %H:%M:%S')
+						
+						idx=self._logMatch({'date':date})
+						
+						if(not idx):
+							raise ValueError(f"no matching entry found for '{line.strip()}' from file {short_name}")
+						elif(len(idx)>1):
+							raise ValueError(f"multiple matching entries found for '{line.strip()}' from file {short_name}")
+							
+						self.log[idx]['groups'].append(groupName)
 	
 	def _logMatch(self,match):
 		m=set()
@@ -574,7 +628,7 @@ class log_search():
 			if(p.returncode):
 				raise RuntimeError(f"Failed to parse rev : {rev_p}")
 				
-			match=[]
+			match=set()
 			
 			hashCache={}
 			
@@ -658,7 +712,7 @@ class log_search():
 			else:
 				return arg==val
 		
-		match=[]
+		match=set()
 		for i,l in enumerate(self.log):
 			try:
 				if(valCmp(l['_Arguments'][name],value)):
