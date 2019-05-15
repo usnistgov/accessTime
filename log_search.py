@@ -574,7 +574,7 @@ class log_search():
 			if(p.returncode):
 				raise RuntimeError(f"Failed to parse rev : {rev_p}")
 				
-			match=[]
+			match=set()
 			
 			hashCache={}
 			
@@ -658,7 +658,7 @@ class log_search():
 			else:
 				return arg==val
 		
-		match=[]
+		match=set()
 		for i,l in enumerate(self.log):
 			try:
 				if(valCmp(l['_Arguments'][name],value)):
