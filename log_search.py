@@ -112,19 +112,19 @@ class log_search():
 							op=op[:-len(' started')]
 
 						#set operation
-						self.log[idx]['operation']=op;
+						self.log[idx]['operation']=op
 
 						#flag entry as incomplete
-						self.log[idx]['complete']=False;
+						self.log[idx]['complete']=False
 
 						#initialize error flag
-						self.log[idx]['error']=False;
+						self.log[idx]['error']=False
 
 						#set source file
-						self.log[idx]['logFile']=short_name;
+						self.log[idx]['logFile']=short_name
 
 						#dummy field for amendments
-						self.log[idx]['amendedBy']='';
+						self.log[idx]['amendedBy']=''
 
 						#set status to preamble
 						status='preamble'
