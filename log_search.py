@@ -770,6 +770,10 @@ class log_search():
 		
 		return arg_d
 		
+	def __len__(self):
+		#return number of log entries
+		return len(self.log)
+	
 	@property
 	def flog(self):
 		return [self.log[i] for i in self.found]

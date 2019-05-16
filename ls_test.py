@@ -39,3 +39,5 @@ clipname = ['F1_b39_w4_hook.wav','F3_b15_w5_west.wav','M4_b18_w4_pay.wav','M3_b2
 args=ls.argSearch('AudioFile',clipname)
 print(f"argSearch for AudioFiles : {args}")
 printDatafiles(ls)
+
+print(f"Length test. Len : {len(ls)}")
