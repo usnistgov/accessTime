@@ -467,6 +467,9 @@ class log_search():
 		
 		m=types.match(ftype)
 		
+		if(not m):
+			raise ValueError(f"Unknown search type '{ftype}'")
+		
 		if(m.group('mat')):
 			tstFiles={'ext':'.mat','path':'data','singular':True}
 		elif(m.group('csv')):
