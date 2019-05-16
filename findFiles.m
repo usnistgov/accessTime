@@ -13,7 +13,7 @@ function filenames = findFiles(log,local_searchpath,network_searchpath)
     log.searchPath=network_searchpath;
 
     %call function
-    filenames=log.findFiles(local_searchpath,pyargs('ftype','mat'));
+    filenames=log.findFiles(local_searchpath,'mat');
 
     %restore search path
     log.searchPath=sp;
