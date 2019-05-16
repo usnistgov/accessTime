@@ -140,7 +140,7 @@ class log_search():
 						self.log[idx]['amendedBy']=''
 						
 						#initialize groups
-						self.log[idx]['groups']=[]
+						self.log[idx]['groups']=set()
 
 						#set status to preamble
 						status='preamble'
@@ -375,7 +375,7 @@ class log_search():
 						elif(len(idx)>1):
 							raise ValueError(f"multiple matching entries found for '{line.strip()}' from file {short_name}")
 							
-						self.log[idx]['groups'].append(groupName)
+						self.log[idx]['groups'].add(groupName)
 	
 	def _logMatch(self,match):
 		m=set()
