@@ -664,7 +664,7 @@ class log_search():
 					hashCache[hash]=(base == rev_p)
 				
 				if(hashCache[hash]):
-					match.append(k)
+					match.add(k)
 		finally:
 			if(tmpdir):
 				#must delete directory manually because of a bug in TemporaryDirectory
@@ -716,7 +716,7 @@ class log_search():
 		for i,l in enumerate(self.log):
 			try:
 				if(valCmp(l['_Arguments'][name],value)):
-					match.append(i)
+					match.add(i)
 			except KeyError:
 				#argument not found, not a match
 				pass
