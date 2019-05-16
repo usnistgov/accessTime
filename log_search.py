@@ -13,7 +13,7 @@ class log_search():
 	fixedFields=['error','complete','operation','GitHash','logFile','amendedBy','date','Arguments','filename','InputFile','OutputFile']
 	def __init__(self,fname,addendumName=[],LogParseAction='Warn',groupName=[]):
 		
-		self.found=[]
+		self.found=set()
 		self.log=[]
 		self.searchPath=''
 		self.updateMode ='Replace'
