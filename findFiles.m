@@ -46,7 +46,11 @@ if(any(loc_notFound))
         if(loc_notFound(k))
             netpath = net_names{k};
             
-            localpath = fullfile(local_searchpath,fileparts{k,end-1}, fileparts{k,end});
+            lpath = fullfile(local_searchpath,fileparts{k,end-1});
+            if(~exist(lpath,'dir'))
+                mkdir(lpath);
+            end
+            localpath = fullfile(lpath, fileparts{k,end});
             fprintf('Copying from:\n --%s\n', netpath);
             fprintf('Copying to:\n --%s\n', localpath);
             
