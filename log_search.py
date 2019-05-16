@@ -19,6 +19,7 @@ class log_search():
 		self.updateMode ='Replace'
 		self.stringSearchMode='OR'
 		self.foundCleared=True
+		self.fieldNames=set()
 		
 		if(LogParseAction=='Warn'):
 			msgFcn= lambda m: warnings.warn(RuntimeWarning(m),stacklevel=3)
@@ -376,6 +377,9 @@ class log_search():
 							raise ValueError(f"multiple matching entries found for '{line.strip()}' from file {short_name}")
 							
 						self.log[idx]['groups'].add(groupName)
+		
+		for l in self.log:
+			self.fieldNames.update(l.keys())
 	
 	def _logMatch(self,match):
 		m=set()
