@@ -590,7 +590,10 @@ class log_search():
 				if(loc_notFound[i]):
 					netpath = net_names[i]
 					
-					localpath = os.path.join(locpath,filenames_elev[i],filenames_parts[i][1])
+					lpath = os.path.join(locpath,filenames_elev[i])
+					if(not os.path.exists(lpath)):
+						os.mkdir(lpath)
+					localpath = os.path.join(lpath,filenames_parts[i][1])
 					print(f"Copying from:\n -- {netpath}")
 					print(f"Copying to:\n -- {localpath}")
 					shutil.copy2(netpath,localpath)
