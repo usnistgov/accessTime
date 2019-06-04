@@ -486,8 +486,8 @@ class log_search():
 			raise RuntimeError(f"'{ftype}' is an invalid file type")
 			
 		
-		fn=[None]*len(self.found)
-		for i,idx in enumerate(self.found):
+		fn=[]
+		for idx in self.found:
 			if(self.log[idx]['operation'] == 'Test'):
 				prefix=['capture_']
 				folder=[tstFiles['path']]
@@ -509,17 +509,17 @@ class log_search():
 				ext='.mat'
 				singular=True
 			elif(self.log[idx]['operation'].startswith('Copy')):
-				fn[i]=':None'
+				fn.append(':None')
 				continue
 			else:
 				raise ValueError(f"Unknown operation '{self.log[idx]['operation']}'")
 
 			if(not self.log[idx]['complete']):
-				fn[i]=':Incomplete'
+				fn.append(':Incomplete')
 				continue
 
 			if(self.log[idx]['error']):
-				fn[i]=':Error'
+				fn.append(':Error')
 				continue
 
 			#get date string in file format
@@ -534,17 +534,16 @@ class log_search():
 				match=[f for f in filenames if date_str in f ]
 
 				if(not singular and len(match)>=1):
-					fn[i]=match
+					fn+=match
 					break
 				elif(len(match)>1):
 					print(f"More than one file found matching '{date_str}' in '{f}")
-					fn[i]='Multiple'
+					fn.append('Multiple')
 				elif(len(match)==1):
-					fn[i]=match[0]
+					fn.append(match[0])
 					break
 			else:
-				if(fn[i] is None):
-					warnings.warn(RuntimeWarning(f"No matching files for '{date_str}' in '{foldPath}'"),stacklevel=2)
+				warnings.warn(RuntimeWarning(f"No matching files for '{date_str}' in '{foldPath}'"),stacklevel=2)
 
 		return fn
 
