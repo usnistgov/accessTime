@@ -485,8 +485,10 @@ class log_search():
 		else:
 			raise RuntimeError(f"'{ftype}' is an invalid file type")
 			
-		
+		#filenames
 		fn=[]
+		#file indexes
+		fi=[]
 		for idx in self.found:
 			if(self.log[idx]['operation'] == 'Test'):
 				prefix=['capture_']
@@ -510,16 +512,19 @@ class log_search():
 				singular=True
 			elif(self.log[idx]['operation'].startswith('Copy')):
 				fn.append(':None')
+				fi.append(idx)
 				continue
 			else:
 				raise ValueError(f"Unknown operation '{self.log[idx]['operation']}'")
 
 			if(not self.log[idx]['complete']):
 				fn.append(':Incomplete')
+				fi.append(idx)
 				continue
 
 			if(self.log[idx]['error']):
 				fn.append(':Error')
+				fi.append(idx)
 				continue
 
 			#get date string in file format
@@ -535,18 +540,22 @@ class log_search():
 
 				if(not singular and len(match)>=1):
 					fn+=match
+					fi.append([idx]*len(match))
 					break
 				elif(len(match)>1):
 					print(f"More than one file found matching '{date_str}' in '{f}")
 					fn.append('Multiple')
+					fi.append(idx)
 				elif(len(match)==1):
 					fn.append(match[0])
+					fi.append(idx)
 					break
 			else:
 				fn.append(None)
+				fi.append(idx)
 				warnings.warn(RuntimeWarning(f"No matching files for '{date_str}' in '{foldPath}'"),stacklevel=2)
 
-		return fn
+		return (fn,fi)
 
 	def findFiles(self,locpath,ftype='mat'):
 		network_path = self.searchPath
