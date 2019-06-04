@@ -543,6 +543,7 @@ class log_search():
 					fn.append(match[0])
 					break
 			else:
+				fn.append(None)
 				warnings.warn(RuntimeWarning(f"No matching files for '{date_str}' in '{foldPath}'"),stacklevel=2)
 
 		return fn
