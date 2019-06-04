@@ -621,8 +621,8 @@ class log_search():
 			
 			localpath = os.path.join(lpath,fname)
 			netpath = os.path.join(network_path,subdir,fname)
-			print(f"Copying from:\n -- {netpath}")
-			print(f"Copying to:\n -- {localpath}")
+			print(f"Copying from:\n -- {netpath}",flush=True)
+			print(f"Copying to:\n -- {localpath}",flush=True)
 			shutil.copy2(netpath,localpath)
 		
 		filenames,_ = self.datafilenames(ftype)
