@@ -561,7 +561,7 @@ class log_search():
 		network_path = self.searchPath
 		
 #		self.searchPath = network_path
-		net_names = self.datafilenames(ftype)
+		net_names,net_ix = self.datafilenames(ftype)
 		
 		# Identify all sessions marked error on network
 		net_errSessions = [name == ":Error" for name in net_names]
@@ -575,40 +575,63 @@ class log_search():
 		if(any(net_notFound)):
 			warnings.warn(RuntimeWarning(f"'{sum(net_notFound)}' files not found on network"),stacklevel=2)
 		
+		net_tossIx = [net_errSessions[i] or net_incSessions[i] or net_notFound[i] for i in range(0,len(net_names))]
+		# Toss unwanted sessions from net_names
+		net_names_clean = [net_names[i] for i in range(0,len(net_names)) if(not(net_tossIx[i]))]
+		
 		# Switch to searching localpath
 		self.searchPath = locpath
-		loc_names = self.datafilenames(ftype)
+		loc_names,loc_ix = self.datafilenames(ftype)
 		
-		# Identify all sessions marked error locally
+		# Identify all sessions marked error/incomplete locally
 		loc_errSessions = [name == ":Error" for name in loc_names]
-		# Combine all sessions we want to ignore
-		tossSessions = [loc_errSessions[i] or net_errSessions[i] or net_incSessions[i] or net_notFound[i] for i in range(0,len(loc_errSessions))]
+		loc_incSessions = [name == ":Incomplete" for name in loc_names]
+		loc_NoneSessions = [name == None for name in loc_names]
+		loc_tossIx = [loc_NoneSessions[i] or loc_errSessions[i] or loc_incSessions[i] for i in range(0,len(loc_names))]
+		loc_names_clean = [loc_names[i] for i in range(0,len(loc_names)) if(not(loc_tossIx[i]))]
 		
-		# Toss unwanted sessions
-		loc_names = [loc_names[i] for i in range(0,len(loc_names)) if(not(tossSessions[i]))]
-		net_names = [net_names[i] for i in range(0,len(net_names)) if(not(tossSessions[i]))]
+#		# Grab just the basenames of each list
+		loc_base = [os.path.basename(x) for x in loc_names_clean]
+		net_base = [os.path.basename(x) for x in net_names_clean]
 		
-		# Find remaining files missing locally
-		loc_notFound = [name == None for name in loc_names]
+		# Transform into sets
+		loc_set = set(loc_base)
+		net_set = set(net_base)
+		# Take set union of local and network names
+		all_names = loc_set.union(net_set)
+		# Identify names in network that are missing from local set
+		non_localNames = all_names.difference(loc_set)
 		
-		if(any(loc_notFound)):
+		for fname in non_localNames:
+			_,fbase = os.path.split(fname)
+			if(ftype == "csv"):
+				subdir = os.path.join("post-processed data", "csv")
+			elif(ftype == "sm_mat"):
+				subdir = os.path.join("post-processed data", "mat")
+			elif(ftype == "wav"):
+				subdir = os.path.join("post-processed data", "wav")
+			elif(ftype == "mat"):
+				subdir = "data"
+			else:
+				raise RuntimeError(f"Unsupported ftype: '{ftype}' ")
 			
-			filenames_parts = [os.path.split(x) for x in net_names]
-			filenames_elev = [os.path.basename(x[0]) for x in filenames_parts]
-			for i in range(0,len(loc_notFound)):
-				if(loc_notFound[i]):
-					netpath = net_names[i]
-					
-					lpath = os.path.join(locpath,filenames_elev[i])
-					if(not os.path.exists(lpath)):
-						os.mkdir(lpath)
-					localpath = os.path.join(lpath,filenames_parts[i][1])
-					print(f"Copying from:\n -- {netpath}")
-					print(f"Copying to:\n -- {localpath}")
-					shutil.copy2(netpath,localpath)
+			lpath = os.path.join(locpath,subdir)
+			if(not(os.path.exists(lpath))):
+				os.mkdir(lpath)
+			
+			localpath = os.path.join(lpath,fname)
+			netpath = os.path.join(network_path,subdir,fname)
+			print(f"Copying from:\n -- {netpath}")
+			print(f"Copying to:\n -- {localpath}")
+			shutil.copy2(netpath,localpath)
 		
-		filenames = self.datafilenames(ftype)
-		filenames = [filenames[i] for i in range(0,len(filenames)) if(not(tossSessions[i]))]
+		filenames,_ = self.datafilenames(ftype)
+
+		f_errSessions = [name == ":Error" for name in filenames]
+		f_incSessions = [name == ":Incomplete" for name in filenames]
+		f_tossIx = [f_errSessions[i] or f_incSessions[i] for i in range(0,len(filenames))]
+		filenames = [filenames[i] for i in range(0,len(filenames)) if(not(f_tossIx[i]))]
+		
 		if(filenames == []):
 			raise RuntimeError("Could not find any files meeting search criteria")
 		self.searchPath = network_path
