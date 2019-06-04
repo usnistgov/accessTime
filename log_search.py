@@ -568,7 +568,7 @@ class log_search():
 		
 		# Switch to searching localpath
 		self.searchPath = locpath
-		loc_names = self.datafilenames()
+		loc_names = self.datafilenames(ftype)
 		
 		# Identify all sessions marked error locally
 		loc_errSessions = [name == ":Error" for name in loc_names]
