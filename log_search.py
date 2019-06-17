@@ -340,7 +340,7 @@ class log_search():
 							else:
 								raise ValueError(f"Invalid field {repr(name)} at line {lc} of {short_name}")
 								
-		for fn in groupName:
+		for fn in groupnames:
 			with open(fn,'r') as f:
 				
 				#create filename without path
@@ -360,9 +360,9 @@ class log_search():
 						
 					parts=line.split(':')
 					
-					groupName=parts[0].strip()
+					groupNames=parts[0].strip().split(',')
 					
-					members=parts[1].split(',')
+					members=':'.join(parts[1:]).split(',')
 					
 					for ds in members:
 
@@ -376,7 +376,11 @@ class log_search():
 						elif(len(idx)>1):
 							raise ValueError(f"multiple matching entries found for '{line.strip()}' from file {short_name}")
 							
-						self.log[idx]['groups'].add(groupName)
+						for groupName in groupNames:
+							#strip leading and trailing spaces
+							groupName=groupName.strip()
+							
+							self.log[list(idx)[0]]['groups'].add(groupName)
 		
 		for l in self.log:
 			self.fieldNames.update(l.keys())
@@ -410,6 +414,11 @@ class log_search():
 								eq[i]=(1==str_eq.count(True))
 						else:
 							eq[i]=re.compile(match[k]).search(val) is not None
+					elif(isinstance(val,set)):
+						if(isinstance(match[k],set)):
+							eq[i]=match[k].issubset(val)
+						else:
+							eq[i]=match[k] in val
 					else:
 						#fall back to equals comparison
 						eq[i]=(val==match[k])
