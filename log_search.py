@@ -12,8 +12,8 @@ import warnings
 class log_search():
 	fixedFields=['error','complete','operation','GitHash','logFile','amendedBy','date','Arguments','filename','InputFile','OutputFile']
 
-    # Not hashable
-    __hash__ = None
+	# Not hashable
+	__hash__ = None
 	def __init__(self,fname,addendumName=[],LogParseAction='Warn',groupName=[]):
 		
 		self.found=set()
