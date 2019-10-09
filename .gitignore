@@ -1,0 +1,72 @@
+
+#matlab temporary files
+*.asv
+
+#matlab data files
+*.mat
+
+#data directory
+data/
+
+#plots directory
+plots/
+
+#test type file
+test-type.txt
+
+#test conditions log file
+tests.log
+
+#computer name file
+ComputerName.txt
+
+#MRT templates
+!ABC_MRT_FB_templates.mat
+
+#ignore pesq executable because it's not ours
+pesq.exe
+
+#ignore pesq results file
+pesq_results.txt
+
+#ignore log files
+*.log
+
+# Audio files
+*.wav
+
+# Output data files
+*.csv
+
+# Matlab figs
+*.fig
+*.png
+*.db
+
+# R files
+*.Rhistory
+*.html
+*.log
+*.pdf
+
+# MATLAB publish stuff
+*html/
+
+# Visio autosave 
+*.~vsdx
+
+# Latex stuff
+*.aux
+*.synctex*
+
+# R Package Files
+*.Rproj.user
+*.Rbuildignore
+.Rproj.user
+
+# Un-ignore raw data for R package (wav and csv)
+!/accessTime/inst/extdata/**
+
+
+# Un-ignore R data directory for package
+!/accessTime/data/

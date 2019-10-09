@@ -1,0 +1,21 @@
+Package: accessTime
+Type: Package
+Title: Data Post-Processing and Uncertainty Analysis for Access Delay Measurements
+Version: 1.0.0
+Author: Jaden Pieper <jaden.pieper@nist.gov>, Zainab Soetan <zainab.soetan@nist.gov>
+Maintainer: Jaden Pieper <jaden.pieper@nist.gov>
+Description: Provides function for calculating the access delay and 
+    associated uncertainty for measurements taken using the measurement system 
+    propsed in \emph{Mission Critical Voice QoE Access Time Measurement 
+    Methods} available at <\url{https://doi.org/10.6028/NIST.IR.8275}>.
+    Software for the measurement system is available at <\url{https://github.com/usnistgov/accessTime}>.
+License: file LICENSE
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.1.1
+Imports: 
+  minpack.lm (>= 1.2-1),
+  ggplot2 (>= 3.1.1),
+  dplyr (>= 0.7.8)
+  
+  
