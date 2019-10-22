@@ -479,7 +479,7 @@ class log_search():
 				
 	def datafilenames(self,ftype='mat'):
 		
-		types=re.compile(r"\.?(?P<csv>csv)|(?P<mat>mat)|(?P<wav>wav)|(?P<sm_mat>sm(?:all)?_mat)",re.IGNORECASE)
+		types=re.compile(r"\.?(?P<csv>csv)|(?P<mat>mat)|(?P<wav>wav)|(?P<sm_mat>sm(?:all)?_mat)|(?P<bad_csv>bad_csv)",re.IGNORECASE)
 		
 		m=types.match(ftype)
 		
@@ -487,13 +487,15 @@ class log_search():
 			raise ValueError(f"Unknown search type '{ftype}'")
 		
 		if(m.group('mat')):
-			tstFiles={'ext':'.mat','path':'data','singular':True}
+			tstFiles={'ext':'.mat','path':'data','singular':True,'exclude':''}
 		elif(m.group('csv')):
-			tstFiles={'ext':'.csv','path':os.path.join('post-processed data','csv'),'singular':False}
+			tstFiles={'ext':'.csv','path':os.path.join('post-processed data','csv'),'singular':False,'exclude':'_BAD.csv'}
+		elif(m.group('bad_csv')):
+			tstFiles={'ext':'_BAD.csv','path':os.path.join('post-processed data','csv'),'singular':False,'exclude':None}
 		elif(m.group('wav')):
-			tstFiles={'ext':'','path':os.path.join('post-processed data','wav'),'singular':True}
+			tstFiles={'ext':'','path':os.path.join('post-processed data','wav'),'singular':True,'exclude':None}
 		elif(m.group('sm_mat')):
-			tstFiles={'ext':'.mat','path':os.path.join('post-processed data','mat'),'singular':True}
+			tstFiles={'ext':'.mat','path':os.path.join('post-processed data','mat'),'singular':True,'exclude':None}
 		else:
 			raise RuntimeError(f"'{ftype}' is an invalid file type")
 			
@@ -507,21 +509,25 @@ class log_search():
 				folder=[tstFiles['path']]
 				ext=tstFiles['ext']
 				singular=tstFiles['singular']
+				exclude=tstFiles['exclude']
 			elif(self.log[idx]['operation'] == 'Training'):
 				prefix=['Training_']*2
 				folder=['training','data']
 				ext='.mat'
 				singular=True
+				exclude=None
 			elif(self.log[idx]['operation'] == 'Tx Two Loc Test'):
 				prefix=['Tx_capture','capture']
 				folder=['tx-data']*len(prefix)
 				ext='.mat'
 				singular=True
+				exclude=None
 			elif(self.log[idx]['operation'] == 'Rx Two Loc Test'):
 				prefix=['Rx_capture','capture']
 				folder=['rx-data']*len(prefix)
 				ext='.mat'
 				singular=True
+				exclude=None
 			elif(self.log[idx]['operation'].startswith('Copy')):
 				fn.append(':None')
 				fi.append(idx)
@@ -548,7 +554,7 @@ class log_search():
 
 				filenames=glob.glob(os.path.join(foldPath,p+'*'+ext))
 
-				match=[f for f in filenames if date_str in f ]
+				match=[f for f in filenames if date_str in f and ((not exclude) or exclude not in f)]
 
 				if(not singular and len(match)>=1):
 					fn+=match
