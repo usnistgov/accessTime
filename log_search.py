@@ -829,6 +829,16 @@ class log_search():
 				arg_d[m.group('name')]=str_or_float(m.group('value'))
 		
 		return arg_d
+    
+	def argQuery(self,argName):
+
+		f_log=self.flog
+
+		res=[None]*len(f_log)
+		for i,entry in enumerate(f_log):
+			res[i]=entry['_Arguments'][argName]
+
+		return res
 		
 	def __len__(self):
 		#return number of log entries
