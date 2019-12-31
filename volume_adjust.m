@@ -123,7 +123,7 @@ parse(p,varargin{:});
 %file
 
 save_vars={'git_status','y','recordings','dev_name','underRun',...
-            'overRun','fs','volume','opt','a','b','dly_its','rtemp',...
+            'overRun','fs','volume','opt','a','b','rtemp',...
             'pscores','vol_scl_en','clipi',...
         ...%save pre test notes, post test notes will be appended later
            'pre_notes'};
@@ -389,7 +389,6 @@ try
     underRun=zeros(p.Results.Trials,p.Results.SMax);
     overRun=zeros(p.Results.Trials,p.Results.SMax);
     recordings=cell(p.Results.Trials,p.Results.SMax);
-    dly_its=cell(p.Results.Trials,p.Results.SMax);
     rtemp=zeros(p.Results.Trials,p.Results.SMax);
     volume=zeros(1,p.Results.SMax);
     pscores=zeros(p.Results.Trials,p.Results.SMax);
@@ -445,7 +444,6 @@ try
             underRun=underRun(:,1:(k-1));
             overRun=overRun(:,1:(k-1));
             recordings=recordings(:,1:(k-1));                                   %#ok saved in datafile
-            dly_its=dly_its(:,1:(k-1));                                         %#ok saved in datafile
             rtemp=rtemp(:,1:(k-1));                                             %#ok saved in datafile
             volume=volume(1:(k-1));
             pmean=pmean(1:(k-1));
@@ -548,9 +546,6 @@ try
             rtemp(kk,k)=ri.temp;
             
             %%  ==================[Clip Data Processing]==================
-            
-            %calculate delay
-            dly_its{kk,k}=1e-3*ITS_delay_wrapper(dat,y_scl{clipi(kk)}',fs);
             
             %calculate PESQ score
             pscores(kk,k)=pesq_wrapper(fs,y{clipi(kk)},dat);
