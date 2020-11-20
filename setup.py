@@ -14,6 +14,8 @@ setuptools.setup(
     url="https://gitlab.nist.gov/gitlab/PSCR/MCV/mcv-qoe-library",
     packages=setuptools.find_packages(),
     include_package_data=True,
+    use_scm_version={'write_to' : 'mcvqoe/version.py'},
+    setup_requires=['setuptools_scm'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: Public Domain",

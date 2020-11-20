@@ -1,0 +1,15 @@
+
+
+#build and dist directories
+build/
+dist/
+
+#ignore version file
+mcvqoe/version.py
+
+#ignore eggs
+.eggs/
+
+#ignore egg info
+mcvqoe_nist.egg-info/
+
