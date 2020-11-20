@@ -13,3 +13,6 @@ mcvqoe/version.py
 #ignore egg info
 mcvqoe_nist.egg-info/
 
+#ignore __pycache__
+__pycache__/
+
