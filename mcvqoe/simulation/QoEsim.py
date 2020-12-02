@@ -195,6 +195,8 @@ class QoEsim:
             )
             # read data from new rx wav file
             _, rx_data = wav.read(rx_file)
+        else:
+            raise ValueError(f'"{self.chanel_tech}" is not a valid technology')
         
         
         #add post channel impairments
