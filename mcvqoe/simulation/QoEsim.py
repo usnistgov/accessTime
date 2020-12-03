@@ -2,6 +2,11 @@
 import os.path
 import scipy.io.wavfile as wav
 import numpy as np
+import tempfile
+import shutil
+import scipy.signal
+import subprocess
+from mcvqoe.misc import audio_float
 
 class QoEsim:
     def __init__(self,port=None,debug=False):
@@ -14,6 +19,9 @@ class QoEsim:
         self.pre_impairment=None
         self.post_impairment=None
         self.channel_impairment=None
+        self.dvsi_path='pcnrtas'
+        #try to find ffmpeg in the path
+        self.fmpeg_path=shutil.which('ffmpeg')
         #TODO : set based on tech
         self.m2e_latency=21.1e-3
         self.fs=48e3
@@ -146,55 +154,56 @@ class QoEsim:
             pass
         
         elif self.chanel_tech == "p25":
-            channel_data = p25encode(tx_data, self.fs)
+            channel_data = self.p25encode(tx_data, self.fs)
             
             #apply channel impairments
             if(self.channel_impairment):
                 channel_data=self.channel_impairment(channel_data)
             
-            rx_data = p25decode(channel_data, self.fs)
+            rx_data = self.p25decode(channel_data, self.fs)
         
         # simulate passing the signal thru an LTE vocoder by using ffmpeg
         elif self.chanel_tech == "lte":
         
-            # create paths for temporary wav and amr outputs
-            temp_wav = os.path.join(temp_dir, "temp_out.wav")
-            temp_amr = os.path.join(temp_dir, "temp_out.amr")
-            
-            # write the rx signal as a wav so it can be converted to amr
-            wav.write(temp_wav, int(self.fs), rx_data)
-            # use ffmpeg to convert rx wav file to rx wav file
-            # explantion of flags:
-            # -hide_banner (supresses excessive terminal output)
-            # -loglevel warning (supresses excessive terminal output)
-            # -channel_layout mono (specifies that the signal is mono)
-            # -i %s (defines input file as temp_wav)
-            # -ar 16k (changes the sample rate to 16k as required for amr conversion)
-            # -b:a 23.85k (changes the bit rate to 23.85k - highest bit rate
-            #              allowed for amr conversion)
-            # -codec amr_wb (specifies conversion to amr wide band)
-            # -y %s (specified output file as temp_amr)
-            subprocess.run(
-                "ffmpeg -hide_banner -loglevel panic -channel_layout mono -i %s -ar 16k -b:a 23.85k -codec amr_wb -y %s"
-                % (temp_wav, temp_amr),
-                shell=True,
-            )
-            
-            #apply channel impairments
-            if(self.channel_impairment):
-                #TODOD : load channel data
-                channel_data=self.channel_impairment(channel_data)
-                #TODOD : write channel data
+            with tempfile.TemporaryDirectory() as temp_dir:
+                # create paths for temporary wav and amr outputs
+                temp_wav = os.path.join(temp_dir, "temp_out.wav")
+                temp_amr = os.path.join(temp_dir, "temp_out.amr")
                 
-            
-            # convert temp amr file back to wav, and resample to original sample rate
-            subprocess.run(
-                "ffmpeg -hide_banner -loglevel panic -channel_layout mono -codec amr_wb -i %s -ar %d -y %s"
-                % (temp_amr, int(self.fs), rx_file),
-                shell=True,
-            )
-            # read data from new rx wav file
-            _, rx_data = wav.read(rx_file)
+                # write the rx signal as a wav so it can be converted to amr
+                wav.write(temp_wav, int(self.fs), rx_data)
+                # use ffmpeg to convert rx wav file to rx wav file
+                # explantion of flags:
+                # -hide_banner (supresses excessive terminal output)
+                # -loglevel warning (supresses excessive terminal output)
+                # -channel_layout mono (specifies that the signal is mono)
+                # -i %s (defines input file as temp_wav)
+                # -ar 16k (changes the sample rate to 16k as required for amr conversion)
+                # -b:a 23.85k (changes the bit rate to 23.85k - highest bit rate
+                #              allowed for amr conversion)
+                # -codec amr_wb (specifies conversion to amr wide band)
+                # -y %s (specified output file as temp_amr)
+                subprocess.run(
+                    [self.fmpeg_path,'-hide_banner','-loglevel','error',
+                        '-channel_layout','mono','-i',temp_wav,'-ar','16k',
+                        '-b:a','23.85k','-codec','amr_wb','-y',temp_amr]
+                )
+                
+                #apply channel impairments
+                if(self.channel_impairment):
+                    #TODOD : load channel data
+                    channel_data=self.channel_impairment(channel_data)
+                    #TODOD : write channel data
+                    
+                
+                # convert temp amr file back to wav, and resample to original sample rate
+                subprocess.run(
+                    [self.fmpeg_path,'-hide_banner','-loglevel','error',
+                        '-channel_layout','mono','-codec','amr_wb','-i',temp_amr,
+                        '-ar',str(int(self.fs)),'-y',rx_file]
+                )
+                # read data from new rx wav file
+                _, rx_data = wav.read(rx_file)
         else:
             raise ValueError(f'"{self.chanel_tech}" is not a valid technology')
         
@@ -255,3 +264,57 @@ class QoEsim:
            
         #write out audio file
         wav.write(out_name, int(self.fs), rx_data)
+        
+    # =====================[p25 encode function]=====================
+    def p25encode(self,x, rate):
+        # given a signal x with fs: rate, returns encoded p25
+
+        # resample signal to 8000 Hz, and scale by 2^15
+        new_len = int(len(x) * 8000 / rate)
+        x = scipy.signal.resample(x, new_len)
+        x = (x * (2 ** 15)).astype(np.int16)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # create paths for audio and encoded files
+            audio_name = os.path.join(temp_dir, "audio")
+            enc_name = os.path.join(temp_dir, "encoding.bin")
+
+            # write audio file
+            x.tofile(audio_name)
+
+            # encode to enc_name
+            subprocess.run([self.dvsi_path,'-enc','-fr',audio_name,enc_name])
+
+            # read p25 encoding
+            y = np.fromfile(enc_name, np.uint8)
+
+        # convert p25 encoding to logical values
+        y = y.astype(np.bool_)
+        return y
+
+
+    # =====================[p25 decode function]=====================
+
+
+    def p25decode(self,x, target_rate):
+        # assumes x is a signal with fs: 8000
+        # deocde signal to target_rate
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            enc_name = os.path.join(temp_dir, "encoding.bin")
+            audio_name = os.path.join(temp_dir, "audio")
+            # values are either 0 or 255 convert accordingly
+            x = (255 * x).astype(np.uint8)
+            # write out temporary audio file
+            x.tofile(enc_name)
+
+            # decode to audio_name
+            subprocess.run([self.dvsi_path,'-dec','-fr',enc_name,audio_name])
+
+            # read decodede signal
+            dat = np.fromfile(audio_name, np.int16)
+        # normalize signal to -1 to 1
+        dat = audio_float(dat)
+        # resample to target_rate
+        dat = scipy.signal.resample(dat, int(len(dat) * target_rate / 8000))
+        return dat
