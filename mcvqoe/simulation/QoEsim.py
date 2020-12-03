@@ -297,7 +297,7 @@ class QoEsim:
             x.tofile(audio_name)
 
             # encode to enc_name
-            subprocess.run([self.dvsi_path,'-enc','-fr',audio_name,enc_name])
+            subprocess.run([self.dvsi_path,'-enc','-fr',audio_name,enc_name],stdout=subprocess.DEVNULL)
 
             # read p25 encoding
             y = np.fromfile(enc_name, np.uint8)
@@ -323,7 +323,7 @@ class QoEsim:
             x.tofile(enc_name)
 
             # decode to audio_name
-            subprocess.run([self.dvsi_path,'-dec','-fr',enc_name,audio_name])
+            subprocess.run([self.dvsi_path,'-dec','-fr',enc_name,audio_name],stdout=subprocess.DEVNULL)
 
             # read decodede signal
             dat = np.fromfile(audio_name, np.int16)
