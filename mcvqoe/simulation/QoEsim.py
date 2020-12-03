@@ -20,6 +20,8 @@ class QoEsim:
         self.post_impairment=None
         self.channel_impairment=None
         self.dvsi_path='pcnrtas'
+        #TODO : determine good delays for analog and amr
+        self.standard_delay={'clean' : 0,'p25': 348/8e3,'analog' : 0,'amr':0}
         #try to find ffmpeg in the path
         self.fmpeg_path=shutil.which('ffmpeg')
         #TODO : set based on tech
@@ -223,9 +225,21 @@ class QoEsim:
 
         audio = audio + noise 
         
+        try:
+            #get offset for channel technology
+            m2e_offset=self.standard_delay[self.chanel_tech]
+        except KeyError:
+            #a key error means we used a bad technology
+            raise ValueError(f'"{self.chanel_tech}" is not a valid technology')
+            
         #calculate values in samples
         overplay_samples=int(overPlay*self.fs)
-        m2e_latency_samples=int(self.m2e_latency*self.fs)
+        #correct for audio channel latency
+        m2e_latency_samples=int((self.m2e_latency-m2e_offset)*self.fs)
+        
+        if(m2e_latency_samples<0):
+            #TODO : it might be possible to get around this but, it sounds slightly nontrivial...
+            raise ValueError(f'Unable to simulate a latency of {self.m2e_latency}. Minimum simulated latency for technology \'{self.chanel_tech}\' is {m2e_offset}')
         
         #check if PTT was keyed during audio
         if(self.ptt_wait_delay[1] == -1):
