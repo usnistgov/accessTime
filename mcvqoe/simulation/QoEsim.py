@@ -327,7 +327,14 @@ class QoEsim:
         # resample signal to 8000 Hz, and scale by 2^15
         new_len = int(len(x) * 8000 / fs)
         x = scipy.signal.resample(x, new_len)
-        x = (x * (2 ** 15)).astype(np.int16)
+        
+        #get info about int16
+        info=np.iinfo(np.int16)
+        
+        #scale to fill new range
+        x = (x * min(abs(info.min),info.max))
+        #clip to limits and convert
+        x = np.clip(x,info.min,info.max).astype(np.int16)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             # create paths for audio and encoded files
