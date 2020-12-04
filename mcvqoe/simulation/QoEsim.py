@@ -16,12 +16,13 @@ class QoEsim:
         self.LED_state=[False,]*2
         self.ptt_wait_delay=[-1.0,]*2
         self.chanel_tech='clean'
+        self.chanel_rate=None
         self.pre_impairment=None
         self.post_impairment=None
         self.channel_impairment=None
         self.dvsi_path='pcnrtas'
         #TODO : determine good delays for analog and amr
-        self.standard_delay={'clean' : 0,'p25': 348/8e3,'analog' : 0,'amr':0}
+        self.standard_delay={'clean' : 0,'p25': 348/8e3,'analog' : 0,'amr-wb':0.0059,'amr-nb':0.0054}
         #try to find ffmpeg in the path
         self.fmpeg_path=shutil.which('ffmpeg')
         #TODO : set based on tech
@@ -148,6 +149,8 @@ class QoEsim:
             
             if(self.channel_impairment):
                 warnings.warn('There is no channel for the \'clean\' option. can not use channel_impairment')
+            if(self.chanel_rate):
+                warnings.warn('For \'clean\' there is no rate. \'chanel_rate\' option ignored')
             
             rx_data = tx_data
         
@@ -164,32 +167,57 @@ class QoEsim:
             
             rx_data = self.p25decode(channel_data, self.fs)
         
-        # simulate passing the signal thru an LTE vocoder by using ffmpeg
-        elif self.chanel_tech == "lte":
-        
+        # simulate passing the signal thru an AMR WB vocoder by using ffmpeg
+        elif self.chanel_tech.startswith("amr"):
+            #get rate from option
+            rate=self.chanel_rate
+            
+            if(self.chanel_tech == "amr-nb"):
+                codec='amr_nb'
+                audio_rate='8k'
+            else:
+                codec='amr_wb'
+                audio_rate='16k'
+            
+            #check if rate given
+            if(not rate):
+                if(codec == 'amr_wb'):
+                    #set default rate
+                    rate='23.85k'
+                else:
+                    #set default rate
+                    rate='12.2k'
+            
+            #set log level here for easy testing
+            log_level='error'
+            
             with tempfile.TemporaryDirectory() as temp_dir:
                 # create paths for temporary wav and amr outputs
                 temp_wav = os.path.join(temp_dir, "temp_out.wav")
                 temp_amr = os.path.join(temp_dir, "temp_out.amr")
                 
                 # write the rx signal as a wav so it can be converted to amr
-                wav.write(temp_wav, int(self.fs), rx_data)
+                wav.write(temp_wav, int(self.fs), tx_data)
+                
                 # use ffmpeg to convert rx wav file to rx wav file
                 # explantion of flags:
                 # -hide_banner (supresses excessive terminal output)
-                # -loglevel warning (supresses excessive terminal output)
+                # -loglevel [log_level] (supresses excessive terminal output)
                 # -channel_layout mono (specifies that the signal is mono)
-                # -i %s (defines input file as temp_wav)
-                # -ar 16k (changes the sample rate to 16k as required for amr conversion)
+                # -i [temp_wav] (defines input file as temp_wav)
+                # -ar [audio_rate] (changes the sample rate as required for amr conversion)
                 # -b:a 23.85k (changes the bit rate to 23.85k - highest bit rate
                 #              allowed for amr conversion)
-                # -codec amr_wb (specifies conversion to amr wide band)
-                # -y %s (specified output file as temp_amr)
-                subprocess.run(
-                    [self.fmpeg_path,'-hide_banner','-loglevel','error',
-                        '-channel_layout','mono','-i',temp_wav,'-ar','16k',
-                        '-b:a','23.85k','-codec','amr_wb','-y',temp_amr]
+                # -codec [codec] (specifies conversion to amr)
+                # -y [temp_amr] (specified output file as temp_amr)
+                result=subprocess.run(
+                    [self.fmpeg_path,'-hide_banner','-loglevel',log_level,
+                        '-channel_layout','mono','-i',temp_wav,'-ar',audio_rate,
+                        '-b:a',str(rate),'-codec',codec,'-y',temp_amr]
                 )
+                #check for error
+                if(result.returncode):
+                    raise RuntimeError('ffmpeg encountered an error during encoding')
                 
                 #apply channel impairments
                 if(self.channel_impairment):
@@ -199,14 +227,19 @@ class QoEsim:
                     
                 
                 # convert temp amr file back to wav, and resample to original sample rate
-                subprocess.run(
-                    [self.fmpeg_path,'-hide_banner','-loglevel','error',
-                        '-channel_layout','mono','-codec','amr_wb','-i',temp_amr,
-                        '-ar',str(int(self.fs)),'-y',rx_file]
+                result=subprocess.run(
+                    [self.fmpeg_path,'-hide_banner','-loglevel',log_level,
+                        '-channel_layout','mono','-codec',codec,'-i',temp_amr,
+                        '-ar',str(int(self.fs)),'-y',temp_wav]
                 )
+                #check for error
+                if(result.returncode):
+                    raise RuntimeError('ffmpeg encountered an error during decoding')
+                    
                 # read data from new rx wav file
-                _, rx_data = wav.read(rx_file)
-        else:
+                _, rx_data = wav.read(temp_wav)
+        
+        else:        
             raise ValueError(f'"{self.chanel_tech}" is not a valid technology')
         
         
