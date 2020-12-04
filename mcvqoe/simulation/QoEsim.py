@@ -159,13 +159,21 @@ class QoEsim:
             pass
         
         elif self.chanel_tech == "p25":
-            channel_data = self.p25encode(tx_data, self.fs)
+            rate=self.chanel_rate;
+            
+            if(not rate):
+                rate='fr'
+            
+            if(rate not in ['fr','hr']):
+                raise ValueError(f'Invalid rate {rate}')
+                
+            channel_data = self.p25encode(tx_data, self.fs,rate)
             
             #apply channel impairments
             if(self.channel_impairment):
                 channel_data=self.channel_impairment(channel_data)
             
-            rx_data = self.p25decode(channel_data, self.fs)
+            rx_data = self.p25decode(channel_data, self.fs,rate)
         
         # simulate passing the signal thru an AMR WB vocoder by using ffmpeg
         elif self.chanel_tech.startswith("amr"):
@@ -313,11 +321,11 @@ class QoEsim:
         wav.write(out_name, int(self.fs), rx_data)
         
     # =====================[p25 encode function]=====================
-    def p25encode(self,x, rate):
-        # given a signal x with fs: rate, returns encoded p25
+    def p25encode(self,x, fs,rate='fr'):
+        # given a signal x with fs: fs, returns encoded p25
 
         # resample signal to 8000 Hz, and scale by 2^15
-        new_len = int(len(x) * 8000 / rate)
+        new_len = int(len(x) * 8000 / fs)
         x = scipy.signal.resample(x, new_len)
         x = (x * (2 ** 15)).astype(np.int16)
 
@@ -330,7 +338,7 @@ class QoEsim:
             x.tofile(audio_name)
 
             # encode to enc_name
-            subprocess.run([self.dvsi_path,'-enc','-fr',audio_name,enc_name],stdout=subprocess.DEVNULL)
+            subprocess.run([self.dvsi_path,'-enc','-'+rate,audio_name,enc_name],stdout=subprocess.DEVNULL)
 
             # read p25 encoding
             y = np.fromfile(enc_name, np.uint8)
@@ -343,9 +351,9 @@ class QoEsim:
     # =====================[p25 decode function]=====================
 
 
-    def p25decode(self,x, target_rate):
+    def p25decode(self,x, target_fs,rate='fr'):
         # assumes x is a signal with fs: 8000
-        # deocde signal to target_rate
+        # deocde signal and resample to target_fs
 
         with tempfile.TemporaryDirectory() as temp_dir:
             enc_name = os.path.join(temp_dir, "encoding.bin")
@@ -356,12 +364,12 @@ class QoEsim:
             x.tofile(enc_name)
 
             # decode to audio_name
-            subprocess.run([self.dvsi_path,'-dec','-fr',enc_name,audio_name],stdout=subprocess.DEVNULL)
+            subprocess.run([self.dvsi_path,'-dec','-'+rate,enc_name,audio_name],stdout=subprocess.DEVNULL)
 
             # read decodede signal
             dat = np.fromfile(audio_name, np.int16)
         # normalize signal to -1 to 1
         dat = audio_float(dat)
-        # resample to target_rate
-        dat = scipy.signal.resample(dat, int(len(dat) * target_rate / 8000))
+        # resample to target_fs
+        dat = scipy.signal.resample(dat, int(len(dat) * target_fs / 8000))
         return dat
