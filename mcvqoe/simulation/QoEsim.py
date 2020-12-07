@@ -345,15 +345,22 @@ class QoEsim:
 
         # resample signal to 8000 Hz, and scale by 2^15
         new_len = int(len(x) * 8000 / fs)
-        x = scipy.signal.resample(x, new_len)
+        x_rs = scipy.signal.resample(x, new_len)
         
         #get info about int16
         info=np.iinfo(np.int16)
         
         #scale to fill new range
-        x = (x * min(abs(info.min),info.max))
-        #clip to limits and convert
-        x = np.clip(x,info.min,info.max).astype(np.int16)
+        x_scaled = (x_rs * min(abs(info.min),info.max))
+        #clip to limits
+        x_clipped = np.clip(x_scaled,info.min,info.max)
+        
+        if((x_scaled!=x_clipped).any()):
+            warnings.warn('Clipping detected in P25 encode')
+        
+        #convert convert to integers
+        x_int16=x_clipped.astype(np.int16)
+        
 
         with tempfile.TemporaryDirectory() as temp_dir:
             # create paths for audio and encoded files
@@ -361,7 +368,7 @@ class QoEsim:
             enc_name = os.path.join(temp_dir, "encoding.bin")
 
             # write audio file
-            x.tofile(audio_name)
+            x_int16.tofile(audio_name)
 
             # encode to enc_name
             subprocess.run([self.dvsi_path,'-enc','-'+rate,audio_name,enc_name],stdout=subprocess.DEVNULL)
