@@ -5,10 +5,10 @@ import scipy.io.wavfile
 import scipy.signal
 import sys
 
-from audio_player import AudioPlayer
+from .audio_player import AudioPlayer
 from fractions import Fraction
-from misc import audio_float
-from radio_interface import RadioInterface
+from .misc import audio_float
+from .radio_interface import RadioInterface
 from tkinter import scrolledtext
 
 import numpy as np
