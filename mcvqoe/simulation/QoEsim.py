@@ -7,7 +7,8 @@ import shutil
 import scipy.signal
 import warnings
 import subprocess
-from mcvqoe.misc import audio_float
+from mcvqoe import audio_float
+from mcvqoe.ITS_delay_est import active_speech_level
 
 class QoEsim:
     def __init__(self,port=None,debug=False):
@@ -30,8 +31,8 @@ class QoEsim:
         self.m2e_latency=21.1e-3
         self.fs=48e3
         self.access_delay=0
-        #TODO : just made this up, should probably have a sane default
-        self.noise_level=0.1e-3
+        #SNR for audio in dB
+        self.rec_snr=60
     
     def __enter__(self):
         
@@ -284,11 +285,25 @@ class QoEsim:
         overplay_audio = np.zeros(int(overplay_samples), dtype=np.float32)
         tx_data_with_overplay = np.concatenate((audio, overplay_audio))
 
-        #generate gaussian noise, and add it to audio (simulates low level noise in real life transmit audio)
-        noise = np.random.normal(0, self.noise_level, len(audio)).astype(np.float32)
+        if(self.rec_snr is None):
+            #don't add any noise
+            tx_data_with_overplay_and_noise = tx_data_with_overplay      
+        else:
+            #generate gaussian noise, of unit standard deveation
+            noise = np.random.normal(0, 1, len(tx_data_with_overplay)).astype(np.float32)
 
-        audio = audio + noise 
-        
+            #measure amplitude of signal and noise
+            sig_level=active_speech_level(tx_data_with_overplay,self.fs)
+            noise_level=active_speech_level(noise,self.fs)
+            
+            #calculate noise gain required to get desired SNR
+            noise_gain=sig_level-(self.rec_snr+noise_level)
+
+            #set noise to the correct level
+            noise_scaled = noise * (10**(noise_gain/20))
+
+            #add noise to audio
+            tx_data_with_overplay_and_noise = tx_data_with_overplay + noise_scaled   
         
         #check if PTT was keyed during audio
         if(self.ptt_wait_delay[1] == -1):
@@ -301,7 +316,7 @@ class QoEsim:
         
         #mute portion of tx_data that occurs prior to triggering of PTT
         muted_samples = int(access_delay_samples + ptt_st_dly_samples)
-        muted_tx_data_with_overplay = tx_data_with_overplay[muted_samples:]
+        muted_tx_data_with_overplay = tx_data_with_overplay_and_noise[muted_samples:]
         
         #generate raw rx_data from audio channel
         rx_data = self.simulate_audio_channel(muted_tx_data_with_overplay)
