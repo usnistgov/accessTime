@@ -246,7 +246,10 @@ class QoEsim:
                     raise RuntimeError('ffmpeg encountered an error during decoding')
                     
                 # read data from new rx wav file
-                _, rx_data = wav.read(temp_wav)
+                _, file_data = wav.read(temp_wav)
+                
+                #scale data to +1 to -1
+                rx_data=audio_float(file_data)
         
         else:        
             raise ValueError(f'"{self.chanel_tech}" is not a valid technology')
