@@ -33,6 +33,8 @@ class QoEsim:
         self.access_delay=0
         #SNR for audio in dB
         self.rec_snr=60
+        #print arguments sent to external programs for debugging
+        self.print_args=False
     
     def __enter__(self):
         
@@ -220,11 +222,12 @@ class QoEsim:
                 #              allowed for amr conversion)
                 # -codec [codec] (specifies conversion to amr)
                 # -y [temp_amr] (specified output file as temp_amr)
-                result=subprocess.run(
-                    [self.fmpeg_path,'-hide_banner','-loglevel',log_level,
+                enc_args=[self.fmpeg_path,'-hide_banner','-loglevel',log_level,
                         '-channel_layout','mono','-i',temp_wav,'-ar',audio_rate,
                         '-b:a',str(rate),'-codec',codec,'-y',temp_amr]
-                )
+                if(self.print_args):
+                    print(f'MRT encoding args : {" ".join(enc_args)}')
+                result=subprocess.run(enc_args)
                 #check for error
                 if(result.returncode):
                     raise RuntimeError('ffmpeg encountered an error during encoding')
@@ -237,11 +240,12 @@ class QoEsim:
                     
                 
                 # convert temp amr file back to wav, and resample to original sample rate
-                result=subprocess.run(
-                    [self.fmpeg_path,'-hide_banner','-loglevel',log_level,
+                dec_args=[self.fmpeg_path,'-hide_banner','-loglevel',log_level,
                         '-channel_layout','mono','-codec',codec,'-i',temp_amr,
                         '-ar',str(int(self.fs)),'-y',temp_wav]
-                )
+                if(self.print_args):
+                    print(f'MRT decoding args : {" ".join(dec_args)}')
+                result=subprocess.run(dec_args)
                 #check for error
                 if(result.returncode):
                     raise RuntimeError('ffmpeg encountered an error during decoding')
@@ -370,8 +374,12 @@ class QoEsim:
             # write audio file
             x_int16.tofile(audio_name)
 
+            dvsi_args=[self.dvsi_path,'-enc','-'+rate,audio_name,enc_name]
+            if(self.print_args):
+                print(f'dvsi encode arguments : {" ".join(dvsi_args)}')
+
             # encode to enc_name
-            subprocess.run([self.dvsi_path,'-enc','-'+rate,audio_name,enc_name],stdout=subprocess.DEVNULL)
+            subprocess.run(dvsi_args,stdout=subprocess.DEVNULL)
 
             # read p25 encoding
             y = np.fromfile(enc_name, np.uint8)
@@ -395,9 +403,12 @@ class QoEsim:
             x = (255 * x).astype(np.uint8)
             # write out temporary audio file
             x.tofile(enc_name)
-
+            
+            dvsi_args=[self.dvsi_path,'-dec','-'+rate,enc_name,audio_name]
+            if(self.print_args):
+                print(f'dvsi decode arguments : {" ".join(dvsi_args)}')
             # decode to audio_name
-            subprocess.run([self.dvsi_path,'-dec','-'+rate,enc_name,audio_name],stdout=subprocess.DEVNULL)
+            subprocess.run(dvsi_args,stdout=subprocess.DEVNULL)
 
             # read decodede signal
             dat = np.fromfile(audio_name, np.int16)
