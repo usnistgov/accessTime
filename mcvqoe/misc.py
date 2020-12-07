@@ -17,7 +17,7 @@ def audio_float(dat):
     else:
         raise RuntimeError(f'unknown audio type \'{dat.dtype}\'')
 
-def svp56_fast(x,rate=8000):
+def svp56_fast(x,fs=8000):
     #This code implements the "Speech Voltmeter" given in CCITT Rec. P.56.
     #It is a fast version of svp56.m which was written from the description in
     #the hard copy doc that came with UGST STL 96.  svp56.m results have been
@@ -31,13 +31,13 @@ def svp56_fast(x,rate=8000):
     #Note that on a fixed platform svp56_fast.m requires about 8# of the
     #running time that svp56.m requires
     #
-    #Usage:  [asl,saf,active]=svp56_fast(x, rate)
+    #Usage:  [asl,saf,active]=svp56_fast(x, fs)
     #
     # INPUTS:
     #x is the speech signal, which can be passed as either a list, numpy array, 
     #   or as a file name. If passed as the string path to a wav file, the wav 
     #   file will be read and converted to a signal
-    #rate is the frame rate of x, and will default to 8000
+    #fs is the sample rate of x, and will default to 8000
     #
     # OUTPUTS:
     #asl is active speech level in dB (relative to the clipping point of a 
@@ -51,7 +51,7 @@ def svp56_fast(x,rate=8000):
 
     #if x is a filename, extact data from the wav file
     if isinstance(x, str):
-        rate, x = scipy.io.wavfile(x)
+        fs, x = scipy.io.wavfile(x)
     elif not isinstance(x, (list, np.ndarray)):
         raise ValueError("Invalid input for x")
 
@@ -87,13 +87,13 @@ def svp56_fast(x,rate=8000):
         raise ValueError('No signal')
     x=np.abs(x)  #rectify
     n=len(x) 
-    g=np.e ** (-1/(rate*.03))
+    g=np.e ** (-1/(fs*.03))
 
     q=sig.lfilter([(1-g)**2], [1, -2*g, g*g], x)  #smooth
 
     c=2 ** np.arange(16)
     a=np.zeros(16) 
-    hs=round(.2*rate)  #200 ms hang time
+    hs=round(.2*fs)  #200 ms hang time
 
     #take log 2, with handling that gives log2(0)=-100 instead of error
     good=np.nonzero(0<q)[0]
