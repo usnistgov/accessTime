@@ -151,13 +151,12 @@ def ITS_delay_est(x_speech,y_speech,mode, fsamp=8000, dlyBounds = [np.NINF, np.i
     return np.array(Delay_est) * int(fsamp/8000)
     #==========================================================================
 
-def active_speech_level(x):
+def active_speech_level(x,fs=8000):
     #Usage: asl=active_speech_level(x)
     #This function measures the active speech levels in the speech vector x.
     #x is a vector of speech samples
+    #fs to is the sample rate of x
     #asl is the active speech level in dB relative to overload
-    #Just edit fs to operate at other sample rates
-    fs=8000 #samples/second
     #code will extend each active region by tau samples (forward in time)
     tau=round(.200*fs)
     #active speech is defined to be dBth dB below max
