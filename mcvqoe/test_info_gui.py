@@ -238,6 +238,12 @@ def pretest(outdir=""):
     # Run Tkinter window
     root.mainloop()
     
+    # Get ID and Version number from RadioInterface
+    ri = RadioInterface("")
+    version = ri.get_version()
+    id = ri.get_id()
+    del ri
+
     #----------------------------[Get Git Hash]--------------------------------
 
     sha = ""
