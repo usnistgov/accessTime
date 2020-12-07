@@ -260,12 +260,6 @@ class QoEsim:
     # =====================[record audio function]=====================
     def play_record(self,audio, buffersize=20, blocksize=512,out_name='', overPlay=1):
 
-
-        #generate gaussian noise, and add it to audio (simulates low level noise in real life transmit audio)
-        noise = np.random.normal(0, self.noise_level, len(audio)).astype(np.float32)
-
-        audio = audio + noise 
-        
         try:
             #get offset for channel technology
             m2e_offset=self.standard_delay[self.chanel_tech]
@@ -277,10 +271,20 @@ class QoEsim:
         overplay_samples=int(overPlay*self.fs)
         #correct for audio channel latency
         m2e_latency_samples=int((self.m2e_latency-m2e_offset)*self.fs)
-        
+
         if(m2e_latency_samples<0):
             #TODO : it might be possible to get around this but, it sounds slightly nontrivial...
             raise ValueError(f'Unable to simulate a latency of {self.m2e_latency}. Minimum simulated latency for technology \'{self.chanel_tech}\' is {m2e_offset}')
+        
+        #append overplay to audio   
+        overplay_audio = np.zeros(int(overplay_samples), dtype=np.float32)
+        tx_data_with_overplay = np.concatenate((audio, overplay_audio))
+
+        #generate gaussian noise, and add it to audio (simulates low level noise in real life transmit audio)
+        noise = np.random.normal(0, self.noise_level, len(audio)).astype(np.float32)
+
+        audio = audio + noise 
+        
         
         #check if PTT was keyed during audio
         if(self.ptt_wait_delay[1] == -1):
@@ -290,10 +294,6 @@ class QoEsim:
         else:
             ptt_st_dly_samples=int(self.ptt_wait_delay[1]*self.fs)
             access_delay_samples=int(self.access_delay*self.fs)
-        
-        #append overplay to audio   
-        overplay_audio = np.zeros(int(overplay_samples), dtype=np.float32)
-        tx_data_with_overplay = np.concatenate((audio, overplay_audio))
         
         #mute portion of tx_data that occurs prior to triggering of PTT
         muted_samples = int(access_delay_samples + ptt_st_dly_samples)
