@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.signal as sig
 import scipy.io.wavfile 
+import csv
 
 #convert audio data to float type with standard scale        
 def audio_float(dat):
@@ -156,3 +157,53 @@ def svp56_fast(x,fs=8000):
     for j in range(len(trans)):
         active[trans[j]:min(trans[j]+hs-1,n)+1]=1 
     return asl,saf,active
+
+    
+#read in cutpoints from file
+def load_cp(fname):
+    #field names for cutpoints
+    cp_fields=['Clip','Start','End']
+    #open cutpoints file
+    with open(fname,'rt') as csv_f:
+        #create dict reader
+        reader=csv.DictReader(csv_f)
+        #check for correct fieldnames
+        if(reader.fieldnames != cp_fields):
+            raise RuntimeError(f'Cutpoint columns do not match {cp_fields}')
+        #create empty list
+        cp=[]
+        #append each line
+        for row in reader:
+            #convert values to float
+            for k in row:
+                if(k=='Clip'):
+                    #float is needed to represent NaN
+                    row[k]=float(row[k])
+                    #convert non nan fields to int
+                    if(not np.isnan(row[k])):
+                        row[k]=int(row[k])
+                else:
+                    #make indexes zero based
+                    row[k]=int(row[k])-1;
+                
+            #append row to 
+            cp.append(row)
+        return tuple(cp)
+     
+#write cutpoints to file
+def write_cp(fname,cutpoints):
+    #field names for cutpoints
+    cp_fields=['Clip','Start','End']
+    #open cutpoints file
+    with open(fname,'wt',newline='\n', encoding='utf-8') as csv_f:
+        #create dict writer
+        writer=csv.DictWriter(csv_f, fieldnames=cp_fields)
+        #write header row
+        writer.writeheader()
+        #write each row
+        for wcp in cutpoints:
+            #convert back to 1 based index
+            wcp['Start']+=1
+            wcp['End']+=1
+            #write each row
+            writer.writerow(wcp)
