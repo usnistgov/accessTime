@@ -618,17 +618,25 @@ class log_search():
 		# Toss unwanted sessions from net_names
 		net_names_clean = [net_names[i] for i in range(0,len(net_names)) if(not(net_tossIx[i]))]
 		
-		# Switch to searching localpath
-		self.searchPath = locpath
-		loc_names,loc_ix = self.datafilenames(ftype)
-		
-		# Identify all sessions marked error/incomplete locally
-		loc_errSessions = [name == ":Error" for name in loc_names]
-		loc_incSessions = [name == ":Incomplete" for name in loc_names]
-		loc_NoneSessions = [name == None for name in loc_names]
-		loc_tossIx = [loc_NoneSessions[i] or loc_errSessions[i] or loc_incSessions[i] for i in range(0,len(loc_names))]
-		loc_names_clean = [loc_names[i] for i in range(0,len(loc_names)) if(not(loc_tossIx[i]))]
-		
+		if(os.path.exists(os.path.join(locpath,'post-processed data',ftype))):
+            # Check that path to data even exists
+            
+    		# Switch to searching localpath
+			self.searchPath = locpath
+			loc_names,loc_ix = self.datafilenames(ftype)
+    		
+    		# Identify all sessions marked error/incomplete locally
+			loc_errSessions = [name == ":Error" for name in loc_names]
+			loc_incSessions = [name == ":Incomplete" for name in loc_names]
+			loc_NoneSessions = [name == None for name in loc_names]
+			loc_tossIx = [loc_NoneSessions[i] or loc_errSessions[i] or loc_incSessions[i] for i in range(0,len(loc_names))]
+			loc_names_clean = [loc_names[i] for i in range(0,len(loc_names)) if(not(loc_tossIx[i]))]
+		else:
+            # Path to data does not exist at all locally
+            # Set local names to be empty
+			loc_names_clean = []
+            
+
 #		# Grab just the basenames of each list
 		loc_base = [os.path.basename(x) for x in loc_names_clean]
 		net_base = [os.path.basename(x) for x in net_names_clean]
@@ -655,8 +663,9 @@ class log_search():
 				raise RuntimeError(f"Unsupported ftype: '{ftype}' ")
 			
 			lpath = os.path.join(locpath,subdir)
+            # Make directories if don't exist locally
 			if(not(os.path.exists(lpath))):
-				os.mkdir(lpath)
+				os.makedirs(lpath)
 			
 			localpath = os.path.join(lpath,fname)
 			netpath = os.path.join(network_path,subdir,fname)
