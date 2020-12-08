@@ -575,7 +575,28 @@ class log_search():
 
 		return (fn,fi)
 
-	def findFiles(self,locpath,ftype='mat'):
+	def findFiles(self,locpath,ftype='csv'):
+		"""Get filenames from current log search object.
+        
+        Similar to datafilenames, but copies any found files that are in the 
+        network search path but missing from the local path into the local 
+        path. 
+
+	    Parameters
+	    ----------
+	    locpath : string
+	        Local path for data storage. .
+	    ftype : string, optional
+	        File type for data to search for/copy. The default is 'csv'.
+
+	    Returns
+	    -------
+	    filenames : list
+            List of filenames that match log search conditions.Filenames are 
+            guaranteed to exist locally.
+
+	    """
+
 		network_path = self.searchPath
 		
 #		self.searchPath = network_path
