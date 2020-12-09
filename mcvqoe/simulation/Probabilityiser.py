@@ -15,6 +15,7 @@ class PBI:
         self.P_a1=1
         self.P_a2=1
         self.P_r=1
+        self.state_history=[]
         
     def initial_state(self):
         self.state=self.STATE_G0
@@ -35,6 +36,9 @@ class PBI:
             self.update_state()
             if(self.state!=self.STATE_H):
                 data[s:e]=0
+                self.state_history.append(0)
+            else:
+                self.state_history.append(1)
                 
         return data
     
