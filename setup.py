@@ -21,5 +21,8 @@ setuptools.setup(
         "License :: Public Domain",
         "Operating System :: OS Independent",
     ],
+    install_requires=[
+        'numpy','scipy','sounddevice','serial','pyserial','gitpython'
+    ],
     python_requires='>=3.6',
 )
