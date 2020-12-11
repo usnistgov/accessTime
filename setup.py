@@ -22,7 +22,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'numpy','scipy','sounddevice','serial','pyserial','gitpython'
+        'numpy','scipy','sounddevice','serial','pyserial','gitpython','soundfile'
     ],
     python_requires='>=3.6',
 )
