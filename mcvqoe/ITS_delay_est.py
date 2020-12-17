@@ -2,7 +2,7 @@ import numpy as np
 import scipy.signal as sig
 from numpy.fft import fft, ifft
 
-def ITS_delay_est(x_speech,y_speech,mode, fsamp=8000, dlyBounds = [np.NINF, np.inf]):
+def ITS_delay_est(x_speech,y_speech,mode, fsamp=8000, dlyBounds = [np.NINF, np.inf],min_corr=0):
 
     #Usage: Delay_est=ITS_delay_est(x_speech,y_speech,mode)
     #
@@ -88,6 +88,10 @@ def ITS_delay_est(x_speech,y_speech,mode, fsamp=8000, dlyBounds = [np.NINF, np.i
     #signals, no signal, or may simply be too short)
     if len(comp_x_speech)<1185:
         #Algorithm must terminate
+        mode='t'
+    #------------------------Check Correlation threshold-----------------------#
+    if( rho_0<min_corr):
+        #rho_0 is too low, terminate
         mode='t'
     #------------Do further mode determination as necessary/possible-----------#
     if mode=='u' and rho_0<.96:
