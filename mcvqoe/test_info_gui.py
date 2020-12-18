@@ -15,7 +15,7 @@ import numpy as np
 import sounddevice as sd
 import tkinter as tk
 
-def check_audio(audio_file="test.wav"):
+def check_audio(audio_file="test.wav", radioport=""):
     """Perform a single test to check audio equipment. Auto deletes recorded file"""
 
     if os.path.exists("temp0.wav"):
@@ -36,7 +36,7 @@ def check_audio(audio_file="test.wav"):
     # Resample audio
     audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
     
-    with RadioInterface("") as ri:
+    with RadioInterface(radioport) as ri:
         ri.led(1, True)
         ri.ptt(True)
         temp_file = ap.play_rec_mono(audio, filename='temp0.wav')
@@ -124,7 +124,7 @@ def post_test():
     
     return {"Post Test Notes": post_test}
         
-def pretest(outdir=""):
+def pretest(outdir="", radioport=""):
     """
     Provide user pretest GUI and return input as dictionary.
     
@@ -134,7 +134,9 @@ def pretest(outdir=""):
     ----------
     outdir : str
         The directory to write test-type.txt to.
-    
+    radioport : str
+        The radioport being used for testing
+
     Returns
     -------
     dict
@@ -226,7 +228,7 @@ def pretest(outdir=""):
     exit_frame = tk.Frame(root)
     exit_frame.grid(row=12, column=0, sticky=tk.W)
     
-    button = tk.Button(exit_frame, text="Check Audio", command=check_audio)
+    button = tk.Button(exit_frame, text="Check Audio", command=lambda: check_audio(radioport=radioport))
     button.grid(row=0, column=0, padx=10, pady=10)
     
     button = tk.Button(button_frame, text="Submit", command=coll_user_vars)
@@ -239,7 +241,7 @@ def pretest(outdir=""):
     root.mainloop()
     
     # Get ID and Version number from RadioInterface
-    ri = RadioInterface("")
+    ri = RadioInterface(radioport)
     version = ri.get_version()
     id = ri.get_id()
     del ri
