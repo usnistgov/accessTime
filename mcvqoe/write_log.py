@@ -53,8 +53,8 @@ def pre(info_ref={}, outdir=""):
         file.write(f"\tSystem     : {info.pop('System', 'Not Found')}\n")
         file.write(f"\tTest Loc   : {info.pop('Test Loc', 'Not Found')}\n")
         file.write(f"\tGit Hash   : {info.pop('Git Hash', 'Not Found')}\n")
-        file.write(f"\tRI Version : {info.pop('version', 'Not Found')}\n")
-        file.write(f"\tRI ID      : {info.pop('id', 'Not Found')}\n")
+        file.write(f"\tRI Version : {info.pop('RI_version', 'Not Found')}\n")
+        file.write(f"\tRI ID      : {info.pop('RI_id', 'Not Found')}\n")
         file.write(f"\tArguments  : ")
         for key in list(info):
             if (key != "Pre Test Notes"):

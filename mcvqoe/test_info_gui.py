@@ -36,11 +36,12 @@ def check_audio(audio_file="test.wav", ri=None):
     # Resample audio
     audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
     
-    with ri:
+    try:
         ri.led(1, True)
         ri.ptt(True)
         temp_file = ap.play_rec_mono(audio, filename='temp0.wav')
         ri.ptt(False)
+    finally:
         os.remove(temp_file)
     
 def exit_prog():
@@ -243,7 +244,6 @@ def pretest(outdir="", ri=None):
     # Get ID and Version number from RadioInterface
     version = ri.get_version()
     id = ri.get_id()
-    del ri
 
     #----------------------------[Get Git Hash]--------------------------------
 
@@ -274,6 +274,7 @@ def pretest(outdir="", ri=None):
     test_info = {"Test Type": test_type, "Tx Device": tran_dev,
                  "Rx Device": rec_dev, "System": system,
                  "Test Loc": test_loc, "Pre Test Notes": test_notes,
-                 "Git Hash": sha, "Time": time_n_date}
+                 "Git Hash": sha, "Time": time_n_date,'RI_version': version,
+                 'RI_id':id}
     
     return test_info
