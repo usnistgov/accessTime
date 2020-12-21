@@ -7,6 +7,7 @@ import shutil
 import scipy.signal
 import warnings
 import subprocess
+import mcvqoe
 from mcvqoe import audio_float
 from mcvqoe.ITS_delay_est import active_speech_level
 
@@ -80,6 +81,15 @@ class QoEsim:
         #TODO : simulate other versions??
         return 'MCV radio interface v1.0'
 
+    def get_id(self):
+        """Get the ID string from radio interface"""
+        
+        return os.path.basename(__file__)
+
+    def get_version(self):
+        """Get the version number from radio interface"""
+ 
+        return mcvqoe.version
 
     def pttState(self):
         ''' returns the pttState for a radioInterface object. This is called
