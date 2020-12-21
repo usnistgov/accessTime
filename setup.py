@@ -24,5 +24,10 @@ setuptools.setup(
     install_requires=[
         'numpy','scipy','sounddevice','serial','pyserial','gitpython','soundfile'
     ],
+    entry_points={
+        'console_scripts':[
+            'testCpy=mcvqoe.utilities.testCpy:main',
+        ],
+    },
     python_requires='>=3.6',
 )
