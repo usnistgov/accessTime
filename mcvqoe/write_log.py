@@ -67,6 +67,9 @@ def pre(info={}, outdir=""):
         The directory to write to.
     """
     
+    #length to pad test params to 
+    pad_len=10
+    
     # Add 'outdir' to tests.log path
     log_datadir = os.path.join(outdir, "tests.log")
     
@@ -78,7 +81,7 @@ def pre(info={}, outdir=""):
         file.write(f"\n>>{info['test']} started at {info['Tstart']}\n")
         for key in info:
             if (key not in skip_keys):
-                file.write(f"\t{key}  : {info[key]}\n")
+                file.write(f"\t{key:<{pad_len}} : {info[key]}\n")
                 
         # Add pre test notes to tests.log
         if info["Pre Test Notes"] is not None:
