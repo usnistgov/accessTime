@@ -1,5 +1,4 @@
 import datetime
-import git
 import os
 import scipy.io.wavfile
 import scipy.signal
@@ -239,20 +238,7 @@ def pretest(outdir="", ri=None):
     button.grid(row=0, column=1, padx=10, pady=10)
     
     # Run Tkinter window
-    root.mainloop()
-    
-    # Get ID and Version number from RadioInterface
-    version = ri.get_version()
-    id = ri.get_id()
-
-    #----------------------------[Get Git Hash]--------------------------------
-
-    sha = ""
-    try:
-        repo = git.Repo(search_parent_directories=True)
-        sha = repo.head.object.hexsha
-    except git.exc.InvalidGitRepositoryError:
-        sha = "No Git Hash Found"
+    root.mainloop()   
     
     #--------------------[Print Test Type and Test Notes]----------------------
     
@@ -274,7 +260,6 @@ def pretest(outdir="", ri=None):
     test_info = {"Test Type": test_type, "Tx Device": tran_dev,
                  "Rx Device": rec_dev, "System": system,
                  "Test Loc": test_loc, "Pre Test Notes": test_notes,
-                 "Git Hash": sha, "Time": time_n_date,'RI_version': version,
-                 'RI_id':id}
+                }
     
     return test_info

@@ -1,8 +1,59 @@
-import copy
+
 import datetime
 import os
+import git
 
-def pre(info_ref={}, outdir=""):
+def fill_log(test_obj):
+    """
+    Take in QoE measurement class and fill in standard log entries
+    
+    ...
+    
+    Parameters
+    ----------
+    test_obj : QoE measurement class
+        Class to generate test info for
+    """
+    
+    #initialize info
+    info={}
+    
+    #---------------------------[RadioInterface info]---------------------------
+    
+    # Get ID and Version number from RadioInterface
+    info['RI version']  = test_obj.ri.get_version()
+    info['RI id'] = test_obj.ri.get_id()
+
+    #------------------------------[Get Git Hash]------------------------------
+
+    sha = ""
+    try:
+        repo = git.Repo(search_parent_directories=True)
+        sha = repo.head.object.hexsha
+    except git.exc.InvalidGitRepositoryError:
+        sha = "No Git Hash Found"
+    
+    info["Git Hash"]=sha
+
+    #---------------------------[Fill Arguments list]---------------------------
+    
+    #class properties to skip in all cases
+    standard_skip=['no_log','info']
+    arg_list=[]
+    
+    for k,v in vars(test_obj).items():
+        if(k not in test_obj.no_log and k not in standard_skip):
+            arg_list.append(k + ' = ' + repr(v))
+    
+    info['Arguments']=','.join(arg_list)
+    
+    #-------------------------------[Return info]-------------------------------
+    
+    return info
+    
+    
+
+def pre(info={}, outdir=""):
     """
     Take in M2E class info dictionary and write pre-test to tests.log.
     
@@ -10,65 +61,31 @@ def pre(info_ref={}, outdir=""):
     
     Parameters
     ----------
-    info_ref : dict
+    info : dict
         The M2E.info dictionary used to write to tests.log.
     outdir : str
         The directory to write to.
     """
     
-    # Create copy of dictionary(mutable) to enable deleting key/value pairs
-    info = copy.deepcopy(info_ref) 
-    
     # Add 'outdir' to tests.log path
     log_datadir = os.path.join(outdir, "tests.log")
     
-    # Get test type header
-    tst_str = ""
-    if (info.get("test") == "m2e_1loc"):
-        tst_str = "One Loc Test"
-        del info["test"]
-    elif (info.get("test") == "m2e_2loc_tx"):
-        tst_str = "Tx Two Loc Test"
-        del info["test"]
-    elif (info.get("test") == "m2e_2loc_rx"):
-        tst_str = "Rx Two Loc Test"
-        del info["test"]
-    else:
-        tst_str = "Unknown Test"
-    
-    # Put datetime into proper format
-    if info.get("Time") is not None:
-        tnd = info.get("Time").strftime("%d-%b-%Y %H:%M:%S")
-        del info["Time"]
-    else:
-        tnd = "{No Time Given}"
+    skip_keys=['test','Tstart','Pre Test Notes']
     
     # Write all necessary arguments/test params into tests.log
     with open(log_datadir, 'a') as file:
         
-        file.write(f"\n>>{tst_str} started at {tnd}\n")
-        file.write(f"\tTest Type  : {info.pop('Test Type', 'Not Found')}\n")
-        file.write(f"\tTx Device  : {info.pop('Tx Device', 'Not Found')}\n")
-        file.write(f"\tRx Device  : {info.pop('Rx Device', 'Not Found')}\n")
-        file.write(f"\tSystem     : {info.pop('System', 'Not Found')}\n")
-        file.write(f"\tTest Loc   : {info.pop('Test Loc', 'Not Found')}\n")
-        file.write(f"\tGit Hash   : {info.pop('Git Hash', 'Not Found')}\n")
-        file.write(f"\tRI Version : {info.pop('RI_version', 'Not Found')}\n")
-        file.write(f"\tRI ID      : {info.pop('RI_id', 'Not Found')}\n")
-        file.write(f"\tArguments  : ")
-        for key in list(info):
-            if (key != "Pre Test Notes"):
-                if len(info) == 2:
-                    file.write(f"{key} = '{info[key]}'")
-                else:
-                    file.write(f"{key} = '{info[key]}', ")
-                del info[key]
-        
-        # Add pre and post test notes to tests.log
-        if info.get("Pre Test Notes") is not None:
+        file.write(f"\n>>{info['test']} started at {info['Tstart']}\n")
+        for key in info:
+            if (key not in skip_keys):
+                file.write(f"\t{key}  : {info[key]}\n")
+                
+        # Add pre test notes to tests.log
+        if info["Pre Test Notes"] is not None:
             # Add tabs for each newline in pretest string
-            file.write("\n===Pre-Test Notes===%s" % '\t'.join(('\n'+info.get("Pre Test Notes").
-                                                               lstrip()).splitlines(True)))
+            file.write("\n===Pre-Test Notes===%s" % '\t'.join(('\n'+
+                        info["Pre Test Notes"].lstrip()).splitlines(True))
+                      )
         else:
             file.write("\n===Pre-Test Notes===\n")
 
