@@ -4,8 +4,7 @@ with open("README.md", "r",encoding='utf-8') as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="mcvqoe-nist", # Replace with your own username
-    version="0.0.1",
+    name="mcvqoe-nist",
     author="Jesse Frey, Peter Fink, Jaden Pieper",
     author_email="jesse.frey@nist.gov,jaden.pieper@nist.gov",
     description="Common code for MCV QoE Measurement Classes",
