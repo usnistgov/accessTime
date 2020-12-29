@@ -266,6 +266,9 @@ if __name__ == "__main__":
         #load config file
         config.read(args.config)
         
+        if(not config.sections()):
+            raise ValueError(f'Configuration file not found at {args.config}.')
+        
         #find configuration file location, all paths are relative to this
         config_fold=os.path.dirname(os.path.abspath(args.config))
                    
