@@ -211,8 +211,15 @@ def main():
     
     if(not os.path.exists(SyncScript)):
         raise RuntimeError(f'Sync script not found at \'{SyncScript}\'')
-        
-    syncCmd=['python',SyncScript,'--import',OutDir,destDir,'--cull']
+    
+    #try to get path to python
+    py_path=sys.executable
+    
+    if(not py_path):
+        #couldn't get path, try 'python' and hope for the best
+        py_path='python'
+    
+    syncCmd=[py_path,SyncScript,'--import',OutDir,destDir,'--cull']
     
     if(args.dryRun):
         print('Calling sync command:\n\t'+' '.join(syncCmd))
