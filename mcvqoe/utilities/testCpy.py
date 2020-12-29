@@ -7,6 +7,12 @@ import json
 import re
 import subprocess
 import argparse
+import pkgutil
+
+#used for version checking
+import pkg_resources
+import mcvqoe
+
 
 if platform.system()=='Windows':
     
@@ -207,10 +213,46 @@ def main():
     #create destination path
     destDir=os.path.join(dest_drive_prefix,set_dict['Path']);
         
-    SyncScript=os.path.join(syncDir,'sync.py')
+    SyncScript=os.path.join(syncDir,'sync.py')    
+    sync_ver_path=os.path.join(syncDir,'version.txt')
+    
+    sync_update=False
     
     if(not os.path.exists(SyncScript)):
-        raise RuntimeError(f'Sync script not found at \'{SyncScript}\'')
+        sync_update=True
+        #print message
+        print('Sync directory not found, updating');
+        
+    if(not sync_update):
+    
+        if(os.path.exists(sync_ver_path)):
+            #read version from file
+            with open(sync_ver_path,'r') as f:
+                sync_ver=pkg_resources.parse_version(f.read())
+            
+            #get version from package
+            qoe_ver=pkg_resources.parse_version(mcvqoe.version)
+            
+            #we need to update if sync version is older than mcvqoe version
+            sync_update=qoe_ver>sync_ver
+            
+            if(sync_update):
+                print('Sync version old, updating')
+        
+        else:
+            sync_update=True
+            print('Sync version missing, updating')
+    
+    if(sync_update and not args.dryRun):
+        #there is no sync script
+        #make sync dir
+        os.makedirs(syncDir,exist_ok=True)
+        #copy sync script
+        with open(SyncScript,'wb') as f:
+            f.write(pkgutil.get_data('mcvqoe','utilities/sync.py'))
+            
+        with open(sync_ver_path,'w') as f:
+            f.write(mcvqoe.version)
     
     #try to get path to python
     py_path=sys.executable
