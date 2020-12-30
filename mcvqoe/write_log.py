@@ -2,6 +2,7 @@
 import datetime
 import os
 import git
+import traceback
 
 def fill_log(test_obj):
     """
@@ -34,7 +35,24 @@ def fill_log(test_obj):
         sha = "No Git Hash Found"
     
     info["Git Hash"]=sha
-
+    
+    #---------------------[Get traceback for calling info]---------------------
+    
+    #get a stack trace
+    tb=traceback.extract_stack()
+    
+    #remove the last one cause that's this function
+    tb=tb[:-1]
+    
+    #extract important info from traceback
+    tb_info=[(os.path.basename(fs.filename),fs.name if fs.name != '<module>' else None) for fs in tb]
+    
+    #add entry for calling file
+    info['filename']=tb_info[-1][0]
+    
+    #format string with '->' between files
+    info['traceback']='->'.join([f'{f}({n})' if n is not None else f for f,n in tb_info])
+    
     #---------------------------[Fill Arguments list]---------------------------
     
     #class properties to skip in all cases
