@@ -18,6 +18,9 @@ class QoEsim:
         self.PTT_state=[False,]*2
         self.LED_state=[False,]*2
         self.ptt_wait_delay=[-1.0,]*2
+        #overplay value for audio
+        self.overPlay=1
+        #channel variables
         self.chanel_tech='clean'
         self.chanel_rate=None
         self.pre_impairment=None
@@ -275,9 +278,15 @@ class QoEsim:
             rx_dat=self.post_impairment(rx_data,self.fs)
     
         return rx_data
+        
+    # =====================[Find device function]=====================
+    def find_device(self):
+        #this function is used for compatibility with AudioPlayer but, it's not 
+        #really needed for simulation
+        return 'sim'
 
     # =====================[record audio function]=====================
-    def play_record(self,audio, buffersize=20, blocksize=512,out_name='', overPlay=1):
+    def play_record(self,audio,out_name):
 
         try:
             #get offset for channel technology
@@ -287,7 +296,7 @@ class QoEsim:
             raise ValueError(f'"{self.chanel_tech}" is not a valid technology')
             
         #calculate values in samples
-        overplay_samples=int(overPlay*self.fs)
+        overplay_samples=int(self.overPlay*self.fs)
         #correct for audio channel latency
         m2e_latency_samples=int((self.m2e_latency-m2e_offset)*self.fs)
 
