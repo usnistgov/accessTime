@@ -175,12 +175,12 @@ class RadioInterface:
         #get response line
         resp=self.textin.readline()
         #parse PTT state
-        m=re.match('PTT state : "(?P<state>\S+)"',resp)
+        m=re.match('PTT state : "(?P<state>.*?)"', resp)
         if(m):
             return m.group('state')
         else:
             err_str='Error : '
-            if(resp.startsWith(err_str)):
+            if(resp.startswith(err_str)):
                 raise RuntimeError(resp[len(err_str):])
             else:
                 raise RuntimeError(f"Unknown response '{resp}' received")
