@@ -49,13 +49,16 @@ def cb_mono_play_rec(indata, outdata, frames, time, status):
     
 class AudioPlayer:
     
-    def __init__(self, fs=int(48e3), blocksize=512, buffersize=20, overplay=1.0):
+    def __init__(self, fs=int(48e3), blocksize=512, buffersize=20, overplay=1.0,input_chans=1,output_chans=1,start_signal=False):
         
         self.sample_rate = fs
         self.blocksize = blocksize
         self.buffersize = buffersize
         self.overplay = overplay
         self.device = AudioPlayer.find_device()
+        self.input_chans=input_chans
+        self.output_chans=output_chans
+        self.start_signal=start_signal
     
     #TODO allow different device defaults
     @staticmethod
@@ -103,7 +106,25 @@ class AudioPlayer:
             print('\nRecording finished')
         except Exception as e:
             sys.exit(type(e).__name__ + ': ' + str(e))
-            
+    
+    def play_record(self, audio, filename="rec.wav"):
+        """
+        Play 'audio' and record to 'filename'. Plays self.input_chans channels
+        and records self.output_chans. if self.start_singal is True then the
+        last output channel is used for the start signal.
+        
+        ...
+        
+        Parameters
+        ----------
+        audio : numpy array
+            The audio in numpy array format. Needs to be in proper sample rate.
+        filename : str
+            The file extension to write audio data to and return str.
+        """
+        #TODO: make this actually work, just call play_rec_mono for now
+        self.play_rec_mono(audio, filename)
+    
     def play_rec_mono(self, audio, filename="rec.wav"):
         """
         Play 'audio' and record to 'filename'. Used for 2loc Tx and 1loc.
