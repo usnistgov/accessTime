@@ -79,17 +79,33 @@ def collect_post():
     # Delete window
     root.destroy()
 
-def post_test():
+def post_test(error_only=False):
     """
     Give user post test GUI and return input as dictionary item.
     
     ...
+    Parameters
+    ----------
+    error_only : bool
+        if true will only show a dialog if an error occurred
     
     Returns
     -------
     dict
         The "Post Test Notes" dictionary entry.
     """
+    
+    #-----------------------------[Get error info]-----------------------------
+    
+    #check if there was an error
+    err=error=sys.exc_info()[0]
+    
+    #----------------------[Check if dialog will be shown]----------------------
+    
+    if( (not err) and error_only ):
+        #return empty dict, this will get written out with empty post notes
+        return {}
+    
     #--------------------[Obtain Post Test Notes From User]--------------------
     
     # Window creation
@@ -101,8 +117,6 @@ def post_test():
     # Prevent error if user exits
     root.protocol("WM_DELETE_WINDOW", collect_post)
     
-    #check if there was an error
-    err=error=sys.exc_info()[0]
     
     # Pre-test notes prompt
     if(err):
