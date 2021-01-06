@@ -143,76 +143,66 @@ class AudioPlayer:
         sd.default.device = self.device
         sd.default.channels = [1, 1]
         
-        try:
+        fs = self.sample_rate
+
+        # Queue for recording input
+        global qr
+        qr = queue.Queue()
+        # Queue for output WAVE file
+        global q
+        q = queue.Queue(maxsize=self.buffersize)
         
-            fs = self.sample_rate
-    
-            # Queue for recording input
-            global qr
-            qr = queue.Queue()
-            # Queue for output WAVE file
-            global q
-            q = queue.Queue(maxsize=self.buffersize)
+        # Thread for callback function
+        event = threading.Event()
+        
+        # NumPy audio array placeholder
+        arr_place = 0
+        
+        # Add Overplay
+        if (self.overplay != 0):
+            overplay = fs * self.overplay
+        audio = np.pad(audio, (0, int(overplay)), mode='constant')
+
+        for x in range(self.buffersize):
             
-            # Thread for callback function
-            event = threading.Event()
+            data_slice = audio[self.blocksize*x:(self.blocksize*x)+self.blocksize]
             
-            # NumPy audio array placeholder
-            arr_place = 0
+            if data_slice.size == 0:
+                break
             
-            # Add Overplay
-            if (self.overplay != 0):
-                overplay = fs * self.overplay
-            audio = np.pad(audio, (0, int(overplay)), mode='constant')
-    
-            for x in range(self.buffersize):
+            # Save place of NumPy array slice for next loop
+            arr_place += self.blocksize
+            
+            # Pre-fill queue
+            q.put_nowait(data_slice)  
+        
+        # Output and input stream in one
+        # Latency of zero to try and cut down delay    
+        stream = sd.Stream(   
+            blocksize=self.blocksize, samplerate=fs,
+            dtype='float32', callback=cb_mono_play_rec, finished_callback=event.set,
+            latency=0)
+        
+        with sf.SoundFile(filename, mode='x', samplerate=fs,
+                          channels=1) as rec_file:
+            with stream:
+                timeout = self.blocksize * self.buffersize / fs
+
+                # For grabbing next blocksize slice of the NumPy audio array
+                itrr = 0
                 
-                data_slice = audio[self.blocksize*x:(self.blocksize*x)+self.blocksize]
-                
-                if data_slice.size == 0:
-                    break
-                
-                # Save place of NumPy array slice for next loop
-                arr_place += self.blocksize
-                
-                # Pre-fill queue
-                q.put_nowait(data_slice)  
-            
-            # Output and input stream in one
-            # Latency of zero to try and cut down delay    
-            stream = sd.Stream(   
-                blocksize=self.blocksize, samplerate=fs,
-                dtype='float32', callback=cb_mono_play_rec, finished_callback=event.set,
-                latency=0)
-            
-            with sf.SoundFile(filename, mode='x', samplerate=fs,
-                              channels=1) as rec_file:
-                with stream:
-                    timeout = self.blocksize * self.buffersize / fs
-    
-                    # For grabbing next blocksize slice of the NumPy audio array
-                    itrr = 0
+                while data_slice.size != 0:
                     
-                    while data_slice.size != 0:
-                        
-                        data_slice = audio[arr_place+(self.blocksize*itrr):arr_place+(self.blocksize*itrr)+self.blocksize]
-                        itrr += 1
-                        
-                        q.put(data_slice, timeout=timeout)
-                        rec_file.write(qr.get())
-                    # Wait until playback is finished
-                    event.wait()  
+                    data_slice = audio[arr_place+(self.blocksize*itrr):arr_place+(self.blocksize*itrr)+self.blocksize]
+                    itrr += 1
                     
-                # Make sure to write any audio data still left in the recording queue
-                while (qr.empty() != True):
+                    q.put(data_slice, timeout=timeout)
                     rec_file.write(qr.get())
-            
-            return filename
-        # Catch errors or test cancelation
-        except KeyboardInterrupt:
-            sys.exit('\nInterrupted by user')
-        except queue.Full:
-            # A timeout occurred, i.e. there was an error in the callback
-            sys.exit(1)
-        except Exception as e:
-            sys.exit(type(e).__name__+': '+str(e))
+                # Wait until playback is finished
+                event.wait()  
+                
+            # Make sure to write any audio data still left in the recording queue
+            while (qr.empty() != True):
+                rec_file.write(qr.get())
+        
+        return filename
