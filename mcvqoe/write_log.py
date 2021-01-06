@@ -129,11 +129,16 @@ def post(info={}, outdir=""):
     log_datadir = os.path.join(outdir, "tests.log")
     
     with open(log_datadir, 'a') as file:
-        
-        if info.get("Post Test Notes") is not None:
-            file.write("===Post-Test Notes===%s" % '\t'.join(('\n'+info.get("Post Test Notes").
-                                                              lstrip()).splitlines(True)))
+        if('Error Notes' in info):
+            notes=info['Error Notes']
+            header='===Test-Error Notes==='
         else:
-            file.write("===Post-Test Notes===\n")
-            
+            header='===Post-Test Notes==='
+            notes=info.get("Post Test Notes",'')
+        
+        #indent notes
+        notes='\t'.join(('\n'+notes.strip()).splitlines(True))
+        #write notes
+        file.write(header+notes+'\n')
+        #write end
         file.write("===End Test===\n\n")

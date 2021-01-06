@@ -101,8 +101,14 @@ def post_test():
     # Prevent error if user exits
     root.protocol("WM_DELETE_WINDOW", collect_post)
     
+    #check if there was an error
+    err=error=sys.exc_info()[0]
+    
     # Pre-test notes prompt
-    label = tk.Label(root, text="Please enter post-test notes")
+    if(err):
+        label = tk.Label(root, text=f'An "{err.__name__}" was encountered. Please enter notes on test conditions')
+    else:
+        label = tk.Label(root, text="Please enter post-test notes")
     label.grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
     global entry
     entry = scrolledtext.ScrolledText(root, bd=2, width=100, height=15)
@@ -122,7 +128,10 @@ def post_test():
     # Run Tkinter window
     root.mainloop()
     
-    return {"Post Test Notes": post_test}
+    if(err):
+        return {"Error Notes": post_test}
+    else:
+        return {"Post Test Notes": post_test}
         
 def pretest(outdir="", ri=None):
     """
