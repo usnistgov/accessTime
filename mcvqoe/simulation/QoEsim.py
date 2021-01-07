@@ -21,8 +21,8 @@ class QoEsim:
         #overplay value for audio
         self.overPlay=1
         #channel variables
-        self.chanel_tech='clean'
-        self.chanel_rate=None
+        self.channel_tech='clean'
+        self.channel_rate=None
         self.pre_impairment=None
         self.post_impairment=None
         self.channel_impairment=None
@@ -162,21 +162,21 @@ class QoEsim:
             tx_dat=self.pre_impairment(tx_data,self.fs)
     
         # for a clean vocoder, write the rx signal as is
-        if self.chanel_tech == "clean":
+        if self.channel_tech == "clean":
             
             if(self.channel_impairment):
                 warnings.warn('There is no channel for the \'clean\' option. can not use channel_impairment')
-            if(self.chanel_rate):
-                warnings.warn('For \'clean\' there is no rate. \'chanel_rate\' option ignored')
+            if(self.channel_rate):
+                warnings.warn('For \'clean\' there is no rate. \'channel_rate\' option ignored')
             
             rx_data = tx_data
         
-        elif self.chanel_tech == "analog":
+        elif self.channel_tech == "analog":
             # do later
             pass
         
-        elif self.chanel_tech == "p25":
-            rate=self.chanel_rate;
+        elif self.channel_tech == "p25":
+            rate=self.channel_rate;
             
             if(not rate):
                 rate='fr'
@@ -193,11 +193,11 @@ class QoEsim:
             rx_data = self.p25decode(channel_data, self.fs,rate)
         
         # simulate passing the signal thru an AMR WB vocoder by using ffmpeg
-        elif self.chanel_tech.startswith("amr"):
+        elif self.channel_tech.startswith("amr"):
             #get rate from option
-            rate=self.chanel_rate
+            rate=self.channel_rate
             
-            if(self.chanel_tech == "amr-nb"):
+            if(self.channel_tech == "amr-nb"):
                 codec='amr_nb'
                 audio_rate='8k'
             else:
@@ -270,7 +270,7 @@ class QoEsim:
                 rx_data=audio_float(file_data)
         
         else:        
-            raise ValueError(f'"{self.chanel_tech}" is not a valid technology')
+            raise ValueError(f'"{self.channel_tech}" is not a valid technology')
         
         
         #add post channel impairments
@@ -290,10 +290,10 @@ class QoEsim:
 
         try:
             #get offset for channel technology
-            m2e_offset=self.standard_delay[self.chanel_tech]
+            m2e_offset=self.standard_delay[self.channel_tech]
         except KeyError:
             #a key error means we used a bad technology
-            raise ValueError(f'"{self.chanel_tech}" is not a valid technology')
+            raise ValueError(f'"{self.channel_tech}" is not a valid technology')
             
         #calculate values in samples
         overplay_samples=int(self.overPlay*self.fs)
@@ -302,7 +302,7 @@ class QoEsim:
 
         if(m2e_latency_samples<0):
             #TODO : it might be possible to get around this but, it sounds slightly nontrivial...
-            raise ValueError(f'Unable to simulate a latency of {self.m2e_latency}. Minimum simulated latency for technology \'{self.chanel_tech}\' is {m2e_offset}')
+            raise ValueError(f'Unable to simulate a latency of {self.m2e_latency}. Minimum simulated latency for technology \'{self.channel_tech}\' is {m2e_offset}')
         
         #append overplay to audio   
         overplay_audio = np.zeros(int(overplay_samples), dtype=np.float32)
