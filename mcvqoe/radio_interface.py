@@ -283,8 +283,7 @@ class RadioInterface:
     
     def __exit__(self, exc_type, exc_value, exc_traceback):
         
-        self.ptt(False)
-        self.led(1, False)
+        self._command('closeout')
     
     def _openPort(self,port):
     
