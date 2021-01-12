@@ -77,10 +77,12 @@ class RadioInterface:
         #determine LED state string
         if(state):
             ststr='on'
-            print("state is on", flush=True)
+            if(self.debug):
+                print("state is on", flush=True)
         else:
             ststr='off'
-            print("state is off", flush=True)
+            if(self.debug):
+                print("state is off", flush=True)
         #send command
         self._command(f"LED {num} {ststr}")
         
@@ -285,10 +287,12 @@ class RadioInterface:
         self.led(1, False)
     
     def _openPort(self,port):
-
+    
         self.sobj=serial.Serial(port,timeout=0.5)
         #buffer serial data
         self.textin=io.TextIOWrapper(io.BufferedReader(self.sobj))
+        
+        self.connPort=port
 
     def _command(self,cmd):
         '''low level command function to send command to the MSP430
