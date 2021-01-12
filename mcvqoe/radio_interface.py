@@ -287,10 +287,12 @@ class RadioInterface:
         self.led(1, False)
     
     def _openPort(self,port):
-
+    
         self.sobj=serial.Serial(port,timeout=0.5)
         #buffer serial data
         self.textin=io.TextIOWrapper(io.BufferedReader(self.sobj))
+        
+        self.connPort=port
 
     def _command(self,cmd):
         '''low level command function to send command to the MSP430
