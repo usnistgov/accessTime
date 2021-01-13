@@ -8,13 +8,16 @@ class PBI:
     STATE_G1=2
     STATE_H=3
                 
-    def __init__(self):
+    def __init__(self,P_a1 = 1, P_a2 = None, P_r = 1, interval=1):
         #time in seconds between state machine evaluations
-        self.interval=1
+        self.interval=interval
         self.initial_state()
-        self.P_a1=1
-        self.P_a2=1
-        self.P_r=1
+        self.P_a1 = P_a1
+        if(P_a2 is None):
+            self.P_a2 = self.P_a1
+        else:
+            self.P_a2 = P_a2
+        self.P_r= P_r
         self.state_history=[]
         
     def initial_state(self):
@@ -67,3 +70,22 @@ class PBI:
             else:
                 #transition into G1 state
                 self.state=self.STATE_G1
+    
+    def expected_psud(self,t):
+        """
+        Determine expected PSuD of message of length t given settings
+
+        Parameters
+        ----------
+        t : float
+            Length of message in seconds.
+
+        Returns
+        -------
+        psud : float
+              PSuD of message of length t given current settings
+
+        """
+        exp = (t/self.interval) - 1
+        psud = self.P_a2/(1 + self.P_a2 - self.P_r) * (self.P_r ** exp)
+        return(psud)
