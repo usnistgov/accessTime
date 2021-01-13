@@ -12,16 +12,22 @@ import warnings
 def local_copy(test_names, test_type = 'access', local_path = ''):
     cfs2w = '//cfs2w.nist.gov/671/Projects/MCV'
     if(test_type == 'access'):
-        tname = os.path.join('Access-Time','post-processed data')
+        parent_dir = 'Access-Time'
+        pdata_dir = 'post-processed data'
+        # tname = os.path.join('Access-Time','post-processed data')
     elif(test_type == 'm2e'):
-        tname = os.path.join('M2E Latency','data')
+        # tname = os.path.join('M2E Latency','data')
+        parent_dir = 'M2E Latency'
+        pdata_dir = 'data'
     elif(test_type == 'psud'):
-        tname = os.path.join('PSuD','data')
+        # tname = os.path.join('PSuD','data')
+        parent_dir = 'PSuD'
+        pdata_dir = 'data'
     
     
-    data_path = os.path.join(cfs2w,tname)
+    data_path = os.path.join(cfs2w,parent_dir,pdata_dir)
     
-    local_data = os.path.join(local_path,tname)
+    local_data = os.path.join(local_path,pdata_dir)
     os.makedirs(local_data,exist_ok = True)
     
     #------------------[Test CSV files]--------------------------------------------
@@ -32,7 +38,7 @@ def local_copy(test_names, test_type = 'access', local_path = ''):
         cpath = os.path.join(csv_path,cfile)
         for tname in test_names:
             if(tname in cfile):
-                lpath = os.path.join(local_data,cfile)
+                lpath = os.path.join(local_data,'csv',cfile)
                 if(not os.path.exists(lpath)):
                     print("Copying {} to {}".format(cpath,lpath))
                     shutil.copyfile(cpath, lpath)
