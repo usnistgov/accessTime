@@ -66,9 +66,7 @@ def local_copy(test_names, test_type = 'access', local_path = ''):
                     
                 
         
-    
-
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description='Copy MCV data files from cfs2w to local machine')
     parser.add_argument('-f','--test-names',
                         default = [],
@@ -90,3 +88,5 @@ if __name__ == "__main__":
     um = local_copy(args.test_names,
                     test_type = args.test_type,
                     local_path = args.local_path)
+if __name__ == "__main__":
+    main()

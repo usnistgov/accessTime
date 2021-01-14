@@ -26,6 +26,7 @@ setuptools.setup(
     entry_points={
         'console_scripts':[
             'testCpy=mcvqoe.utilities.testCpy:main',
+            'local-copy=mcvqoe.utilities.local_copy:main'
         ],
     },
     python_requires='>=3.6',
