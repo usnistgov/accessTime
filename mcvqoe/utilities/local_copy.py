@@ -125,7 +125,7 @@ def main():
                         type = str,
                         help = 'Type of test to copy from (m2e,access,psud)')
     parser.add_argument('-l','--local-path',
-                        default = '',
+                        default = None,
                         type = None,
                         help = "Local path to copy to")
     
