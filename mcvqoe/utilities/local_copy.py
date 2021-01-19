@@ -114,9 +114,32 @@ def update_config(test_type, local_path, network_path):
 
     with open(config_path,'w') as configfile:
         config.write(configfile)
-
+def print_config(test_type=None):
+    #---------------------[Load Config File]----------------------------------
+    # Make application directories if they do not exist
+    os.makedirs(appdirs.user_data_dir(appname,appauthor),exist_ok=True)
+    
+    #create a config parser
+    config = configparser.ConfigParser()
+    
+    #load config file
+    config_path = os.path.join(appdirs.user_data_dir(appname,appauthor),"config.ini")
+    config.read(config_path)
+    
+    ttype_str = '----{}----'
+    path_str = '{}: {}'
+    if(test_type is not None):
+        print(ttype_str.format(test_type))
+        for kv in config[test_type].keys():
+            print(path_str.format(kv,config[test_type][kv]))
+    else:
+        for tt in config.keys():
+            print(ttype_str.format(tt))
+            for kv in config[tt].keys():
+                print(path_str.format(kv,config[tt][kv]))
+    
 def main():
-    parser = argparse.ArgumentParser(description='Copy MCV data files from cfs2w to local machine')
+    parser = argparse.ArgumentParser(description='Copy data files from network drive to local machine')
     parser.add_argument('-f','--test-names',
                         default = [],
                         type = str,
@@ -126,27 +149,34 @@ def main():
     parser.add_argument('-t','--test-type',
                         default = None,
                         type = str,
-                        help = 'Type of test to copy from (m2e,access,psud)')
+                        help = 'Type of test to copy from')
     parser.add_argument('-l','--local-path',
                         default = None,
                         type = None,
-                        help = "Local path to copy to")
+                        help = "Local path to copy to. If not passed read from last path used for this test-type.")
     
     parser.add_argument('-n','--network-path',
                         default = None,
                         type = str,
-                        help = "Network path to copy from")
-    
+                        help = "Network path to copy from. If not passed read from last path used for this test-type.")
+    parser.add_argument('-p','--print-config',
+                       default = False,
+                       action='store_true',
+                       help = "Print current config file settings") 
     
     args = parser.parse_args()
     
-    if(args.test_type is None):
-        raise ValueError('test_type is required')
-    
-    um = local_copy(args.test_names,
-                    test_type = args.test_type,
-                    local_path = args.local_path,
-                    network_path = args.network_path)
+    if(args.print_config):
+        print_config(test_type=args.test_type)
+    if(args.test_names != []):
+        
+        if(args.test_type is None and not args.print_config):
+            raise ValueError('test_type is required')
+        
+        local_copy(args.test_names,
+                        test_type = args.test_type,
+                        local_path = args.local_path,
+                        network_path = args.network_path)
 if __name__ == "__main__":
     main()
 
