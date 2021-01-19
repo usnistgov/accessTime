@@ -18,7 +18,7 @@ appauthor = 'MCV'
 
 def local_copy(test_names, test_type, local_path = None,network_path = None):
     
-    #---------------[Load Config File]----------------------------------------
+    #---------------------[Load Config File]----------------------------------
     # Make application directories if they do not exist
     os.makedirs(appdirs.user_data_dir(appname,appauthor),exist_ok=True)
     
@@ -56,11 +56,14 @@ def local_copy(test_names, test_type, local_path = None,network_path = None):
         else:
             # Don't think we can hit this because network path goes first...
             config[test_type] = {"local_path": local_path}
-    
+    #---------------------[Write config file]---------------------------------
+    with open(config_path,'w') as configfile:
+        config.write(configfile)
+        
     # Make local path if it doesn't exist
     os.makedirs(local_path,exist_ok = True)
     
-    #------------------[Test CSV files]--------------------------------------------
+    #--------------------[Test CSV files]--------------------------------------------
     csv_path = os.path.join(network_path,'csv')
     csv_files = os.listdir(csv_path)
     
@@ -75,7 +78,7 @@ def local_copy(test_names, test_type, local_path = None,network_path = None):
                 else:
                     print("Found locally: {}".format(lpath))
     
-    #-------------------------[Cutpoint Files]----------------------------------
+    #--------------------[Cutpoint Files]----------------------------------
     for tname in test_names:
         wav_path = os.path.join(network_path,'wav',tname)
         if(not os.path.exists(wav_path)):
