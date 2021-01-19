@@ -17,11 +17,18 @@ import configparser
 recur_prefix='*'
 
 #data directory names
-data_dirs=('data','plots','proc-data','rx-data','tx-data','training',
-	os.path.join('post-processed data','csv'),os.path.join('post-processed data','mat'),
-	recur_prefix+os.path.join('post-processed data','wav'),
-	'2loc_rx-data',recur_prefix+'2loc_tx-data')
-
+data_dirs=(
+    # 1 location data/processed data folder
+    os.path.join('data','csv'),recur_prefix+os.path.join('data','wav'),
+    # 2 location tx and rx raw data folders
+    os.path.join('data','2loc_rx-data'),recur_prefix+os.path.join('data','2loc_tx-data'),
+    # recovery and error
+    os.path.join('data','recovery'),os.path.join('data','error'),
+    # legacy .mat files, forget this we are moving on...
+    #'data_matfiles',
+)
+    
+    
 def dir_cpy(src,dest):
 	#print message
 	print(f"\tChecking directory \'{src}\' for new files",flush=True)
