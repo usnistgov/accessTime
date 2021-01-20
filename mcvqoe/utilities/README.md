@@ -9,12 +9,12 @@ This folder provides code to assist with managing data between test machines, ne
 * log-search
 
 ## testCpy
-testCpy is designed to simplify transferring test data from a test machine to an external hard-drive (HD). It stores the serial number of an HD so it can be found, and updates log files stored on the HD. It sets up a HD to have to be able to run sync and uses that copy files. testCpy will also put a version file of the mcvqoe package on the HD so it knows when it's out of date.
+testCpy is designed to simplify transferring test data from a test machine to an external hard-drive (HD). It stores the serial number of an HD so it can be found even if the drive letter changes, and updates log files stored on the HD. It sets up a HD to have to be able to run sync and uses that copy files. testCpy will also put a version file of the mcvqoe package on the HD so it knows when sync is out of date.
 
 ## sync
 Copy files. Designed to run from HD with arguments in order to copy files from test machine to HD. testCpy handles this case, and calls sync with the proper arguments.
 
-When run with no arguments copies to network.
+When run with no arguments copies to the locations set in the config file. This is usually to copy from the HD to a network drive.
 
 
 ## local-copy
