@@ -24,8 +24,8 @@ data_dirs=(
     os.path.join('data','2loc_rx-data'),recur_prefix+os.path.join('data','2loc_tx-data'),
     # recovery and error
     os.path.join('data','recovery'),os.path.join('data','error'),
-    # legacy .mat files, forget this we are moving on...
-    #'data_matfiles',
+    # legacy .mat files
+    'data_matfiles',
 )
     
     
