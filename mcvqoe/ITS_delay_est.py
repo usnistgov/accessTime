@@ -250,7 +250,7 @@ def coarse_avg_dly_est(x,y,b):
     #calculate shifts in seconds
     shift=64*(corrlen-np.arange(1, len(xc)+1))
     #calculate which shifts are valid
-    valid=np.logical_and((shift*8e3)>b[0], (shift*8e3)<b[1])
+    valid=np.logical_and(shift>(b[0]*8e3), shift<(b[1]*8e3))
     #calculate which shifts are valid
     valid_shifts=shift[valid]
 
