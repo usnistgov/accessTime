@@ -16,6 +16,9 @@ import configparser
 #prefix to show that this path needs sub folders copied
 recur_prefix='*'
 
+#prefix to show not to backup sync folder
+noback_prefix='-'
+
 #data directory names
 data_dirs=(
     # 1 location data/processed data folder
@@ -25,7 +28,7 @@ data_dirs=(
     # recovery and error
     os.path.join('data','recovery'),os.path.join('data','error'),
     # legacy .mat files
-    'data_matfiles',
+    noback_prefix+'data_matfiles',
 )
 
 
@@ -73,6 +76,10 @@ def sync_files(spath,dpath,bd=True,cull=False,sunset=30,thorough=True):
             recur=True
             #strip recur prefix from name
             dat_d=dat[len(recur_prefix):]
+        elif(dat.startswith(noback_prefix)):
+            recur=False
+            #strip recur prefix from name
+            dat_d=dat[len(noback_prefix):]
         else:
             recur=False
             dat_d=dat
@@ -154,7 +161,7 @@ def sync_files(spath,dpath,bd=True,cull=False,sunset=30,thorough=True):
                     print('\t'+'No new files found to copy to \''+dest+'\'')
 
             #check if we need to copy in the reverse
-            if(bd):
+            if(bd and not dat.startswith(noback_prefix)):
                 #get the files that are not in src
                 cpy=dset.difference(sset)
                 #check if there are files to copy
