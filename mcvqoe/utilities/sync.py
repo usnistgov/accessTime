@@ -31,6 +31,54 @@ data_dirs=(
     noback_prefix+'data_matfiles',
 )
 
+#class to copy directories and skip some files
+class cpyDelay:
+
+    def __init__(self,ext,verbose=0):
+        #initialize list of skipped files
+        self.skip_list=[]
+        self.dly_ext=ext
+        self.verbose=verbose
+
+    def ignore_func(self,src,dest):
+        def _ignore(path,names):
+            #get relative path into src directory
+            relpath=os.path.relpath(path,src)
+
+            #set of names to ignore
+            ignore=set()
+            #look at all names to see if they should be ignored
+            for name in names:
+                #get extension
+                (_,ext)=os.path.splitext(name)
+                #check if extension should be ignored
+                if( ext == self.dly_ext ):
+                    #add file to list to ignore
+                    ignore.add(name)
+                    #construct full filenames to save for later
+                    full_src=os.path.join(path,name)
+                    full_dst=os.path.join(dest,relpath,name)
+                    #add to list
+                    self.skip_list.append((full_src,full_dst))
+                    if(self.verbose):
+                        #print message
+                        print(f'Skipping {full_src} for later',flush=True)
+            #return files found to ignore
+            return ignore
+        #return function to be used for ignore with copytree
+        return _ignore
+
+    def copytree(self,src,dest,**kwargs):
+        #call copytree with ignore function
+        shutil.copytree(src,dest,ignore=self.ignore_func(src,dest),**kwargs)
+
+    def copy_skipped(self):
+        #loop through skipped files
+        for src,dest in self.skip_list:
+            print('Copying \''+src+'\' to \''+dest+'\'',flush=True)
+            shutil.copy2(src,dest)
+        #clear out skip_list
+        skip_list=[]
 
 def dir_cpy(src,dest):
     #print message
@@ -67,6 +115,8 @@ def dir_cpy(src,dest):
 
 #function to copy unique files
 def sync_files(spath,dpath,bd=True,cull=False,sunset=30,thorough=True):
+    #create object to skip .zip files with
+    skip_zip=cpyDelay('.zip',verbose=True)
     #get datetime object for current time
     current_time=datetime.datetime.now()
     #loop over files in data_dirs
@@ -150,7 +200,7 @@ def sync_files(spath,dpath,bd=True,cull=False,sunset=30,thorough=True):
                         print('Copying \''+sname+'\' to \''+dname+'\'',flush=True)
                         if recur and os.path.isdir(sname):
                             #copy directory
-                            shutil.copytree(sname,dname)
+                            skip_zip.copytree(sname,dname)
                             #TODO: copy metadata?
                         else:
                             #copy file
@@ -188,7 +238,7 @@ def sync_files(spath,dpath,bd=True,cull=False,sunset=30,thorough=True):
                         print('Copying \''+sname+'\' to \''+dname+'\'',flush=True)
                         if recur:
                             #copy directory
-                            shutil.copytree(sname,dname)
+                            skip_zip.copytree(sname,dname)
                             #TODO: copy metadata?
                         else:
                             #copy file
@@ -244,6 +294,9 @@ def sync_files(spath,dpath,bd=True,cull=False,sunset=30,thorough=True):
         else:
             #could not find source directory on drive, skip
             print('Source directory \''+src+'\' does not exist, skipping',flush=True)
+
+    #copy .zip files that we skipped earlier
+    skip_zip.copy_skipped()
 
 
 
@@ -310,7 +363,7 @@ if __name__ == "__main__":
                 #generate destination filename
                 dest=os.path.join(config[section]['dest'],name)
                 #print message
-                print('Coping \''+name+'\' into \''+dest+'\'',flush=True)
+                print('Copying \''+name+'\' into \''+dest+'\'',flush=True)
                 #make sure directory exists
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
                 #copy log file into new directory
