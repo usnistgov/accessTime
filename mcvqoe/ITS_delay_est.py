@@ -17,7 +17,8 @@ def ITS_delay_est(x_speech,y_speech,mode, fsamp=8000, dlyBounds = [np.NINF, np.i
     #
     #fsamp is the sample rate, defaults to 8000
     #
-    #dlyBounds are the 
+    #dlyBounds is the interval of acceptable delays in seconds
+    #
     #Delay_est holds estimates of the delay of the speech samples in y_speech
     #relative to speech samples in x_speech. Typically y_speech contains
     #samples from the output of some system under test, and x_speech contains
@@ -218,7 +219,7 @@ def coarse_avg_dly_est(x,y,b):
     #This function generates a coarse delay estimate from speech envelopes.
     #This is done in the fs=125 samples/sec domain. (i.e., sub-sampling by 64).
     #x and y are vectors of speech samples
-    #b is tuple of a lower and uooer bound, used for filtering out invalid shifts
+    #b is tuple of a lower and lower bound of acceptable delays in seconds
     #tau_0 is a delay estimate in samples
     #rho_0 is the corresponding correlation value
     #fir_coeff is a set of 401 FIR filter coefficients for a 63 Hz LPF
