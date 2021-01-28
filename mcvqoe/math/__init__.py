@@ -1,1 +1,1 @@
-from .bootstrap import bootstrap_ci, standard_error
+from .resample_techniques import bootstrap_ci, approx_permutation_test, standard_error
