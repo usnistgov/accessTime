@@ -104,12 +104,12 @@ def approx_permutation_test(x, y,accept_threshold=0.05,R=1e4,stat=np.mean,tail='
     observed = stat(x) - stat(y)
     
     # Number of trials in population 1
-    m = len(x)
+    m1 = len(x)
     # Number of trials in population 2
-    k = len(y)
+    m2 = len(y)
     
     # Total number of trials between populations
-    n = m+k
+    n = m1 + m2
     # Combine both populations
     combo = np.concatenate((x,y))
     
@@ -124,9 +124,9 @@ def approx_permutation_test(x, y,accept_threshold=0.05,R=1e4,stat=np.mean,tail='
         permIx = gen.permutation(n)
         
         # Grab first m elements of random order for population 1
-        x_resamp = combo[permIx[0:m]]
+        x_resamp = combo[permIx[0:m1]]
         # Grab remaining K elements of random order for population 2
-        y_resamp = combo[permIx[m:]]
+        y_resamp = combo[permIx[m1:]]
         
         # Compute resample statistic (difference of means)
         diffs[k] = stat(x_resamp) - stat(y_resamp)
@@ -140,9 +140,11 @@ def approx_permutation_test(x, y,accept_threshold=0.05,R=1e4,stat=np.mean,tail='
     elif(tail == 'right'):
         # Consider how many resamples were greater than observed value (how far right is our observation)
         pval_sum = diffs >= observed
-    else:
+    elif(tail == 'two'):
         # Consider how many resamples were larger in magnitude than observed value (how far from either tale is our observation)
         pval_sum = abs(diffs) >= abs(observed)
+    else:
+        raise ValueError('Unrecognized tail argument: {}. Must be either left, right, or two.'.format(tail))
     
     # Get fraction of resamples that achieved tail condtions
     pval = (np.count_nonzero(pval_sum))/R
