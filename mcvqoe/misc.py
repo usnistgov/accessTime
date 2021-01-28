@@ -207,3 +207,67 @@ def write_cp(fname,cutpoints):
             wcp['End']+=1
             #write each row
             writer.writerow(wcp)
+
+def a_weighted_power(x, fs=48000):
+    """
+    Calculates an A-weighted power level in dB for the input audio vector x.
+    This is a good approximation to relative loudness because the A-weighting
+    function emulates a fundamental attribute of human hearing.
+    
+    The filter coefficients come from dsprelated.com and the resulting
+    frequency response agrees with those shown in the literature.
+    Getting filter coefficients for sample rates other than 48000 proved
+    difficult so this code just converts input signals to 48000 instead.
+    -S. Voran, Sept. 25, 2012
+    
+    ...
+    
+    Parameters
+    ----------
+    x : NumPy Array
+        The audio in NumPy array format
+    fs : Int/Float
+        fs is an optional sample rate:
+        8000, 16000, 24000, 32000, or 48000 smp/sec are allowed
+        default is 48000 smp/sec if not specified
+        
+    """
+    
+    # Coefficients for A-weighting filter with fs=48000
+    b = np.array([0.01147155239724,
+                  -0.0248548824653166,
+                  0.0323052801494283,
+                  -0.0555571372813964,
+                  0.233784933167266,
+                  0.392882400411297,
+                  -0.633249911806281,
+                  -0.479494344932334,
+                  0.322061493940389,
+                  0.197659563091056,
+                  0.00299879461389451])
+    
+    a = np.array([1,
+                  -0.925699454182466,
+                  -0.992471193943543,
+                  0.837650096562845,
+                  0.22307303912603,
+                  -0.158404327757755,
+                  0.0184103295763937])
+    
+    # Set gain at 1kHz to 0dB
+    b = b*1.1389
+    
+    # Resample audio
+    if (fs == 8000):
+        x = sig.resample_poly(x, 6, 1)
+    elif (fs == 16000):
+        x = sig.resample_poly(x, 3, 1)
+    elif (fs == 24000):
+        x = sig.resample_poly(x, 2, 1)
+    elif (fs == 32000):
+        x = sig.resample_poly(x, 3, 2)
+    elif (fs != 48000):
+        raise ValueError(f"Unsupported sample rate of {fs}.\n")
+    
+    x = sig.lfilter(b, a, x)
+    return 10*(math.log10(np.mean(np.square(x))))
