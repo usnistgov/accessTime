@@ -148,11 +148,11 @@ def approx_permutation_test(x, y,accept_threshold=0.05,R=1e4,stat=np.mean,tail='
     pval = (np.count_nonzero(pval_sum))/R
     
     if(pval <= accept_threshold):
-        # If pval is less than accept_threshold, do not reject Null hypothesis
-        reject = False
-    else:
-        # If pval is greater than accept_threshold, reject Null hypothesis
+        # If pval is less than accept_threshold, reject Null hypothesis
         reject = True
+    else:
+        # If pval is greater than accept_threshold, do not reject Null hypothesis
+        reject = False
     return(reject)
 
 def standard_error(x):
