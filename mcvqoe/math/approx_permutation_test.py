@@ -1,3 +1,5 @@
+import numpy as np
+
 def approx_permutation_test(success, ts_ix):
     """
     Parameters
