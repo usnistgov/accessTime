@@ -100,6 +100,11 @@ def approx_permutation_test(x, y,accept_threshold=0.05,R=1e4,stat=np.mean,tail='
         Rejection or not that data comes from same distribution.
         
     """ 
+    
+    # Force R to be an int
+    if(type(R) is not int):
+        R = int(R)
+    
     # Observed statistic
     observed = stat(x) - stat(y)
     
@@ -119,7 +124,7 @@ def approx_permutation_test(x, y,accept_threshold=0.05,R=1e4,stat=np.mean,tail='
     # Random generator
     gen = np.random.default_rng()
     
-    for k in range(len(R)):
+    for k in range(R):
         # Create random permutation for resampling
         permIx = gen.permutation(n)
         
