@@ -183,6 +183,9 @@ def main():
             
         #get remaining data in input file
         in_dat=fin.read()
+        
+        #strip trailing white space to prevent errors in future
+        in_dat=in_dat.rstrip()
                 
         #check if we have more data from the input file 
         if(in_dat):
