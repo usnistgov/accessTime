@@ -31,7 +31,7 @@ class RadioInterface:
                     else:
                         #close serial port
                         self.sobj.close()
-                except (CommandError,serial.SerialException) as e:
+                except (CommandError,serial.SerialException,UnicodeDecodeError) as e:
                     if(self.debug):
                         print(e)
             else:
