@@ -13,12 +13,13 @@ import pdb
 
 class Test_Approx_Perm_Test(unittest.TestCase):
     
+    # Number of tests to run
+    N_tests = int(1e3)
+    
     # Set tolerance for random tests to have some error
-    random_tol = 5e-2
+    random_tol = 2/np.sqrt(N_tests)
     
     def test_approx_permutation_two_tail(self):
-        # Number of total tests is 1000
-        N_tests = int(1e2)
         
         rejects = []
         
@@ -29,7 +30,7 @@ class Test_Approx_Perm_Test(unittest.TestCase):
         
         # Set reject threshold to 20%
         reject_threshold= 0.2
-        for k in range(N_tests):
+        for k in range(self.N_tests):
             # Draw from data
             x = np.random.normal(mu,sigma,N)
             y = np.random.normal(mu,sigma,N)
@@ -47,8 +48,6 @@ class Test_Approx_Perm_Test(unittest.TestCase):
         self.assertLessEqual(abs(reject_threshold - reject_percent), self.random_tol)
 
     def test_approx_permutation_left_tail(self):
-        # Number of total tests is 1000
-        N_tests = int(1e2)
         
         rejects = []
         
@@ -59,7 +58,7 @@ class Test_Approx_Perm_Test(unittest.TestCase):
         
         # Set reject threshold to 20%
         reject_threshold= 0.2
-        for k in range(N_tests):
+        for k in range(self.N_tests):
             # Draw from data
             x = np.random.normal(mu,sigma,N)
             y = np.random.normal(mu,sigma,N)
@@ -77,8 +76,6 @@ class Test_Approx_Perm_Test(unittest.TestCase):
         self.assertLessEqual(abs(reject_threshold - reject_percent), self.random_tol)
 
     def test_approx_permutation_right_tail(self):
-        # Number of total tests is 1000
-        N_tests = int(1e2)
         
         rejects = []
         
@@ -89,7 +86,7 @@ class Test_Approx_Perm_Test(unittest.TestCase):
         
         # Set reject threshold to 20%
         reject_threshold= 0.2
-        for k in range(N_tests):
+        for k in range(self.N_tests):
             # Draw from data
             x = np.random.normal(mu,sigma,N)
             y = np.random.normal(mu,sigma,N)
