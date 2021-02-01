@@ -4,10 +4,10 @@ import scipy.io.wavfile
 import scipy.signal
 import sys
 
-from .audio_player import AudioPlayer
+from mcvqoe.hardware.audio_player import AudioPlayer
 from fractions import Fraction
-from .misc import audio_float
-from .radio_interface import RadioInterface
+from mcvqoe import audio_float
+from mcvqoe.hardware.radio_interface import RadioInterface
 from tkinter import scrolledtext
 
 import numpy as np
