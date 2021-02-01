@@ -9,7 +9,6 @@ import unittest
 import mcvqoe.math
 import numpy as np
 
-import pdb
 
 class Test_Approx_Perm_Test(unittest.TestCase):
     
@@ -144,11 +143,6 @@ class Test_Uncertainty(unittest.TestCase):
         self.assertLessEqual(abs(confidence_level - contained_percent), self.random_tol)
         
     def test_standard_error(self):
-        
-        # Define distribution for data
-        mu = 0
-        sigma = 1
-        N = 100
         
         x = np.array([-0.75960479, -0.22052938, -0.96953799,  0.52929507,  0.97484278,
        -0.06694255, -0.11987828,  0.25715125,  0.17783594, -0.15757887,
