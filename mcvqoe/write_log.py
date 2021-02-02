@@ -96,7 +96,7 @@ def pre(info={}, outdir=""):
     # Write all necessary arguments/test params into tests.log
     with open(log_datadir, 'a') as file:
         
-        file.write(f"\n>>{info['test']} started at {info['Tstart']}\n")
+        file.write(f"\n>>{info['test']} started at {info['Tstart'].strftime('%d-%b-%Y %H:%M:%S')}\n")
         for key in info:
             if (key not in skip_keys):
                 file.write(f"\t{key:<{pad_len}} : {info[key]}\n")
