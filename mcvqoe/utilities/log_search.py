@@ -175,7 +175,7 @@ class log_search():
 								#drop back to search mode
 								status='searching'
 						elif(not line):
-							msgFcn('Empty line in preamble at line {lc} of file {short_name}');
+							msgFcn(f'Empty line in preamble at line {lc} of file {short_name}');
 						else:
 							#split line on colon
 							lp=line.split(':')
@@ -249,7 +249,7 @@ class log_search():
 								#mark entry as complete
 								self.log[idx]['complete']=True
 							else:
-								msgFcn('Unknown separator found at line {lc} of file {short_name} : {repr(line)}')
+								msgFcn(f'Unknown separator found at line {lc} of file {short_name} : {repr(line)}')
 								#drop back to search mode
 								status='searching'
 		
