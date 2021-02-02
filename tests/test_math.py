@@ -169,6 +169,4 @@ class Test_Uncertainty(unittest.TestCase):
         self.assertEqual(mcvqoe.math.standard_error(x), 0.10056710785009866)
             
 if __name__ == "__main__":
-    unittest.main(
-        testRunner=xmlrunner.XMLTestRunner(output='math'),
-        failfast=False, buffer=False, catchbreak=False)
+    unittest.main()
