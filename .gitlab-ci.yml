@@ -34,3 +34,8 @@ test-math:
   stage: test
   script:
     - test-env/bin/python tests/test_math.py
+
+test-log:
+  stage: test
+  script:
+    - test-env/bin/python tests/test_log.py
