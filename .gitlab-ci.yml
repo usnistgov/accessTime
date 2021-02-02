@@ -20,7 +20,7 @@ venv:
   stage: venv
   script:
     - python -m venv test-env > env.log
-    - test-env/bin/pip install --log pip.log --find-links ./dist/ mcvqoe-nist > install.log 
+    - test-env/bin/pip install --log pip.log --find-links ./dist/ mcvqoe-nist unittest-xml-reporting > install.log 
   artifacts:
       when: always
       paths:
@@ -38,3 +38,4 @@ test-math:
       when: always
       paths:
         - mathtest.log
+        - math-tests.xml
