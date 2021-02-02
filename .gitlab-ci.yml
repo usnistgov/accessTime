@@ -6,6 +6,7 @@ stages:
 
 build:
   stage: build
+  needs: []
   script:
     - python --version > py-ver.log
     - python setup.py sdist bdist_wheel > package.log 
@@ -18,6 +19,7 @@ build:
 
 venv:
   stage: venv
+  needs: [build]
   script:
     - python -m venv test-env > env.log
     - test-env/bin/pip install --log pip.log --find-links ./dist/ mcvqoe-nist > install.log 
@@ -32,10 +34,12 @@ venv:
 
 test-math:
   stage: test
+  needs: [venv]
   script:
     - test-env/bin/python tests/test_math.py
 
 test-log:
   stage: test
+  needs: [venv]
   script:
     - test-env/bin/python tests/test_log.py
