@@ -33,8 +33,4 @@ venv:
 test-math:
   stage: test
   script:
-    - test-env/bin/python tests/test_math.py > mathtest.log 
-  artifacts:
-      when: always
-      paths:
-        - mathtest.log
+    - test-env/bin/python tests/test_math.py
