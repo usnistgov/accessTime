@@ -7,16 +7,18 @@ quality of experience (QoE) in communications. NIST’s PSCR division developed 
 to measure and quantify the access time of any push to talk (PTT) communication system.
 
 # OBTAINING SOFTWARE, DATA, AND PAPER
-- Code available at: https://github.com/usnistgov/accessTime
-- Data available at: https://doi.org/10.18434/M32083
+- Code available at:  https://github.com/usnistgov/accessTime
+- Code available at:  https://github.com/usnistgov/MCV-QoE-firmware
+- Data available at:  https://doi.org/10.18434/M32083
 - Paper available at: https://doi.org/10.6028/NIST.IR.8275
+- Addendum Paper available at: https://doi.org/10.6028/NIST.IR.8328
 
 # HARDWARE REQUIREMENTS
 - 1 computer able to run MATLAB and R
 - 1 audio interface
 - 2 communications devices for testing
 - cables to connect test devices to audio interfaces
-- 1 modified microcontroller
+- 1 microcontroller with daughter board
 - transformers
 
 **Additional details, reference the paper linked above.**

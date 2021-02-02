@@ -356,6 +356,17 @@ error_filename=fullfile(dat_fold,sprintf('%s_ERROR.mat',base_filename));
 temp_filename=fullfile(dat_fold,sprintf('%s_TEMP.mat',base_filename));
 
 
+%% =======================[Get max number of loops]=======================
+
+if(isempty(p.Results.Volumes))
+    %using golden ratio search, use SMax
+    SMax=p.Results.SMax;
+else
+    %volumes given, use array length
+    SMax=length(p.Results.Volumes);
+end
+
+
 %% ======================[Generate oncleanup object]======================
 
 %add cleanup function
@@ -386,15 +397,18 @@ try
     %complain
         
     %preallocate arrays
-    underRun=zeros(p.Results.Trials,p.Results.SMax);
-    overRun=zeros(p.Results.Trials,p.Results.SMax);
-    recordings=cell(p.Results.Trials,p.Results.SMax);
-    rtemp=zeros(p.Results.Trials,p.Results.SMax);
-    volume=zeros(1,p.Results.SMax);
-    pscores=zeros(p.Results.Trials,p.Results.SMax);
-    pmean=zeros(p.Results.Trials,p.Results.SMax);
+    underRun=zeros(p.Results.Trials,SMax);
+    overRun=zeros(p.Results.Trials,SMax);
+    recordings=cell(p.Results.Trials,SMax);
+    rtemp=zeros(p.Results.Trials,SMax);
+    volume=zeros(1,SMax);
+    pscores=zeros(p.Results.Trials,SMax);
+    pmean=zeros(p.Results.Trials,SMax);
     
     clipi = (mod(1:p.Results.Trials,length(AudioFiles)) + 1)';
+    
+    %set dummy value for opt so that error files get saved
+    opt=NaN;                                                                %#ok for file saving
     
     %% ==================[Initialize Golden Ratio Values]==================
     
@@ -412,7 +426,7 @@ try
     
     %% ========================[Golden Ratio Loop]========================
     
-    for k=1:p.Results.SMax
+    for k=1:SMax
         
         %% ===================[Compute Golden Ratio Points]===================
         
@@ -435,34 +449,39 @@ try
                 %compute lower eval point (d)
                 volume(k)=(a+(b-a)/gr);
             end
-            
+        
+            %check for convergence
+            if((b-a)<2)
+                %remove unused values
+                underRun=underRun(:,1:(k-1));
+                overRun=overRun(:,1:(k-1));
+                recordings=recordings(:,1:(k-1));                                   %#ok saved in datafile
+                rtemp=rtemp(:,1:(k-1));                                             %#ok saved in datafile
+                volume=volume(1:(k-1));
+                pmean=pmean(1:(k-1));
+                pscores=pscores(:,1:(k-1));                                         %#ok saved in datafile
+                break;
+            end
+
         end
         
-        %check for convergence
-        if((b-a)<2)
-            %remove unused values
-            underRun=underRun(:,1:(k-1));
-            overRun=overRun(:,1:(k-1));
-            recordings=recordings(:,1:(k-1));                                   %#ok saved in datafile
-            rtemp=rtemp(:,1:(k-1));                                             %#ok saved in datafile
-            volume=volume(1:(k-1));
-            pmean=pmean(1:(k-1));
-            pscores=pscores(:,1:(k-1));                                         %#ok saved in datafile
-            break;
-        end
         
         %% =========================[Skip Repeats]=========================
             
-        %check to see if we are evaluating a value that has been done before
-        idx=find(abs(volume(k)-volume(1:(k-1)))<0.0001,1);
         
-        %check if value was found
-        if(~isempty(idx))
-            disp('Repeating volume, skipping to next iteration...')
-            %copy old value
-            pmean(k)=pmean(idx);
-            %skip to next iteration
-            continue;
+        %check if volumes were given
+        if(isempty(p.Results.Volumes))
+            %check to see if we are evaluating a value that has been done before
+            idx=find(abs(volume(k)-volume(1:(k-1)))<0.0001,1);
+
+            %check if value was found
+            if(~isempty(idx))
+                disp('Repeating volume, skipping to next iteration...')
+                %copy old value
+                pmean(k)=pmean(idx);
+                %skip to next iteration
+                continue;
+            end
         end
         
         %% ========================[Change Volume]========================
@@ -724,8 +743,14 @@ if(~exist(err_name,'file'))
     else
         %load in result
         dat=load(good_name,'opt');
-        %get opt from result
-        def_txt=sprintf('Optimal volume = %f dB\r',dat.opt);
+        %chec if optimal volume was found
+        if(~isnan(dat.opt))
+            %get opt from result
+            def_txt=sprintf('Optimal volume = %f dB\r',dat.opt);
+        else
+            %no optimal volume, no default text
+            def_txt='';
+        end
     end
     
     %get post test notes

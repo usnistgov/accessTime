@@ -4,16 +4,20 @@
 \alias{process_accessData}
 \title{Wrapper function to read, process, and fit access delay data}
 \usage{
-process_accessData(sessionFiles, cutDir)
+process_accessData(sessionFiles, cutDir, cutFiles = NULL)
 }
 \arguments{
 \item{sessionFiles}{\emph{character array.}
 Array of csv file names associated with a particular access
 delay test.}
 
-\item{cutDir}{\emph{character.}
-Name of the directory where cutpoint files are stored for the
-audio clips used in an access delay test.}
+\item{cutDir}{\emph{character array.} Path of the folder that contains the
+cutpoint files for the audio clips used in the access delay test. Can also
+pass in an array of directories.}
+
+\item{cutFiles}{\emph{character array.} Array of cutpoint file names. Note
+that if \code{cutFiles} is not \code{NULL}, it will override whatever is
+input for \code{cutDir}.}
 }
 \value{
 \emph{accessFit.}

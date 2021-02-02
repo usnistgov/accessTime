@@ -1,0 +1,7 @@
+
+#ignore python cache
+__pycache__
+
+#ignore ffmpeg
+ffmpeg.exe
+

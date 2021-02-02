@@ -1,6 +1,18 @@
-function [varargout] = ITS_delay_wrapper(varargin)
-%SLIDING_DELAY_ESTIMATES wrapper function for sliding_delay_estimates
-    
+function test_restart(varargin)
+
+%TEST_REATART restart access time test. This uses the filename stored in
+%tempName.txt to restart an access time test that was stopped prematurely
+%
+%	test_restart() attempts to restart an access time test looking for
+%                  tempName.txt in the current directory
+%
+%	test_restart('OutDir',dir) attempts to restart an access time test
+%                              looking for tempName.txt in the directory
+%                              given by dir
+%
+%
+
+
 %This software was developed by employees of the National Institute of
 %Standards and Technology (NIST), an agency of the Federal Government.
 %Pursuant to title 17 United States Code Section 105, works of NIST
@@ -24,17 +36,37 @@ function [varargout] = ITS_delay_wrapper(varargin)
 %WHETHER OR NOT LOSS WAS SUSTAINED FROM, OR AROSE OUT OF THE RESULTS OF, OR
 %USE OF, THE SOFTWARE OR SERVICES PROVIDED HEREUNDER.
 
-    %generate cell array for output arguments
-    varargout=cell(1,nargout);
-    
-    %add to path and save old path
-    oldpath=addpath('./ITS_delay');
 
-    %make sure path gets restored
-    cleanObj=onCleanup(@()path(oldpath));
+%create new input parser
+p=inputParser();
 
-    %call function now added to path
-    [varargout{:}]=ITS_delay_est(varargin{:});
+%add output directory parameter
+addParameter(p,'OutDir','',@(n)validateattributes(n,{'char'},{'scalartext'}));
 
+%parse inputs
+parse(p,varargin{:});
+
+%filename to hold the location of last temp file
+temp_filename_filename=fullfile(p.Results.OutDir,'tempName.txt');
+
+if(exist(temp_filename_filename,'file'))
+    %open file for temp name
+    ftn=fopen(temp_filename_filename,'r');
+    %check if file was opened
+    if(ftn==-1)
+        error('Could not open ''%s''',temp_filename_filename);
+    end
+    %read in a line for file name
+    temp_filename=fgetl(ftn);
+    %close file
+    fclose(ftn);
+    %check if temp file was found
+    if(~exist(temp_filename,'file'))
+        error('Temp file ''%s'' does not exist',temp_filename);
+    end
+    %restart test
+    test('DataFile',temp_filename);
+else
+    %could not find filename
+    error('The file ''%s'' does not exist. can not restart test',temp_filename_filename);
 end
-

@@ -4,7 +4,8 @@
 \name{analog_conventional}
 \alias{analog_conventional}
 \title{accessFit Object for analog conventional LMR measurements}
-\format{\code{\link[accessTime]{accessFit}} objects have the following
+\format{
+\code{\link[accessTime]{accessFit}} objects have the following
 components:
 
 \describe{
@@ -36,7 +37,8 @@ components:
     }
     \item{speaker_word}{Array of the speaker word combos used for the access
     delay measurement.}
-}}
+}
+}
 \usage{
 analog_conventional
 }

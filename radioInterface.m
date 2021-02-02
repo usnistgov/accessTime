@@ -12,6 +12,8 @@ classdef radioInterface < handle
     %   ptt         - change the push-to-talk status
     %   led         - turn on or off LED's on the radio interface board
     %   devtype     - get the device type string
+    %   getVersion  - get the version from device
+    %   getID       - get unique ID from device
     %   ptt_delay   - key radio after a delay
     %   
     %
@@ -102,7 +104,7 @@ classdef radioInterface < handle
                             %delete serial port
                             delete(obj.sobj);
                         end
-                    catch   %#ok something went wrong with this port skip to the next one
+                    catch   % something went wrong with this port skip to the next one
                         %check if port is open
                         if(strcmp(obj.sobj.status,'open'))
                             %close port and continue
@@ -309,6 +311,42 @@ classdef radioInterface < handle
                     %raise error from MCU
                     error('%s',err);
                 end
+            end
+        end
+        
+        function [id]=getID(obj)
+% GETVERSION - return version string from microcontroller
+%
+%   ver=getID() - returns unique device ID from the device
+            
+            %flush input from buffer
+            flushinput(obj.sobj)
+            %send ptt command with no arguments
+            obj.command('id');
+            %read ID line
+            id=fgetl(obj.sobj);
+            %strip whitespace
+            id=strtrim(id);
+            
+        end
+        
+        function [ver]=getVersion(obj)
+% GETVERSION - return version string from microcontroller
+%
+%   ver=getVersion() - returns version string from the microcontroller.
+%   This is typically vx.x with the possibility of a more informative
+%   suffix
+            
+            %get devtype, this will have version
+            devtype=obj.devtype();
+            
+            parts=split(devtype,':');
+            
+            if(length(parts)==2)
+                ver=strtrim(parts{2});
+            else
+                ver='old';
+                warning('Unexpected devtype format, old RadioInterface firmware?');
             end
         end
         

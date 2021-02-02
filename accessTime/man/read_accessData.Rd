@@ -4,44 +4,43 @@
 \alias{read_accessData}
 \title{Read access delay csv files and associated audio cut point files}
 \usage{
-read_accessData(sessionFiles, cutDir)
+read_accessData(sessionFiles, cutDir, cutFiles = NULL)
 }
 \arguments{
-\item{sessionFiles}{\emph{character array.}
-Array of csv file names associated with a particular access
-delay test.}
+\item{sessionFiles}{\emph{character array.} Array of csv file names
+associated with a particular access delay test.}
 
-\item{cutDir}{\emph{character.}
-Path of the folder that contains the cutpoint files for the
-audio clips used in the access delay test.}
+\item{cutDir}{\emph{character array.} Path of the folder that contains the
+cutpoint files for the audio clips used in the access delay test. Can also
+pass in an array of directories.}
+
+\item{cutFiles}{\emph{character array.} Array of cutpoint file names. Note
+that if \code{cutFiles} is not \code{NULL}, it will override whatever is
+input for \code{cutDir}.}
 }
 \value{
 \emph{List} with the following elements:
 
-\code{dat} \emph{list.}
-              List of data frames containing the raw access delay data of
-              each csv file in \code{sessionFiles}.
+\code{dat} \emph{list.} List of data frames containing the raw
+ access delay data of each csv file in \code{sessionFiles}.
 
-\code{cutPoints} \emph{list.}
-              List of data frames containing the cutpoints of the audio clips
-              used in testing. Cutpoints describe the samples at which P1
-              and P2 start and end in the audio clip.
+\code{cutPoints} \emph{list.} List of data frames containing the
+ cutpoints of the audio clips used in testing. Cutpoints describe the
+ samples at which P1 and P2 start and end in the audio clip.
 
-\code{fs} \emph{numeric.}
-              Sampling rate of the audio clips used in testing (Hz).
+\code{fs} \emph{numeric.} Sampling rate of the audio clips used in
+ testing (Hz).
 
-\code{audio_clips} \emph{character array.}
-              Array of audio clips associated with each csv file in
-              \code{sessionFiles}.
+\code{audio_clips} \emph{character array.} Array of audio clips
+ associated with each csv file in \code{sessionFiles}.
 
-\code{speaker_word} \emph{character array.}
-              Array of the speaker and word combination (e.g. 'F1 hook')
-              for each audio clip.
+\code{speaker_word} \emph{character array.} Array of the speaker and
+ word combination (e.g. 'F1 hook') for each audio clip.
 }
 \description{
 Read the access delay csv files in \code{sessionFiles}, identify the audio
-              clips used for the tests, and load in the associated cut
-              point files from \code{cutDir}.
+clips used for the tests, and load in the associated cut point files from
+\code{cutDir}.
 }
 \examples{
 # Path to included raw data

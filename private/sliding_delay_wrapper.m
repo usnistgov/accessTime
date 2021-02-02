@@ -1,4 +1,4 @@
-function [varargout] = ITS_delay_wrapper(varargin)
+function [varargout] = sliding_delay_wrapper(varargin)
 %SLIDING_DELAY_ESTIMATES wrapper function for sliding_delay_estimates
     
 %This software was developed by employees of the National Institute of
@@ -32,9 +32,9 @@ function [varargout] = ITS_delay_wrapper(varargin)
 
     %make sure path gets restored
     cleanObj=onCleanup(@()path(oldpath));
-
+    
     %call function now added to path
-    [varargout{:}]=ITS_delay_est(varargin{:});
-
+    [varargout{:}]=sliding_delay_estimates(varargin{:});
+    
 end
 

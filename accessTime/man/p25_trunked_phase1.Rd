@@ -4,7 +4,8 @@
 \name{p25_trunked_phase1}
 \alias{p25_trunked_phase1}
 \title{accessFit Object for P25 Trunked Phase 1 LMR measurements}
-\format{\code{\link[accessTime]{accessFit}} objects have the following
+\format{
+\code{\link[accessTime]{accessFit}} objects have the following
 components:
 
 \describe{
@@ -36,7 +37,8 @@ components:
     }
     \item{speaker_word}{Array of the speaker word combos used for the access
     delay measurement.}
-}}
+}
+}
 \usage{
 p25_trunked_phase1
 }

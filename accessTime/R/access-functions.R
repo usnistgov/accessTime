@@ -117,41 +117,41 @@ validate_accessFit <- function(accessFit){
 }
 
 #----------------Practical Access Fit Methods----------------------
-read_accessData <- function(sessionFiles, cutDir){
-  #' Read access delay csv files and associated audio cut point files
+read_accessData <- function(sessionFiles, cutDir,cutFiles=NULL){
+  #'Read access delay csv files and associated audio cut point files
   #'
-  #' Read the access delay csv files in \code{sessionFiles}, identify the audio
-  #'               clips used for the tests, and load in the associated cut
-  #'               point files from \code{cutDir}.
+  #'Read the access delay csv files in \code{sessionFiles}, identify the audio
+  #'clips used for the tests, and load in the associated cut point files from
+  #'\code{cutDir}.
   #'
-  #' @param sessionFiles \emph{character array.}
-  #'               Array of csv file names associated with a particular access
-  #'               delay test.
-  #' @param cutDir \emph{character.}
-  #'               Path of the folder that contains the cutpoint files for the
-  #'               audio clips used in the access delay test.
+  #'@param sessionFiles \emph{character array.} Array of csv file names
+  #'  associated with a particular access delay test.
   #'
-  #' @return \emph{List} with the following elements:
+  #'@param cutDir \emph{character array.} Path of the folder that contains the
+  #'  cutpoint files for the audio clips used in the access delay test. Can also
+  #'  pass in an array of directories.
   #'
-  #' @return \code{dat} \emph{list.}
-  #'               List of data frames containing the raw access delay data of
-  #'               each csv file in \code{sessionFiles}.
+  #'@param cutFiles \emph{character array.} Array of cutpoint file names. Note
+  #'  that if \code{cutFiles} is not \code{NULL}, it will override whatever is
+  #'  input for \code{cutDir}.
   #'
-  #' @return \code{cutPoints} \emph{list.}
-  #'               List of data frames containing the cutpoints of the audio clips
-  #'               used in testing. Cutpoints describe the samples at which P1
-  #'               and P2 start and end in the audio clip.
+  #'@return \emph{List} with the following elements:
   #'
-  #' @return \code{fs} \emph{numeric.}
-  #'               Sampling rate of the audio clips used in testing (Hz).
+  #'@return \code{dat} \emph{list.} List of data frames containing the raw
+  #'  access delay data of each csv file in \code{sessionFiles}.
   #'
-  #' @return \code{audio_clips} \emph{character array.}
-  #'               Array of audio clips associated with each csv file in
-  #'               \code{sessionFiles}.
+  #'@return \code{cutPoints} \emph{list.} List of data frames containing the
+  #'  cutpoints of the audio clips used in testing. Cutpoints describe the
+  #'  samples at which P1 and P2 start and end in the audio clip.
   #'
-  #' @return \code{speaker_word} \emph{character array.}
-  #'               Array of the speaker and word combination (e.g. 'F1 hook')
-  #'               for each audio clip.
+  #'@return \code{fs} \emph{numeric.} Sampling rate of the audio clips used in
+  #'  testing (Hz).
+  #'
+  #'@return \code{audio_clips} \emph{character array.} Array of audio clips
+  #'  associated with each csv file in \code{sessionFiles}.
+  #'
+  #'@return \code{speaker_word} \emph{character array.} Array of the speaker and
+  #'  word combination (e.g. 'F1 hook') for each audio clip.
   #'
   #' @examples
   #' # Path to included raw data
@@ -212,25 +212,34 @@ read_accessData <- function(sessionFiles, cutDir){
     fs <- strtoi(dat_fs[1])
   }
 
-  # Define cutpoints csv file name based off of audio file name
-  clip_csv <- gsub(".wav",".csv",dat_clip)
   # Find sorted order of speaker files
-  sf <- sortSpeakers(clip_csv)
+  sf <- sortSpeakers(dat_clip,ext=".wav")
   # Resort datFiles
   datFiles <- datFiles_unOrdered[sf$order]
-# browser()
-  if(length(cutDir)==1){
-    # If only one cutdir provided repeat it
-    cutDir_all <- rep(cutDir,length(sessionFiles))
-  } else if(length(cutDir) != length(sessionFiles)){
-    stop("Length of cut dir not equal to length of sessionFiles")
+  # browser()
+  if(is.null(cutFiles)){
+    # Define cutpoints csv file name based off of audio file name
+    clip_csv <- gsub(".wav",".csv",dat_clip)
+
+
+    # browser()
+    if(length(cutDir)==1){
+      # If only one cutdir provided repeat it
+      cutDir_all <- rep(cutDir,length(sessionFiles))
+    } else if(length(cutDir) != length(sessionFiles)){
+      stop("Length of cut dir not equal to length of sessionFiles")
+    } else{
+      cutDir_all <- cutDir
+    }
+
+    # Define full path to cutpoints, in order of speaker order
+    cutFiles <- file.path(cutDir_all[sf$order],clip_csv[sf$order])
   } else{
-    cutDir_all <- cutDir
+    # Reorder
+    cutFiles <- cutFiles[sf$order]
   }
 
-  # Define full path to cutpoints, in order of speaker order
-  cutFiles <- file.path(cutDir_all[sf$order],clip_csv[sf$order])
- # browser()
+  # browser()
   # Load in cutpoints for audio files (samples that describe when P1 and P2 are played)
   cutPoints <- lapply(cutFiles,
                       read.csv
@@ -336,6 +345,7 @@ fit_accessData <- function(dat,cutPoints,speaker_word,fs){
 
   # Define sample associated with word invariant time 0
   # # i.e. the sample where P1 starts becomes 0s in new time scale
+  # browser()
   recenter_shift <- sapply(cutPoints,
                            function(x){x[1,"End"]/fs})
 
@@ -361,26 +371,76 @@ fit_accessData <- function(dat,cutPoints,speaker_word,fs){
   # Calculate asymptotic intelligibility
   I0 <- mean(sapply(dat,function(x){mean(x$P2_Int)}))
 
-  # Initialize start for parameters to be fit
-  start <- list(t0 = 0, lambda=-1)
-  # Fit logistic function to data
-  logist_fit <- minpack.lm::nlsLM(I~I0/(1 + exp((t-t0)/lambda)),
-                      data=curve_dat,
-                      start = start
+  logist_fit <- tryCatch({
+    # Try to fit linear curve to data to predict t0 and lambda
+
+    # Find all indices that are minimum intelligibility
+    min_vals <- which(curve_dat$I == min(curve_dat$I))
+    # Find all indices that are maximum intelligibility
+    max_vals <- which(curve_dat$I == max(curve_dat$I))
+
+    #TODO: Could make this smarter later...but pretty effective for now
+    # Fit line between mean minimum value and mean maximum value
+    min_mean <- mean(curve_dat$t[min_vals])
+    lin_start <- which.min(abs(min_mean-curve_dat$t[min_vals]))
+
+    max_mean <- mean(curve_dat$t[max_vals])
+    lin_end <- which.min(abs(max_mean - curve_dat$t[max_vals]))
+
+    if(lin_start >= lin_end){
+      stop("Unable to identify good starting region")
+    }
+    line_fit <- lm(curve_dat$I[lin_start:lin_end]~curve_dat$t[lin_start:lin_end])
+
+    # Predict t0 to be midpoint between last min and first max
+    t0 <- mean(curve_dat$t[c(lin_start,lin_end)])
+    # Predict lambda to be -1/slope of linear model
+    lambda = -1/line_fit$coefficients[2]
+    names(lambda)<-NULL
+    if(lambda > 0){
+      stop("Unable to identify good starting region")
+    }
+    # Initialize start for parameters to be fit
+    start <- list(t0=t0,
+                  lambda=lambda)
+
+    # Fit logistic function to data
+    logist_fit <- minpack.lm::nlsLM(I~I0/(1 + exp((t-t0)/lambda)),
+                                    data=curve_dat,
+                                    start = start
+    )
+  }, error= function(e){
+
+    warn_msg <- paste("Predictive initial parameter fit failed, using naive parameters for fit.")
+    warning(warn_msg)
+
+    # Initialize start for parameters to be fit (naive guesses)
+    start <- list(t0 = 0, lambda=-0.1)
+
+    # Fit logistic function to data
+    logist_fit <- minpack.lm::nlsLM(I~I0/(1 + exp((t-t0)/lambda)),
+                                    data=curve_dat,
+                                    start = start
+    )
+    return(logist_fit)
+  }
   )
 
+
+
+
   output <- accessFit(fit = logist_fit,
-                 I0 = I0,
-                 curve_dat = curve_dat,
-                 session_dat = dat,
-                 speaker_word = speaker_word)
+                      I0 = I0,
+                      curve_dat = curve_dat,
+                      session_dat = dat,
+                      speaker_word = speaker_word)
 
   return(output)
 }
 
 
 
-process_accessData <- function(sessionFiles,cutDir){
+process_accessData <- function(sessionFiles,cutDir, cutFiles = NULL){
   #' Wrapper function to read, process, and fit access delay data
   #'
   #' Read in access delay data, treat it, and fit a logistic function to the
@@ -393,9 +453,13 @@ process_accessData <- function(sessionFiles,cutDir){
   #'               Array of csv file names associated with a particular access
   #'               delay test.
   #'
-  #' @param cutDir \emph{character.}
-  #'               Name of the directory where cutpoint files are stored for the
-  #'               audio clips used in an access delay test.
+  #'@param cutDir \emph{character array.} Path of the folder that contains the
+  #'  cutpoint files for the audio clips used in the access delay test. Can also
+  #'  pass in an array of directories.
+  #'
+  #'@param cutFiles \emph{character array.} Array of cutpoint file names. Note
+  #'  that if \code{cutFiles} is not \code{NULL}, it will override whatever is
+  #'  input for \code{cutDir}.
   #'
   #' @return \emph{accessFit.}
   #'               Access fit object is a list containing the following
@@ -442,7 +506,13 @@ process_accessData <- function(sessionFiles,cutDir){
   #' @export
 
   # Read in access data
-  access_data <- read_accessData(sessionFiles,cutDir)
+  # browser()
+  if(!is.null(cutFiles)){
+    access_data <- read_accessData(sessionFiles,cutDir="",cutFiles = cutFiles)
+  } else{
+    access_data <- read_accessData(sessionFiles,cutDir)
+
+  }
 
   # Fit access data
   fit_data <- fit_accessData(dat = access_data$dat,
@@ -707,92 +777,92 @@ sortSpeakers <- function(sf,ext=".csv"){
 }
 #-------------Plotting Functions...----------------------
 plot_wordIntCurves <- function(accFit,int_curve,title=""){
- #' Plot intelligibility curves for individual words
- #'
- #' Plot intelligibility curves for individual words associated with access
- #' delay measurement. Useful to see the contributions of each word towards
- #' final intelligibility curve results.
- #'
- #' @param accFit \emph{accessFit.}
- #'                \code{\link[accessTime]{accessFit}} object.
- #'
- #' @param int_curve \emph{data.frame.}
- #'                Data frame with following three variables:
- #'                \describe{
- #'                \item{t}{PTT time in seconds.
- #'                Corrected such that 0 s corresponds to the beginning of the
- #'                word under test.}
- #'                \item{I}{Intelligibility}
- #'                \item{speaker}{Speaker word pair, e.g. 'F1 hook`}}
- #'
- #'
- #' @param title \emph{Character.} Title for plot
- #'
- #' @return \emph{ggplot} object
- #'
- #' @import ggplot2
- #' @export
- #'
- #' @examples
- #' # Path to included raw data
- #' raw_path <- system.file("extdata", "Measurements", package = "accessTime")
- #'
- #' # All included raw data tests
- #' raw_testNames <- list.files(raw_path)
- #'
- #' # Full path to each test
- #' raw_testPath <- file.path(raw_path,raw_testNames)
- #'
- #' # Session CSV Files for each raw test
- #' raw_sessionFiles <- lapply(raw_testPath,list.files)
- #'
- #' # Full path to all session files for each test
- #' sessionFiles <- mapply(function(x,y){file.path(x,y)},raw_testPath,raw_sessionFiles,SIMPLIFY = FALSE)
- #' names(sessionFiles) <- raw_testNames
- #'
- #' # Directory to audio clip wav files and cut points
- #' cutDir <- system.file("extdata", "Audio_Clips", package="accessTime")
- #'
- #'  # Calculate accessFit objects for each technology
- #' all_dat <- lapply(sessionFiles,# Inputs
- #'      function(sesh){process_accessData(sesh,cutDir)})
- #'
- #' # Calculate accessFit objects for each individual word
- #' all_dat_indv <- lapply(sessionFiles, function(sesh){
- #'   lapply(sesh,function(word){
- #'    process_accessData(word,cutDir)
- #'  })
- #' })
- #'
- #' # Time Vector
- #' times <- seq(from=-0.5,to=2,by=0.01)
- #'
- #' # Calculate Intelligibility for each curve
- #' I_ts_indv <- lapply(all_dat_indv,
- #'                  function(tech){
- #'                      lapply(tech,function(word){
- #'                          eval_intell(word,times)
- #'                       })
- #'                   })
- #' for(tech in 1:length(I_ts_indv)){
- #'     # Name the words in the lists
- #'     names(I_ts_indv[[tech]]) <- sapply(all_dat_indv[[tech]],function(x){x$speaker_word})
- #'     for(word in 1:length(I_ts_indv[[tech]])){
- #'     # Assign speaker word combo to the data frames
- #'         I_ts_indv[[tech]][[word]]$speaker <- all_dat_indv[[tech]][[word]]$speaker_word
- #'     }
- #' }
- #' # Make one data frame for each technology
- #' intell_dat_words <- lapply(I_ts_indv,
- #'     function(x){do.call("rbind", x)})
- #'
- #' plotNames <- names(all_dat)
- #'
- #' # Make individual word pltos
- #' Int_plots_split<- mapply(plot_wordIntCurves,
- #'     all_dat,intell_dat_words,plotNames,
- #'     SIMPLIFY = FALSE)
- #'
+  #' Plot intelligibility curves for individual words
+  #'
+  #' Plot intelligibility curves for individual words associated with access
+  #' delay measurement. Useful to see the contributions of each word towards
+  #' final intelligibility curve results.
+  #'
+  #' @param accFit \emph{accessFit.}
+  #'                \code{\link[accessTime]{accessFit}} object.
+  #'
+  #' @param int_curve \emph{data.frame.}
+  #'                Data frame with following three variables:
+  #'                \describe{
+  #'                \item{t}{PTT time in seconds.
+  #'                Corrected such that 0 s corresponds to the beginning of the
+  #'                word under test.}
+  #'                \item{I}{Intelligibility}
+  #'                \item{speaker}{Speaker word pair, e.g. 'F1 hook`}}
+  #'
+  #'
+  #' @param title \emph{Character.} Title for plot
+  #'
+  #' @return \emph{ggplot} object
+  #'
+  #' @import ggplot2
+  #' @export
+  #'
+  #' @examples
+  #' # Path to included raw data
+  #' raw_path <- system.file("extdata", "Measurements", package = "accessTime")
+  #'
+  #' # All included raw data tests
+  #' raw_testNames <- list.files(raw_path)
+  #'
+  #' # Full path to each test
+  #' raw_testPath <- file.path(raw_path,raw_testNames)
+  #'
+  #' # Session CSV Files for each raw test
+  #' raw_sessionFiles <- lapply(raw_testPath,list.files)
+  #'
+  #' # Full path to all session files for each test
+  #' sessionFiles <- mapply(function(x,y){file.path(x,y)},raw_testPath,raw_sessionFiles,SIMPLIFY = FALSE)
+  #' names(sessionFiles) <- raw_testNames
+  #'
+  #' # Directory to audio clip wav files and cut points
+  #' cutDir <- system.file("extdata", "Audio_Clips", package="accessTime")
+  #'
+  #'  # Calculate accessFit objects for each technology
+  #' all_dat <- lapply(sessionFiles,# Inputs
+  #'      function(sesh){process_accessData(sesh,cutDir)})
+  #'
+  #' # Calculate accessFit objects for each individual word
+  #' all_dat_indv <- lapply(sessionFiles, function(sesh){
+  #'   lapply(sesh,function(word){
+  #'    process_accessData(word,cutDir)
+  #'  })
+  #' })
+  #'
+  #' # Time Vector
+  #' times <- seq(from=-0.5,to=2,by=0.01)
+  #'
+  #' # Calculate Intelligibility for each curve
+  #' I_ts_indv <- lapply(all_dat_indv,
+  #'                  function(tech){
+  #'                      lapply(tech,function(word){
+  #'                          eval_intell(word,times)
+  #'                       })
+  #'                   })
+  #' for(tech in 1:length(I_ts_indv)){
+  #'     # Name the words in the lists
+  #'     names(I_ts_indv[[tech]]) <- sapply(all_dat_indv[[tech]],function(x){x$speaker_word})
+  #'     for(word in 1:length(I_ts_indv[[tech]])){
+  #'     # Assign speaker word combo to the data frames
+  #'         I_ts_indv[[tech]][[word]]$speaker <- all_dat_indv[[tech]][[word]]$speaker_word
+  #'     }
+  #' }
+  #' # Make one data frame for each technology
+  #' intell_dat_words <- lapply(I_ts_indv,
+  #'     function(x){do.call("rbind", x)})
+  #'
+  #' plotNames <- names(all_dat)
+  #'
+  #' # Make individual word pltos
+  #' Int_plots_split<- mapply(plot_wordIntCurves,
+  #'     all_dat,intell_dat_words,plotNames,
+  #'     SIMPLIFY = FALSE)
+  #'
   p <-  ggplot(accFit$curve_dat, aes(x = t, y = I)) +
     geom_point(aes(color=speaker,shape=speaker)) +
     # geom_line(data = int_curve, aes(x=int_times, y=cdat),  size = 1.3) +
@@ -809,39 +879,39 @@ plot_wordIntCurves <- function(accFit,int_curve,title=""){
 }
 
 plot_techIntCurve <- function(accFit,int_curve,title=""){
- #' Plot intelligibility curve for a technology
- #'
- #' Plot intelligibility curve made up of multiple words across one technology.
- #'
- #' @param accFit \emph{accessFit.}
- #'                \code{\link[accessTime]{accessFit}} object.
- #'
- #' @param int_curve \emph{data.frame.}
- #'                Data frame of intelligibility values from
- #'                \code{\link[accessTime]{eval_intell}} function. Must contain two variables:
- #'                \describe{
- #'                    \item{t}{PTT time, in seconds. Time corrected for audio
- #'                    clips such that 0 seconds corresponds to PTT being
- #'                    pressed right at the beginning of the word being spoken.}
- #'                    \item{I}{Intelligibility}
- #'                 }
- #'
- #' @param title \emph{character.} Title of the plot
- #'
- #' @return \emph{ggplot}
- #'
- #' @examples
- #' # Times to evaluate intelligibility at
- #' times <- seq(from = -0.5, to = 2, by = 0.01)
- #'
- #' # Intelligibility as function of time
- #' intelligibility_values <- eval_intell(ptt_gate,times)
- #'
- #'
- #' plot_techIntCurve(ptt_gate,intelligibility_values,
- #'                   title="PTT Gate Intelligibility Curve")
- #' @import ggplot2
- #' @export
+  #' Plot intelligibility curve for a technology
+  #'
+  #' Plot intelligibility curve made up of multiple words across one technology.
+  #'
+  #' @param accFit \emph{accessFit.}
+  #'                \code{\link[accessTime]{accessFit}} object.
+  #'
+  #' @param int_curve \emph{data.frame.}
+  #'                Data frame of intelligibility values from
+  #'                \code{\link[accessTime]{eval_intell}} function. Must contain two variables:
+  #'                \describe{
+  #'                    \item{t}{PTT time, in seconds. Time corrected for audio
+  #'                    clips such that 0 seconds corresponds to PTT being
+  #'                    pressed right at the beginning of the word being spoken.}
+  #'                    \item{I}{Intelligibility}
+  #'                 }
+  #'
+  #' @param title \emph{character.} Title of the plot
+  #'
+  #' @return \emph{ggplot}
+  #'
+  #' @examples
+  #' # Times to evaluate intelligibility at
+  #' times <- seq(from = -0.5, to = 2, by = 0.01)
+  #'
+  #' # Intelligibility as function of time
+  #' intelligibility_values <- eval_intell(ptt_gate,times)
+  #'
+  #'
+  #' plot_techIntCurve(ptt_gate,intelligibility_values,
+  #'                   title="PTT Gate Intelligibility Curve")
+  #' @import ggplot2
+  #' @export
   p <-  ggplot(accFit$curve_dat, aes(x = t, y = I)) +
     geom_point(aes(fill="Data"), shape=20, size=1,alpha=1) +
     geom_line(data = int_curve, aes(x=t, y=I, color="Fitted Line"),  size = 1.5) +

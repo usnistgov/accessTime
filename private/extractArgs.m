@@ -161,6 +161,22 @@ function str=val2str(val,name)
             %false, return false string
             str='false';
         end
+    elseif(isa(val,'function_handle'))
+        try
+            info=functions(val);
+            switch(info.type)
+                case 'simple'
+                    str=['@' info.function];
+                case 'anonymous'
+                    str=info.function;
+                otherwise
+                    str=info.function;
+                    warning('QoE:ArgsFtype','Unsure how to handle function of type ''%s'' argument list may not be usable',info.function);
+            end
+        catch e
+            str=func2str(val);
+            warning('QoE:ArgErr','Error using values from functions,''%s'', argument list may not be usable',e.message);
+        end
     else
         %unknown type, can't convert
         error('Unknown value for ''%s''',name);

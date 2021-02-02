@@ -1,4 +1,4 @@
-function Delay_est=ITS_delay_est(x_speech,y_speech,mode)
+function Delay_est=ITS_delay_est(x_speech,y_speech,mode,varargin)
 %Usage: Delay_est=ITS_delay_est(x_speech,y_speech,mode)
 %
 %This function estimates the delay history for the speech samples in
@@ -63,6 +63,22 @@ function Delay_est=ITS_delay_est(x_speech,y_speech,mode)
 %the Collaborator, or others acting on its behalf, of products made
 %by the use of NTIA/ITS' Software.
 
+%----------------------------Parse Arguments--------------------------------
+
+%new parser object
+p=inputParser();
+
+%add required x_speech
+addRequired(p,'x_speech',@(n)validateattributes(n,{'numeric'},{'vector','nonempty'}));
+%add required y_speech
+addRequired(p,'y_speech',@(n)validateattributes(n,{'numeric'},{'vector','nonempty'}));
+%add required mode
+addRequired(p,'mode',@(s)validatestring(s,{'f','v','u'}));
+%add delay bounds parameter
+addParameter(p,'dlyBounds',[-Inf,Inf],@(n)validateattributes(n,{'numeric'},{'vector','numel', 2,'nonempty','increasing'}));
+
+parse(p,x_speech,y_speech,mode,varargin{:});
+
 %-----------------------------Speech Input---------------------------------
 %Transpose x_speech to form a column vector if necessary
 if size(x_speech,2)>1
@@ -80,7 +96,7 @@ asl_y=active_speech_level(y_speech);
 x_speech=x_speech*10^(-(asl_x+26)/20);
 y_speech=y_speech*10^(-(asl_y+26)/20);
 %---------------------Coarse Average Delay Estimation----------------------
-[tau_0,rho_0,fir_coeff_63]=coarse_avg_dly_est(x_speech,y_speech);
+[tau_0,rho_0,fir_coeff_63]=coarse_avg_dly_est(x_speech,y_speech,p.Results.dlyBounds);
 %Compensate for tau_0, comp_x_speech and comp_y_speech will have same
 %length
 [comp_x_speech,comp_y_speech]=fxd_delay_comp(x_speech,y_speech,tau_0);
@@ -196,8 +212,8 @@ end
 x=x(  0<x & active );
 asl=20*mean(log10(x))-81;
 %==========================================================================
-function [tau_0,rho_0,fir_coeff]=coarse_avg_dly_est(x,y)
-%Usage: [tau_0,rho_0,fir_coeff]=coarse_avg_dly_est(x,y)
+function [tau_0,rho_0,fir_coeff]=coarse_avg_dly_est(x,y,b)
+%Usage: [tau_0,rho_0,fir_coeff]=coarse_avg_dly_est(x,y,b)
 %This function generates a coarse delay estimate from speech envelopes.
 %This is done in the fs=125 samples/sec domain. (i.e., sub-sampling by 64).
 %x and y are column vectors of speech samples
@@ -225,9 +241,18 @@ ey=ey-m;
 %FFT based cross correlation
 xc=real(ifft(fft([ex;zeros(corrlen,1)]) ...
 .*fft([flipud(ey);zeros(corrlen,1)])));
-[rho,index]=max(xc);
+
+%calculate shifts in seconds
+shift=64*(corrlen-(1:length(xc)));
+%calculate which shifts are valid
+valid=(shift*8e3)>b(1) & (shift*8e3)<b(2);
+%calculate which shifts are valid
+valid_shifts=shift(valid);
+
+%find correlation peak. Ignore out of bounds values
+[rho,index]=max(xc(valid));
 %Convert peak location to a shift
-tau_0=64*(corrlen-index);
+tau_0=valid_shifts(index);
 %Normalize to get cross correlation value
 rho_0=rho/((corrlen-1)*std(ex)*std(ey));
 %==========================================================================
