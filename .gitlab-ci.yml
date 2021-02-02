@@ -39,3 +39,5 @@ test-math:
       paths:
         - mathtest.log
         - math-tests.xml
+      reports:
+        junit: math-tests.xml
