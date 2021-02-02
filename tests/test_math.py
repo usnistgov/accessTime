@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Created on Fri Jan 29 11:12:57 2021
@@ -168,4 +169,6 @@ class Test_Uncertainty(unittest.TestCase):
         self.assertEqual(mcvqoe.math.standard_error(x), 0.10056710785009866)
             
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(
+        testRunner=xmlrunner.XMLTestRunner(output='math'),
+        failfast=False, buffer=False, catchbreak=False)
