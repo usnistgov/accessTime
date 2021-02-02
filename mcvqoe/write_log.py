@@ -104,7 +104,7 @@ def pre(info={}, outdir=""):
         # Add pre test notes to tests.log
         if info["Pre Test Notes"] is not None:
             # Add tabs for each newline in pretest string
-            file.write("\n===Pre-Test Notes===%s" % '\t'.join(('\n'+
+            file.write("===Pre-Test Notes===%s" % '\t'.join(('\n'+
                         info["Pre Test Notes"].lstrip()).splitlines(True))
                       )
         else:
