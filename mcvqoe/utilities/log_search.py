@@ -52,6 +52,8 @@ class log_search():
         self.stringSearchMode='OR'
         self.foundCleared=True
         self.fieldNames=set()
+        self.groups = set()
+        self.group_files = dict()
         
         if(LogParseAction=='Warn'):
             msgFcn= lambda m: warnings.warn(RuntimeWarning(m),stacklevel=3)
@@ -378,6 +380,9 @@ class log_search():
                 #create filename without path
                 (_,short_name)=os.path.split(fn)
                 
+                # Initialize dictionary for this file name
+                self.group_files[short_name] = set()
+                
                 for lc,line in enumerate(f):
                     #remove whitespace
                     line=line.strip()
@@ -411,8 +416,12 @@ class log_search():
                         for groupName in groupNames:
                             #strip leading and trailing spaces
                             groupName=groupName.strip()
+                            # contcatenate filename and groupname
+                            full_group_name = "{}:{}".format(short_name,groupName)
+                            self.groups.add(full_group_name)
+                            self.group_files[short_name].add(full_group_name)
                             
-                            self.log[list(idx)[0]]['groups'].add(groupName)
+                            self.log[list(idx)[0]]['groups'].add(full_group_name)
         
         for l in self.log:
             self.fieldNames.update(l.keys())
@@ -543,7 +552,7 @@ class log_search():
         self.found=set()
         self.foundCleared=True;
                 
-    def datafilenames(self,ftype='mat'):
+    def datafilenames(self,ftype='csv'):
         """
         find data files matching a log entry
         
