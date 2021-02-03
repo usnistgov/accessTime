@@ -27,6 +27,7 @@ def cb_mono_play_rec(indata, outdata, frames, time, status):
     
     """
     
+    
     # Record the output
     qr.put_nowait(indata.copy())
     
