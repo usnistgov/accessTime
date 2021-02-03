@@ -9,6 +9,8 @@ import shutil
 import stat
 import warnings
 
+import pdb
+
 class log_search():
 	fixedFields=['error','complete','operation','GitHash','logFile','amendedBy','date','Arguments','filename','InputFile','OutputFile']
 
@@ -23,7 +25,8 @@ class log_search():
 		self.stringSearchMode='OR'
 		self.foundCleared=True
 		self.fieldNames=set()
-		
+		self.groups = set()
+		self.group_files = dict()       
 		if(LogParseAction=='Warn'):
 			msgFcn= lambda m: warnings.warn(RuntimeWarning(m),stacklevel=3)
 		elif(LogParseAction=='Error'):
@@ -80,7 +83,7 @@ class log_search():
 		
 		#initialize idx
 		idx=-1
-		
+		#-------------------[Log files]----------------------------------------
 		for fn in filenames:
 			with open(fn,'r') as f:
 				
@@ -252,7 +255,7 @@ class log_search():
 								msgFcn(f'Unknown separator found at line {lc} of file {short_name} : {repr(line)}')
 								#drop back to search mode
 								status='searching'
-		
+		#-----------------------[Addendum Files]------------------------------
 		for fn in adnames:
 			with open(fn,'r') as f:
 				
@@ -342,13 +345,16 @@ class log_search():
 								self.log[idx][name]=arg
 							else:
 								raise ValueError(f"Invalid field {repr(name)} at line {lc} of {short_name}")
-								
+		#--------------------------[Group Files]------------------------------						
 		for fn in groupnames:
+			
 			with open(fn,'r') as f:
 				
 				#create filename without path
 				(_,short_name)=os.path.split(fn)
-				
+                
+                # Initialize dictionary for this file name
+				self.group_files[short_name] = set()
 				for lc,line in enumerate(f):
 					#remove whitespace
 					line=line.strip()
@@ -364,6 +370,7 @@ class log_search():
 					parts=line.split(':')
 					
 					groupNames=parts[0].strip().split(',')
+					
 					
 					members=':'.join(parts[1:]).split(',')
 					
@@ -382,8 +389,11 @@ class log_search():
 						for groupName in groupNames:
 							#strip leading and trailing spaces
 							groupName=groupName.strip()
-							
+                            # Store group
+							self.groups.add(groupName)
+							self.group_files[short_name].add(groupName)
 							self.log[list(idx)[0]]['groups'].add(groupName)
+                            self.log[list(idx)[0]]['group_file'].add(short_name)
 		
 		for l in self.log:
 			self.fieldNames.update(l.keys())
