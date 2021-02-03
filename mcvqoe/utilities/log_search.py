@@ -10,6 +10,32 @@ import stat
 import warnings
 
 class log_search():
+    """
+    Class to parse and search MCV QoE log files
+
+    The log_search class can read a single log file or a folder with multiple
+    log files, addendum and group files. 
+    
+    Attributes
+    ----------
+    fixedFields : list of strings
+        The fixedFields static property is a list of fields that addendum files
+        are not allowed to change
+    found : set
+        list of indicies matching the last search
+    log : list of dicts
+        the log attribute holds all of the parsed info from log files
+    searchPath
+    
+    updateMode : {'Replace','AND','OR','XOR'}
+        dictates how found is updated
+    stringSearchMode : {'AND','OR','XOR'}
+        dictates how string searches are performed
+    foundCleared
+    
+    fieldNames : set
+        a set of all the fieldnames that exist across all log entries
+    """
 	fixedFields=['error','complete','operation','GitHash','logFile','amendedBy','date','Arguments','filename','InputFile','OutputFile']
 
 	# Not hashable
@@ -389,6 +415,9 @@ class log_search():
 			self.fieldNames.update(l.keys())
 	
 	def _logMatch(self,match):
+    """
+    Internal function to find matching log entries
+    """
 		m=set()
 		for n,x in enumerate(self.log):
 			eq=[False]*len(match)
@@ -430,6 +459,9 @@ class log_search():
 		return m
 		
 	def _foundUpdate(self,idx):
+    """
+    internal function to update the found attribute based on the update mode
+    """
 		#make idx a set
 		idx=set(idx)
 		if(self.foundCleared):
@@ -449,6 +481,20 @@ class log_search():
 		self.foundCleared=False
 		
 	def Qsearch(self,search_field,search_term):
+    """
+    Quick search : search for a match in a single property
+    
+    Parameters
+    ----------
+    search_field : string
+        The name of the field to search
+    search_term
+        the value that the search field values will be compared to
+
+    Returns
+    -------
+    The set of matching indicies in self.log
+    """
 		
 		#find matching entries
 		idx=self._logMatch({search_field:search_term})
@@ -459,6 +505,20 @@ class log_search():
 		return idx
 		
 	def MfSearch(self,search):
+    """
+    Multi field search : search for multiple matching fields
+        
+    Parameters
+    ----------
+    search : dict
+        a dictionary where the keys are the fields to search and the values are
+        the things to search for
+
+    Returns
+    -------
+    The set of matching indicies in self.log
+    """
+    
 		
 		#search must be a dictionary
 		if(not isinstance(search,dict)):
@@ -473,11 +533,22 @@ class log_search():
 		return idx
 		
 	def clear(self):
+    """
+    clear the found set
+    """
 		#clear found
 		self.found=set()
 		self.foundCleared=True;
 				
 	def datafilenames(self,ftype='mat'):
+    """
+    find data files matching a log entry
+    
+    Parameters
+    ----------
+    ftype : {'mat','csv','bad_csv','wav','sm_mat'}
+        what type of files to look for
+    """
 		
 		types=re.compile(r"\.?(?P<csv>csv)|(?P<mat>mat)|(?P<wav>wav)|(?P<sm_mat>sm(?:all)?_mat)|(?P<bad_csv>bad_csv)",re.IGNORECASE)
 		
@@ -686,6 +757,31 @@ class log_search():
 		return(filenames)
 
 	def isAncestor(self,rev,repo_path,git_path=None):
+    """
+    Search for testss run with an ancestor of the given rev
+    
+    This searches the git hash field and can be used to find tests that have
+    been run with code that is more recent than `rev`. This requires the
+    repository that the tests were run using. 
+
+    Parameters
+    ----------
+    rev : string
+        string that can be resolved, by git, to a commit. Posible values include
+        branch names, tag names, and partial commit hashes
+    repo_path : string
+        this can either be a local path to the repository or a git URL. If it is
+        a git URL the repository will be cloned and used for the search.
+    git_path : string
+        the path to the git executable
+    
+    Returns
+    -------
+    The set of matching indices in self.log
+
+    """
+    
+    
 		
 		if(git_path is None):
 			git_path='git'
@@ -771,6 +867,19 @@ class log_search():
 		return match
 
 	def argSearch(self,name,value):
+    """
+    search the arguments field of log entries
+    
+    Searches the arguments field for arguments that match the given name, value 
+    pair. Note : this has not been well tested with python, enjoy!
+    
+    Parameters
+    ----------
+    name : string
+        the parameter name to search for
+    value : string
+        the parameter value to search for
+    """
 		
 		def listCmp(l1,l2):
 			
@@ -816,6 +925,12 @@ class log_search():
 		return match
 
 	def _argParse(self,args):
+    """
+    internal function for parsing the arguments field
+    
+    This has not been well tested for python generated log files so, it may not
+    work so well.
+    """
 					
 		def str_or_float(val):
 			if(not val):
@@ -861,6 +976,9 @@ class log_search():
 		return arg_d
     
 	def argQuery(self,argName):
+    """
+    I really don't remember what this is for
+    """
 
 		f_log=self.flog
 
@@ -882,10 +1000,16 @@ class log_search():
 #workaround for deleting read only files
 #code from : https://bugs.python.org/issue19643#msg208662
 def del_rw(action, name, exc):
+    """
+    workaround for deleting read only files with shutil.rmtree
+    """
 	os.chmod(name, stat.S_IWRITE)
 	os.remove(name)
 
 def isGitURL(str):
+    """
+    detect if a url could be to a git repository
+    """
 	if(str.startswith('git@')):
 		return True
 	elif(str.startswith('https://')):
