@@ -570,14 +570,17 @@ class log_search():
             raise ValueError(f"Unknown search type '{ftype}'")
         
         if(m.group('mat')):
-            tstFiles={'ext':'.mat','path':'data','singular':True,'exclude':''}
+            #TODO: Should we delete this?
+            tstFiles={'ext':'.mat','path':'data_matfiles','singular':True,'exclude':''}
         elif(m.group('csv')):
-            tstFiles={'ext':'.csv','path':os.path.join('post-processed data','csv'),'singular':False,'exclude':'_BAD.csv'}
+            tstFiles={'ext':'.csv','path':os.path.join('data','csv'),'singular':False,'exclude':'_BAD.csv'}
         elif(m.group('bad_csv')):
+            #TODO: where is this now?
             tstFiles={'ext':'_BAD.csv','path':os.path.join('post-processed data','csv'),'singular':False,'exclude':None}
         elif(m.group('wav')):
-            tstFiles={'ext':'','path':os.path.join('post-processed data','wav'),'singular':True,'exclude':None}
+            tstFiles={'ext':'','path':os.path.join('data','wav'),'singular':True,'exclude':None}
         elif(m.group('sm_mat')):
+            #TODO: Should we delete this?
             tstFiles={'ext':'.mat','path':os.path.join('post-processed data','mat'),'singular':True,'exclude':None}
         else:
             raise RuntimeError(f"'{ftype}' is an invalid file type")
