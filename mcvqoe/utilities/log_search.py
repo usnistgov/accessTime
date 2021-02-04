@@ -9,7 +9,6 @@ import shutil
 import stat
 import warnings
 
-import pdb
 
 class log_search():
 
@@ -597,18 +596,21 @@ class log_search():
                 singular=tstFiles['singular']
                 exclude=tstFiles['exclude']
             elif(self.log[idx]['operation'] == 'Training'):
+                #TODO: Can we delete training? I think so...
                 prefix=['Training_']*2
                 folder=['training','data']
                 ext='.mat'
                 singular=True
                 exclude=None
             elif(self.log[idx]['operation'] == 'Tx Two Loc Test'):
+                #TODO: Does this need an update?
                 prefix=['Tx_capture','capture']
                 folder=['tx-data']*len(prefix)
                 ext='.mat'
                 singular=True
                 exclude=None
             elif(self.log[idx]['operation'] == 'Rx Two Loc Test'):
+                #TODO: Does this need an update?
                 prefix=['Rx_capture','capture']
                 folder=['rx-data']*len(prefix)
                 ext='.mat'
@@ -660,7 +662,8 @@ class log_search():
                 warnings.warn(RuntimeWarning(f"No matching files for '{date_str}' in '{foldPath}'"),stacklevel=2)
 
         return (fn,fi)
-
+    
+    
     def findFiles(self,locpath,ftype='csv'):
         """Get filenames from current log search object.
         
