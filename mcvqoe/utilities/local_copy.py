@@ -11,13 +11,40 @@ import shutil
 import warnings
 import appdirs
 import configparser
+import re 
 
 appname = 'mcvqoe'
 appauthor = 'MCV'
 
 
 def local_copy(test_names, test_type, local_path = None,network_path = None):
+    """
+    Function to copy MCV QoE Measurement Data.
     
+    Stores local_path and network_path for each test_type in a config file so 
+    they only need to be set once.
+    
+    Parameters
+    ----------
+    test_names : list
+        Basenames of  tests.
+    test_type : str
+        Type of test (e.g. access, m2e, psud).
+    local_path : str, optional
+        Path where local data should be copied to. If None is passed, 
+        local_path is found from a config file. It must have been initialized 
+        for the given test type previously.
+    network_path : str, optional
+        Path where network data is copied from. If None is passed, 
+        network_path is found from a config file. It must have been initialzed
+        for the given test type previously.
+
+
+    Returns
+    -------
+    None.
+
+    """
     #---------------------[Load Config File]----------------------------------
     # Make application directories if they do not exist
     os.makedirs(appdirs.user_data_dir(appname,appauthor),exist_ok=True)
@@ -97,24 +124,21 @@ def local_copy(test_names, test_type, local_path = None,network_path = None):
                     else:
                         print("Found locally: {}".format(lpath))
 
-def update_config(test_type, local_path, network_path):
-    # Make application directories if they do not exist
-    os.makedirs(appdirs.user_data_dir(appname,appauthor),exist_ok=True)
-    
-    #create a config parser
-    config = configparser.ConfigParser()
-    
-    #load config file
-    config_path = os.path.join(appdirs.user_data_dir(appname,appauthor),"config.ini")
-    config.read(config_path)
-    
-    
-    config[test_type] = {'network_path': network_path,
-                         'local_path': local_path}
 
-    with open(config_path,'w') as configfile:
-        config.write(configfile)
 def print_config(test_type=None):
+    """
+    Print the test_types and paths stored by local_copy.
+
+    Parameters
+    ----------
+    test_type : str, optional
+        If given, prints paths only for that test_type. The default is None.
+
+    Returns
+    -------
+    None.
+
+    """
     #---------------------[Load Config File]----------------------------------
     # Make application directories if they do not exist
     os.makedirs(appdirs.user_data_dir(appname,appauthor),exist_ok=True)
@@ -137,7 +161,37 @@ def print_config(test_type=None):
             print(ttype_str.format(tt))
             for kv in config[tt].keys():
                 print(path_str.format(kv,config[tt][kv]))
-    
+def convert_log_search_names(fnames):
+    """
+    Convert output from mcvqoe.utilities.log_search datafilenames() to what local-copy expects
+
+    Parameters
+    ----------
+    fnames : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    lc_names : TYPE
+        DESCRIPTION.
+
+    """
+    if(type(fnames) is str):
+        fnames = [fnames]
+    lc_names = []
+    for fn in fnames:
+        _,short_name = os.path.split(fn)
+        #TODO: Make this work with an optional non-capturing group for audio file...
+        # thought that '(capture_.+)(?:_\w{2}_b\d{1,2}_w\d{1}_\w+)?(?:.csv)' should work but it doesn't
+        re_search = '(capture_.+)(?:_\w{2}_b\d{1,2}_w\d{1}_\w+)(?:.csv)'
+        
+        # Extract part of the name that local-copy expects
+        rs = re.search(re_search,short_name)
+        if(rs):
+            f_id = rs.groups()
+            lc_names.append(f_id[0])
+            
+    return lc_names
 def main():
     parser = argparse.ArgumentParser(description='Copy data files from network drive to local machine')
     parser.add_argument('-f','--test-names',

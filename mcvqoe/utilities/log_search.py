@@ -9,7 +9,9 @@ import shutil
 import stat
 import warnings
 
+
 class log_search():
+
     """
     Class to parse and search MCV QoE log files
 
@@ -49,6 +51,8 @@ class log_search():
         self.stringSearchMode='OR'
         self.foundCleared=True
         self.fieldNames=set()
+        self.groups = set()
+        self.group_files = dict()
         
         if(LogParseAction=='Warn'):
             msgFcn= lambda m: warnings.warn(RuntimeWarning(m),stacklevel=3)
@@ -106,7 +110,7 @@ class log_search():
         
         #initialize idx
         idx=-1
-        
+        #-------------------------[Parse log files]----------------------------
         for fn in filenames:
             with open(fn,'r') as f:
                 
@@ -278,7 +282,7 @@ class log_search():
                                 msgFcn(f'Unknown separator found at line {lc} of file {short_name} : {repr(line)}')
                                 #drop back to search mode
                                 status='searching'
-        
+        #-------------------------[Parse addendum files]-----------------------
         for fn in adnames:
             with open(fn,'r') as f:
                 
@@ -368,12 +372,15 @@ class log_search():
                                 self.log[idx][name]=arg
                             else:
                                 raise ValueError(f"Invalid field {repr(name)} at line {lc} of {short_name}")
-                                
+        #-------------------------[Parse Group Files]-------------------------
         for fn in groupnames:
             with open(fn,'r') as f:
                 
                 #create filename without path
                 (_,short_name)=os.path.split(fn)
+                
+                # Initialize dictionary for this file name
+                self.group_files[short_name] = set()
                 
                 for lc,line in enumerate(f):
                     #remove whitespace
@@ -408,8 +415,12 @@ class log_search():
                         for groupName in groupNames:
                             #strip leading and trailing spaces
                             groupName=groupName.strip()
+                            # contcatenate filename and groupname
+                            full_group_name = "{}:{}".format(short_name,groupName)
+                            self.groups.add(full_group_name)
+                            self.group_files[short_name].add(full_group_name)
                             
-                            self.log[list(idx)[0]]['groups'].add(groupName)
+                            self.log[list(idx)[0]]['groups'].add(full_group_name)
         
         for l in self.log:
             self.fieldNames.update(l.keys())
@@ -540,7 +551,7 @@ class log_search():
         self.found=set()
         self.foundCleared=True;
                 
-    def datafilenames(self,ftype='mat'):
+    def datafilenames(self,ftype='csv'):
         """
         find data files matching a log entry
         
@@ -558,14 +569,17 @@ class log_search():
             raise ValueError(f"Unknown search type '{ftype}'")
         
         if(m.group('mat')):
-            tstFiles={'ext':'.mat','path':'data','singular':True,'exclude':''}
+            #TODO: Should we delete this?
+            tstFiles={'ext':'.mat','path':'data_matfiles','singular':True,'exclude':''}
         elif(m.group('csv')):
-            tstFiles={'ext':'.csv','path':os.path.join('post-processed data','csv'),'singular':False,'exclude':'_BAD.csv'}
+            tstFiles={'ext':'.csv','path':os.path.join('data','csv'),'singular':False,'exclude':'_BAD.csv'}
         elif(m.group('bad_csv')):
+            #TODO: where is this now?
             tstFiles={'ext':'_BAD.csv','path':os.path.join('post-processed data','csv'),'singular':False,'exclude':None}
         elif(m.group('wav')):
-            tstFiles={'ext':'','path':os.path.join('post-processed data','wav'),'singular':True,'exclude':None}
+            tstFiles={'ext':'','path':os.path.join('data','wav'),'singular':True,'exclude':None}
         elif(m.group('sm_mat')):
+            #TODO: Should we delete this?
             tstFiles={'ext':'.mat','path':os.path.join('post-processed data','mat'),'singular':True,'exclude':None}
         else:
             raise RuntimeError(f"'{ftype}' is an invalid file type")
@@ -582,18 +596,21 @@ class log_search():
                 singular=tstFiles['singular']
                 exclude=tstFiles['exclude']
             elif(self.log[idx]['operation'] == 'Training'):
+                #TODO: Can we delete training? I think so...
                 prefix=['Training_']*2
                 folder=['training','data']
                 ext='.mat'
                 singular=True
                 exclude=None
             elif(self.log[idx]['operation'] == 'Tx Two Loc Test'):
+                #TODO: Does this need an update?
                 prefix=['Tx_capture','capture']
                 folder=['tx-data']*len(prefix)
                 ext='.mat'
                 singular=True
                 exclude=None
             elif(self.log[idx]['operation'] == 'Rx Two Loc Test'):
+                #TODO: Does this need an update?
                 prefix=['Rx_capture','capture']
                 folder=['rx-data']*len(prefix)
                 ext='.mat'
@@ -645,7 +662,8 @@ class log_search():
                 warnings.warn(RuntimeWarning(f"No matching files for '{date_str}' in '{foldPath}'"),stacklevel=2)
 
         return (fn,fi)
-
+    
+    
     def findFiles(self,locpath,ftype='csv'):
         """Get filenames from current log search object.
         
