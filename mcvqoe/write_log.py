@@ -4,6 +4,8 @@ import os
 import traceback
 import shutil
 import subprocess
+import mcvqoe.version
+import importlib
 
 def fill_log(test_obj,git_path=None):
     """
@@ -74,6 +76,40 @@ def fill_log(test_obj,git_path=None):
             #set info
             info["Git Hash"]=rev+dirty
         
+    #---------------------------[Add MCV QoE version]---------------------------
+    
+    info['mcvqoe version']=mcvqoe.version
+    
+    #----------------------[Add Measurement class version]----------------------
+    
+    #get module for test_obj
+    module=test_obj.__class__.__module__
+    
+    #set default version
+    info['version']='Unknown'
+    
+    if(module):
+        #import base level module
+        mod=importlib.import_module(module.split('.')[0])
+        try:
+            info['version']=mod.version
+        except AttributeError as e:
+            pass
+    
+    #check if version was found
+    if(info['version']=='Unknown'):
+        #no module was found, let's try git
+        #see if we found git before
+        if(git_path):
+            #we did, use repo_path from before
+            
+            #get version from git describe
+            p=subprocess.run([git_path,'-C',repo_path,'describe','--match=v*.*','--always','--dirty=-dty'],capture_output=True)
+            
+            if(p.returncode==0):
+                #get version from output
+                info['version']=p.stdout.decode("utf-8").strip()
+    
     #---------------------------[Fill Arguments list]---------------------------
     
     #class properties to skip in all cases
