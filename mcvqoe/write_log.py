@@ -52,7 +52,7 @@ def fill_log(test_obj,git_path=None):
         git_path=shutil.which('git')
     
     if(git_path):        
-        repo_path=os.dirname(tb[-1])
+        repo_path=os.path.dirname(tb[-1].filename)
 
         #get the full has of the commit described by rev
         p=subprocess.run([git_path,'-C',repo_path,'rev-parse','--verify','HEAD'],capture_output=True)
