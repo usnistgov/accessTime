@@ -11,6 +11,7 @@ import shutil
 import warnings
 import appdirs
 import configparser
+import re 
 
 appname = 'mcvqoe'
 appauthor = 'MCV'
@@ -137,7 +138,37 @@ def print_config(test_type=None):
             print(ttype_str.format(tt))
             for kv in config[tt].keys():
                 print(path_str.format(kv,config[tt][kv]))
-    
+def convert_log_search_names(fnames):
+    """
+    Convert output from mcvqoe.utilities.log_search datafilenames() to what local-copy expects
+
+    Parameters
+    ----------
+    fnames : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    lc_names : TYPE
+        DESCRIPTION.
+
+    """
+    if(type(fnames) is str):
+        fnames = [fnames]
+    lc_names = []
+    for fn in fnames:
+        _,short_name = os.path.split(fn)
+        #TODO: Make this work with an optional non-capturing group for audio file...
+        # thought that '(capture_.+)(?:_\w{2}_b\d{1,2}_w\d{1}_\w+)?(?:.csv)' should work but it doesn't
+        re_search = '(capture_.+)(?:_\w{2}_b\d{1,2}_w\d{1}_\w+)(?:.csv)'
+        
+        # Extract part of the name that local-copy expects
+        rs = re.search(re_search,short_name)
+        if(rs):
+            f_id = rs.groups()
+            lc_names.append(f_id[0])
+            
+    return lc_names
 def main():
     parser = argparse.ArgumentParser(description='Copy data files from network drive to local machine')
     parser.add_argument('-f','--test-names',
