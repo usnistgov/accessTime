@@ -18,7 +18,33 @@ appauthor = 'MCV'
 
 
 def local_copy(test_names, test_type, local_path = None,network_path = None):
+    """
+    Function to copy MCV QoE Measurement Data.
     
+    Stores local_path and network_path for each test_type in a config file so 
+    they only need to be set once.
+    
+    Parameters
+    ----------
+    test_names : list
+        Basenames of  tests.
+    test_type : str
+        Type of test (e.g. access, m2e, psud).
+    local_path : str, optional
+        Path where local data should be copied to. If None is passed, 
+        local_path is found from a config file. It must have been initialized 
+        for the given test type previously.
+    network_path : str, optional
+        Path where network data is copied from. If None is passed, 
+        network_path is found from a config file. It must have been initialzed
+        for the given test type previously.
+
+
+    Returns
+    -------
+    None.
+
+    """
     #---------------------[Load Config File]----------------------------------
     # Make application directories if they do not exist
     os.makedirs(appdirs.user_data_dir(appname,appauthor),exist_ok=True)
@@ -98,24 +124,21 @@ def local_copy(test_names, test_type, local_path = None,network_path = None):
                     else:
                         print("Found locally: {}".format(lpath))
 
-def update_config(test_type, local_path, network_path):
-    # Make application directories if they do not exist
-    os.makedirs(appdirs.user_data_dir(appname,appauthor),exist_ok=True)
-    
-    #create a config parser
-    config = configparser.ConfigParser()
-    
-    #load config file
-    config_path = os.path.join(appdirs.user_data_dir(appname,appauthor),"config.ini")
-    config.read(config_path)
-    
-    
-    config[test_type] = {'network_path': network_path,
-                         'local_path': local_path}
 
-    with open(config_path,'w') as configfile:
-        config.write(configfile)
 def print_config(test_type=None):
+    """
+    Print the test_types and paths stored by local_copy.
+
+    Parameters
+    ----------
+    test_type : str, optional
+        If given, prints paths only for that test_type. The default is None.
+
+    Returns
+    -------
+    None.
+
+    """
     #---------------------[Load Config File]----------------------------------
     # Make application directories if they do not exist
     os.makedirs(appdirs.user_data_dir(appname,appauthor),exist_ok=True)
