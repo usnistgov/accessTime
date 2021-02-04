@@ -62,8 +62,17 @@ def fill_log(test_obj,git_path=None):
         
         #check for error
         if(p.returncode) == 0:
+        
+            #check if there are local mods
+            mods_p=subprocess.run([git_path,'-C',repo_path,'diff-index','--quiet','HEAD','--'],capture_output=True)
+            
+            if(mods_p.returncode):
+                dirty=' dty'
+            else:
+                dirty=''
+            
             #set info
-            info["Git Hash"]=rev
+            info["Git Hash"]=rev+dirty
         
     #---------------------------[Fill Arguments list]---------------------------
     
