@@ -21,7 +21,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'numpy','scipy','sounddevice','serial','pyserial','gitpython','soundfile','appdirs'
+        'numpy','scipy','sounddevice','serial','pyserial','soundfile','appdirs'
     ],
     entry_points={
         'console_scripts':[

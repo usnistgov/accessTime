@@ -1,10 +1,11 @@
 
 import datetime
 import os
-import git
 import traceback
+import shutil
+import subprocess
 
-def fill_log(test_obj):
+def fill_log(test_obj,git_path=None):
     """
     Take in QoE measurement class and fill in standard log entries
     
@@ -14,6 +15,8 @@ def fill_log(test_obj):
     ----------
     test_obj : QoE measurement class
         Class to generate test info for
+    git_path : string, default=None
+        path to git executable. Will look in the path if None
     """
     
     #initialize info
@@ -23,19 +26,8 @@ def fill_log(test_obj):
     
     # Get ID and Version number from RadioInterface
     info['RI version']  = test_obj.ri.get_version()
-    info['RI id'] = test_obj.ri.get_id()
-
-    #------------------------------[Get Git Hash]------------------------------
-
-    sha = ""
-    try:
-        repo = git.Repo(search_parent_directories=True)
-        sha = repo.head.object.hexsha
-    except git.exc.InvalidGitRepositoryError:
-        sha = "No Git Hash Found"
-    
-    info["Git Hash"]=sha
-    
+    info['RI id'] = test_obj.ri.get_id()        
+        
     #---------------------[Get traceback for calling info]---------------------
     
     #get a stack trace
@@ -53,6 +45,26 @@ def fill_log(test_obj):
     #format string with '->' between files
     info['traceback']='->'.join([f'{f}({n})' if n is not None else f for f,n in tb_info])
     
+    #------------------------------[Get Git Hash]------------------------------
+    
+    if(git_path is None):
+        #try to find git
+        git_path=shutil.which('git')
+    
+    if(git_path):        
+        repo_path=os.dirname(tb[-1])
+
+        #get the full has of the commit described by rev
+        p=subprocess.run([git_path,'-C',repo_path,'rev-parse','--verify','HEAD'],capture_output=True)
+        
+        #convert to string and trim whitespace
+        rev=p.stdout.decode("utf-8").strip()
+        
+        #check for error
+        if(p.returncode) == 0:
+            #set info
+            info["Git Hash"]=rev
+        
     #---------------------------[Fill Arguments list]---------------------------
     
     #class properties to skip in all cases
