@@ -26,6 +26,59 @@ python -m pip install --find-links ./dist/ mcvqoe-nist
 
 ```
 
+# Measurement Data Structure
+
+All MCV QoE measurements save data with the following directory structure.
+
+Coarsely the directory structure is as follows
+
+## Data Filenames
+All captured data should adhere to the following naming conventions:
+
+`capture_{Description}_DD-Mon-YYYY_HH-MM-SS_{Audio File}.csv`
+
+Data that has been reprocessed has an `R` prefix as well
+
+`Rcapture_{Description}_DD-Mon-YYYY_HH-MM-SS_{Audio File}.csv`
+
+## Directory structure
+
+* data
+  * csv (required)
+  * wav (required)
+  * 2loc_rx-data (optional)
+  * 2loc_tx-data (optional)
+  * recovery (optional)
+  * error (optional)
+* data_matfiles
+
+
+### data folder
+Contains all data from tests.
+
+#### csv (required)
+Contains csv files for each test with all output measurement data. All measurement files are of the form `capture_{Description}_DD-Mon-YYYY_HH-MM-SS_{Audio File}.csv`
+
+Data that has been reprocessed follows the same format but has a `R` prefix as well.
+
+#### wav (required)
+Contains folders for each test containing all transmit and receive audio.
+
+#### 2loc_rx-data (optional)
+Contains data from the receive side of two location tests. This folder contains 
+
+#### 2loc_tx-data (optional)
+
+#### recovery (optional)
+
+#### error (optional)
+
+### data_matfiles (legacy)
+Contains old data files from old test code. Do not use this in new code, not synced! 
+
+## Date format
+Put something here about dates in filenames...
+
 
 # License
 
