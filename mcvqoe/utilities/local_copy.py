@@ -17,7 +17,7 @@ appname = 'mcvqoe'
 appauthor = 'MCV'
 
 
-def local_copy(test_names, test_type, local_path = None,network_path = None):
+def local_copy(test_names, test_type, local_path = None,network_path = None, tx_wav = False):
     """
     Function to copy MCV QoE Measurement Data.
     
@@ -38,7 +38,9 @@ def local_copy(test_names, test_type, local_path = None,network_path = None):
         Path where network data is copied from. If None is passed, 
         network_path is found from a config file. It must have been initialzed
         for the given test type previously.
-
+    tx_wav : bool
+        Indicate whether or not to copy transmit audio wav file associated 
+        with cutpoints.
 
     Returns
     -------
@@ -107,15 +109,23 @@ def local_copy(test_names, test_type, local_path = None,network_path = None):
     
     #--------------------[Cutpoint Files]----------------------------------
     for tname in test_names:
+        #Remmove R if reprocessed data
+        tname = tname.replace('R','')
+        # Path to wav folder
         wav_path = os.path.join(network_path,'wav',tname)
         if(not os.path.exists(wav_path)):
             warnings.warn("Test path not found in wav on network {}".format(wav_path))
         else:
+            # Get all files in wav_path
             wav_files = os.listdir(wav_path)
+            
+            # Define local path to store wav files, make it if need be
             lppath = os.path.join(local_path,"wav",tname)
             os.makedirs(lppath,exist_ok=True)
             for wfile in wav_files:
-                if(".csv" in wfile):    
+                #TODO: Add ability to copy tx_wav
+                if(".csv" in wfile):
+                    # Copy cut point file
                     wpath = os.path.join(wav_path,wfile)
                     lpath = os.path.join(lppath,wfile)
                     if(not os.path.exists(lpath)):
@@ -123,6 +133,24 @@ def local_copy(test_names, test_type, local_path = None,network_path = None):
                         shutil.copyfile(wpath, lpath)
                     else:
                         print("Found locally: {}".format(lpath))
+                    #------------[Transmit Audio]-----------------------------
+                    # Copy Tx wav file if option set
+                    if(tx_wav):
+                        wfile_no_ext,_ = os.path.splitext(wfile)
+                        # Remove R is reprocessed data
+                        tx_wav_wfile = wfile_no_ext + ".wav"
+                        
+                        # Copy from path
+                        tx_wpath = os.path.join(wav_path,tx_wav_wfile)
+                        # Copy to path
+                        tx_lpath = os.path.join(lppath,tx_wav_wfile)
+                        # Check if file already exists
+                        if(not os.path.exists(tx_lpath)):
+                            print("Copying {} to {}".format(tx_wpath,tx_lpath))
+                            shutil.copyfile(tx_wpath,tx_lpath)
+                        else:
+                            print("Found locally: {}".format(tx_lpath))
+                        
 
 
 def print_config(test_type=None):
@@ -218,6 +246,11 @@ def main():
                        action='store_true',
                        help = "Print current config file settings") 
     
+    parser.add_argument('-w','--tx-wav',
+                        default = False,
+                        action = 'store_true',
+                        help = 'Copy transmit audio wav file with cutpoints')
+    
     args = parser.parse_args()
     
     if(args.print_config):
@@ -230,7 +263,8 @@ def main():
         local_copy(args.test_names,
                         test_type = args.test_type,
                         local_path = args.local_path,
-                        network_path = args.network_path)
+                        network_path = args.network_path,
+                        tx_wav = args.tx_wav)
 if __name__ == "__main__":
     main()
 
