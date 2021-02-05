@@ -590,8 +590,8 @@ class log_search():
         fi=[]
         for idx in self.found:
             if(self.log[idx]['operation'] == 'Test'):
-                prefix=['capture_']
-                folder=[tstFiles['path']]
+                prefix=['Rcapture_','capture_']
+                folder=[tstFiles['path']]*len(prefix)
                 ext=tstFiles['ext']
                 singular=tstFiles['singular']
                 exclude=tstFiles['exclude']
