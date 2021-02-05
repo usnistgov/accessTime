@@ -183,8 +183,8 @@ def convert_log_search_names(fnames):
         _,short_name = os.path.split(fn)
         #TODO: Make this work with an optional non-capturing group for audio file...
         # thought that '(capture_.+)(?:_\w{2}_b\d{1,2}_w\d{1}_\w+)?(?:.csv)' should work but it doesn't
-        re_search = '(capture_.+)(?:_\w{2}_b\d{1,2}_w\d{1}_\w+)(?:.csv)'
-        
+        # re_search = '(capture_.+)(?:_\w{2}_b\d{1,2}_w\d{1}_\w+)(?:.csv)'
+        re_search = '(R?capture_.+\d{2}-\d{2}-\d{2}).*.csv'
         # Extract part of the name that local-copy expects
         rs = re.search(re_search,short_name)
         if(rs):
