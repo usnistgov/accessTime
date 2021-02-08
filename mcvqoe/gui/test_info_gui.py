@@ -1,17 +1,8 @@
 import datetime
 import os
-import scipy.io.wavfile
-import scipy.signal
 import sys
 
-from mcvqoe.hardware.audio_player import AudioPlayer
-from fractions import Fraction
-from mcvqoe import audio_float
-from mcvqoe.hardware.radio_interface import RadioInterface
 from tkinter import scrolledtext
-
-import numpy as np
-import sounddevice as sd
 import tkinter as tk
 
 
@@ -204,35 +195,6 @@ class TestInfoGui(tk.Tk):
         
         self.destroy()
 
-def check_audio(audio_file="test.wav", ri=None):
-    """Perform a single test to check audio equipment. Auto deletes recorded file"""
-
-    if os.path.exists("temp0.wav"):
-        os.remove("temp0.wav")
-    
-    # Initialize audio_player object
-    ap = AudioPlayer()
-    
-    # Initialize variables
-    fs = 48e3
-        
-    # Gather audio data in numpy array and audio samplerate
-    fs_file, audio_dat = scipy.io.wavfile.read(audio_file)
-    # Calculate resample factors
-    rs_factor = Fraction(fs/fs_file)
-    # Convert to float sound array
-    audio_dat = audio_float(audio_dat)
-    # Resample audio
-    audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
-    
-    try:
-        ri.led(1, True)
-        ri.ptt(True)
-        temp_file = ap.play_rec_mono(audio, filename='temp0.wav')
-        ri.ptt(False)
-    finally:
-        os.remove(temp_file)
-
 class PostTestGui(tk.Tk):
     """
     Class to show a gui to get nots after a test is complete
@@ -357,7 +319,7 @@ def post_test(error_only=False):
 
     return gui.show()
 
-def pretest(outdir="", ri=None):
+def pretest(outdir="", check_function=None):
     """
     convenience function for PreTestGui.
     
@@ -375,7 +337,7 @@ def pretest(outdir="", ri=None):
     dict
         A dictionary of test info
     """
-    gui=TestInfoGui(chk_audio_function=lambda : check_audio(ri=ri))
+    gui=TestInfoGui(chk_audio_function=check_function)
 
     test_info=gui.show()
 
