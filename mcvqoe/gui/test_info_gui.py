@@ -225,9 +225,9 @@ class PostTestGui(tk.Tk):
     
     Attributes
     ----------
-    error_only : bool
-        if true will only show if an error is detected
-        
+    err : Exception
+        If an exception is being handled, the exception, otherwise None.
+
     See Also
     --------
     post_test : Convenience function for PostTestGui.
@@ -240,19 +240,22 @@ class PostTestGui(tk.Tk):
     >>>notes=gui.show()
     >>>print(notes)
     """
-    def __init__(self,error_only=False,*args, **kwargs):
+    def __init__(self,err,*args, **kwargs):
         """
         Class to show a gui to get notes after a test is complete
         
         Parameters
         ----------
-        error_only : bool, default=False
-            If true will only show if an error is detected.
+        err : 
+            If an exception is being handled, the exception, otherwise None.
         """
     
         tk.Tk.__init__(self, *args, **kwargs)
         
-        self.error_only=error_only
+        #error info, this will be used for the user prompt and to determine what
+        #kind of notes we will create
+        self.err=err
+        
              
     def show(self):
         """
@@ -264,19 +267,6 @@ class PostTestGui(tk.Tk):
             Dictionary with "Post Test Notes" or "Error Notes".
         """
         
-         # Window creation
-        self.title("Test Information")
-    
-        #-----------------------------[Get error info]-----------------------------
-        
-        #check if there was an error
-        err=error=sys.exc_info()[0]
-        
-        #----------------------[Check if dialog will be shown]----------------------
-        
-        if( (not err) and self.error_only ):
-            #return empty dict, this will get written out with empty post notes
-            return {}
         
         #------------------------------[Setup GUI]------------------------------
         
@@ -286,10 +276,9 @@ class PostTestGui(tk.Tk):
         # Prevent error if user exits
         self.protocol("WM_DELETE_WINDOW",self._collect_notes)
         
-        
         # Pre-test notes prompt
-        if(err):
-            label = tk.Label(self, text=f'An "{err.__name__}" was encountered. Please enter notes on test conditions')
+        if(self.err):
+            label = tk.Label(self, text=f'An "{self.err.__name__}" was encountered. Please enter notes on test conditions')
         else:
             label = tk.Label(self, text="Please enter post-test notes")
         label.grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
@@ -311,7 +300,7 @@ class PostTestGui(tk.Tk):
         # Run Tkinter window
         self.mainloop()
         
-        if(err):
+        if(self.err):
             return {"Error Notes": self.notes}
         else:
             return {"Post Test Notes": self.notes}
@@ -352,9 +341,19 @@ def post_test(error_only=False):
     dict
         Dictionary with "Post Test Notes" or "Error Notes".
     """
-
-    gui=PostTestGui(error_only=error_only)
-
+    
+    #get current error status, will be None if we are not handling an error
+    error=sys.exc_info()[0]
+    
+    #check if there is no error and we should only show on error
+    if( (not error) and error_only ):
+        #nothing to do, bye!
+        return {}
+        
+    #make a gui object
+    gui=PostTestGui(error)
+    
+    #show things and return notes
     return gui.show()
 
 def pretest(outdir="", check_function=None):
