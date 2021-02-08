@@ -17,16 +17,22 @@ def single_play(ri,ap,audio_file=None,playback=False,ptt_wait=0.68):
     """
     Play an audio clip through a PTT system once.
     
+    This function plays audio using the given RadioInterface and AudioPlayer
+    objects. The output can, optionally, be played back to the usser when
+    complete
+    
     Parameters
     ----------
     ri : RadioInterface
-        interface to talk to radio PTT
+        Interface to talk to radio PTT.
     ap : AudioPlayer
-        audio player to play audio with
+        Audio player to play audio with.
     audio_file : str, default=None
-        audio file to use for test. if None, use default audio
+        Audio file to use for test. if None, use default audio.
     playback : bool, default=False
-        if true, play the audio after the trial is complete
+        If true, play the audio after the trial is complete.
+    ptt_wait : float, default=0.68
+        Amount of time to wait, in seconds, between PTT and playback.
     """
     
     if(audio_file is None):

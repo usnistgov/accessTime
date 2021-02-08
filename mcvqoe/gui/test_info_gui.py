@@ -9,6 +9,10 @@ import tkinter as tk
 class TestInfoGui(tk.Tk):
     """
     Class to show a gui to get information on a test.
+        
+    This class shows a GUI where the user can input parameters for a test. The 
+    test info defaults are logged to a file so that, when running multiple 
+    similar tests, some time can be saved.
     
     Attributes
     ----------
@@ -26,6 +30,19 @@ class TestInfoGui(tk.Tk):
         Dictionary of info that will be used for GUI defaults
     test_info : dict
         Dictionary of info from the user, containing test info.
+
+    See Also
+    --------
+    post_test : Connivance function for TestInfoGui.
+    PostTestGui : GUI for post test notes.
+        
+    Examples
+    --------
+    
+    get test notes from the user
+    >>>gui=TestInfoGui()
+    >>>test_info=gui.show()
+    >>>print(test_info)
     """
     def __init__(self,defaults_file="test-type.txt",chk_audio_function=None,outdir='',write_test_info=True,*args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
@@ -58,7 +75,7 @@ class TestInfoGui(tk.Tk):
         Parameters
         ----------
         fname : str
-            full path of the file to read
+            Full path of the file to read.
         """
         self.info_in={}
         
@@ -81,12 +98,12 @@ class TestInfoGui(tk.Tk):
              
     def show(self):
         """
-        Populate window and wait for user input
+        Populate window and wait for user input.
         
         Returns
         -------
         dict
-            dictionary with "Post Test Notes" or "Error Notes"
+            Dictionary with "Post Test Notes" or "Error Notes".
         """
          # Window creation
         self.title("Test Information")
@@ -177,7 +194,9 @@ class TestInfoGui(tk.Tk):
         return self.test_info
     
     def _submit_action(self):
-        """Collect user input from Tkinter input window."""
+        """
+        Collect user input from Tkinter input window.
+        """
         self.test_info = {"Test Type"     : self.test_type_edit.get(),
                           "Tx Device"     : self.tx_dev_edit.get(),
                           "Rx Device"     : self.rx_dev_edit.get(),
@@ -197,21 +216,38 @@ class TestInfoGui(tk.Tk):
 
 class PostTestGui(tk.Tk):
     """
-    Class to show a gui to get nots after a test is complete
+    Class to show a gui to get notes after a test is complete.
+    
+    This class is used to show a GUI to the user on completion of a test to get
+    any information about how the test went. If an error has been encountered
+    during the test this is displayed in the gui and "Error Notes" are collected.
+    Otherwise "Post Test Notes" are collected.
     
     Attributes
     ----------
     error_only : bool
         if true will only show if an error is detected
+        
+    See Also
+    --------
+    post_test : Convenience function for PostTestGui.
+    TestInfoGui : GUI to gather test info.
+    
+    Examples
+    --------
+    Get post test notes from user 
+    >>>gui=PostTestGui()
+    >>>notes=gui.show()
+    >>>print(notes)
     """
     def __init__(self,error_only=False,*args, **kwargs):
         """
-        Class to show a gui to get nots after a test is complete
+        Class to show a gui to get notes after a test is complete
         
         Parameters
         ----------
         error_only : bool, default=False
-            if true will only show if an error is detected
+            If true will only show if an error is detected.
         """
     
         tk.Tk.__init__(self, *args, **kwargs)
@@ -220,12 +256,12 @@ class PostTestGui(tk.Tk):
              
     def show(self):
         """
-        Populate window and wait for user input
+        Populate window and wait for user input.
         
         Returns
         -------
         dict
-            dictionary with "Post Test Notes" or "Error Notes"
+            Dictionary with "Post Test Notes" or "Error Notes".
         """
         
          # Window creation
@@ -301,18 +337,20 @@ class PostTestGui(tk.Tk):
         
 def post_test(error_only=False):
     """
-    convenience function for TestInfoGui.
+    Convenience function for PostTestGui.
 
-    ...
+    This function creates a PostTestGui, calls the show method and returns the
+    info dict.
+    
     Parameters
     ----------
     error_only : bool, default=False
-    if true will only show a dialog if an error occurred
+        If true will only show a dialog if an error occurred.
 
     Returns
     -------
     dict
-    dictionary with "Post Test Notes" or "Error Notes".
+        Dictionary with "Post Test Notes" or "Error Notes".
     """
 
     gui=PostTestGui(error_only=error_only)
@@ -321,21 +359,22 @@ def post_test(error_only=False):
 
 def pretest(outdir="", check_function=None):
     """
-    convenience function for PreTestGui.
+    Convenience function for TestInfoGui.
     
-    ...
+    This function creates a TestInfoGui, calls the show method and returns test
+    info. If no test info is given this function will call sys.exit.
     
     Parameters
     ----------
     outdir : str
         The directory to write test defaults to.
-    ri : RadioInterface
-        The radointerface being used for testing.
+    check_function : function
+        Function to call to check audio.
 
     Returns
     -------
     dict
-        A dictionary of test info
+        A dictionary of test info.
     """
     gui=TestInfoGui(chk_audio_function=check_function)
 
