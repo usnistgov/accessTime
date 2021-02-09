@@ -19,74 +19,17 @@ def cb_stereo_rec(indata, frames, time, status):
         print(status, file=sys.stderr, flush=True)
     q_rec.put(indata.copy())
 
-def cb_mono_play_rec(indata, outdata, frames, time, status):
-    """
-    Callback function for the stream.
-    Will run as long as there is audio data to play.
-    Currently setup to play mono audio files.
-    
-    """
-    
-    
-    # Record the output
-    qr.put_nowait(indata.copy())
-    
-    if status.output_underflow:
-        print('Output underflow: increase blocksize?', file=sys.stderr)
-        raise sd.CallbackStop
-    assert not status
-    try:
-        data = q.get_nowait()
-    except queue.Empty:
-        print('Buffer is empty: increase buffersize?', file=sys.stderr)
-        raise sd.CallbackStop
-    if data.size < outdata.size:
-        outdata[:len(data),0] = data
-        outdata[len(data):] = 0
-        raise sd.CallbackStop
-    else:
-        # One column for mono output
-        outdata[:,0] = data
-
-def cb_access_time(indata, outdata, frames, time, status):
-    """
-    Callback function for the stream.
-    Will run as long as there is audio data to play.
-    Currently setup to play stereo.
-    
-    """
-
-    # Record the output
-    qr.put_nowait(indata.copy())
-    
-    if status.output_underflow:
-        print('Output underflow: increase blocksize?', file=sys.stderr)
-        raise sd.CallbackStop
-    assert not status
-    try:
-        data = q.get_nowait()
-    except queue.Empty:
-        print('Buffer is empty: increase buffersize?', file=sys.stderr)
-        raise sd.CallbackStop
-    if data.size < outdata.size:
-        outdata[:len(data)] = data
-        outdata[len(data):] = 0
-        raise sd.CallbackStop
-    else:
-        # One column for mono output
-        outdata[:] = data
-
 class AudioPlayer:
     
-    def __init__(self, fs=int(48e3), blocksize=512, buffersize=20, overplay=1.0,input_chans=1,output_chans=1,start_signal=False):
+    def __init__(self, fs=int(48e3), blocksize=512, buffersize=20, overplay=1.0,rec_chans=1,playback_chans=1,start_signal=False):
         
         self.sample_rate = fs
         self.blocksize = blocksize
         self.buffersize = buffersize
         self.overplay = overplay
         self.device = AudioPlayer.find_device()
-        self.input_chans=input_chans
-        self.output_chans=output_chans
+        self.rec_chans=rec_chans
+        self.playback_chans=playback_chans
         self.start_signal=start_signal
     
     #TODO allow different device defaults
@@ -135,15 +78,16 @@ class AudioPlayer:
             print('\nRecording finished')
         except Exception as e:
             sys.exit(type(e).__name__ + ': ' + str(e))
+
+
     
-    def play_record(self, audio, filename="rec.wav"):
+    def play_record(self, audio, filename):
         """
-        Play 'audio' and record to 'filename'. Plays self.input_chans channels
-        and records self.output_chans. if self.start_singal is True then the
-        last output channel is used for the start signal.
+        Play 'audio' and record to 'filename'.
         
-        ...
-        
+        Plays self.playback_chans channels and records self.rec_chans. if 
+        self.start_singal is True then the last output channel is used for the
+        start signal.
         Parameters
         ----------
         audio : numpy array
@@ -151,111 +95,12 @@ class AudioPlayer:
         filename : str
             The file extension to write audio data to and return str.
         """
-        #TODO: make this actually work, just call play_rec_mono for now
-        self.play_rec_mono(audio, filename)
-    
-    def play_rec_mono(self, audio, filename="rec.wav"):
-        """
-        Play 'audio' and record to 'filename'. Used for 2loc Tx and 1loc.
-        
-        ...
-        
-        Parameters
-        ----------
-        audio : numpy array
-            The audio in numpy array format. Needs to be in proper sample rate.
-        filename : str
-            The file extension to write audio data to and return str.
-        """
-        
-        # Set device and number of I/O channels
+         # Set device and number of I/O channels
         sd.default.device = self.device
-        sd.default.channels = [1, 1]
+        sd.default.channels = [self.rec_chans, self.playback_chans]
         
-        fs = self.sample_rate
-
-        # Queue for recording input
-        global qr
-        qr = queue.Queue()
-        # Queue for output WAVE file
-        global q
-        q = queue.Queue(maxsize=self.buffersize)
-        
-        # Thread for callback function
-        event = threading.Event()
-        
-        # NumPy audio array placeholder
-        arr_place = 0
-        
-        # Add Overplay
-        if (self.overplay != 0):
-            overplay = fs * self.overplay
-        audio = np.pad(audio, (0, int(overplay)), mode='constant')
-
-        for x in range(self.buffersize):
-            
-            data_slice = audio[self.blocksize*x:(self.blocksize*x)+self.blocksize]
-            
-            if data_slice.size == 0:
-                break
-            
-            # Save place of NumPy array slice for next loop
-            arr_place += self.blocksize
-            
-            # Pre-fill queue
-            q.put_nowait(data_slice)  
-        
-        # Output and input stream in one
-        # Latency of zero to try and cut down delay    
-        stream = sd.Stream(   
-            blocksize=self.blocksize, samplerate=fs,
-            dtype='float32', callback=cb_mono_play_rec, finished_callback=event.set,
-            latency=0)
-        
-        with sf.SoundFile(filename, mode='x', samplerate=fs,
-                          channels=1) as rec_file:
-            with stream:
-                timeout = self.blocksize * self.buffersize / fs
-
-                # For grabbing next blocksize slice of the NumPy audio array
-                itrr = 0
-                
-                while data_slice.size != 0:
-                    
-                    data_slice = audio[arr_place+(self.blocksize*itrr):arr_place+(self.blocksize*itrr)+self.blocksize]
-                    itrr += 1
-                    
-                    q.put(data_slice, timeout=timeout)
-                    rec_file.write(qr.get())
-                # Wait until playback is finished
-                event.wait()  
-                
-            # Make sure to write any audio data still left in the recording queue
-            while (qr.empty() != True):
-                rec_file.write(qr.get())
-        
-        return filename
-
-    def play_rec_access(self, audio, filename="rec.wav", start_sig=False):
-        """
-        Play 'audio' and record to 'filename'. Used for access_time.
-        
-        ...
-        
-        Parameters
-        ----------
-        audio : numpy array
-            The audio in numpy array format. Needs to be in proper sample rate.
-        filename : str
-            The file extension to write audio data to and return str.
-        """
-        
-        # Set device and number of I/O channels
-        sd.default.device = self.device
-        sd.default.channels = [2, 2]
-
         # Add start signal to audio channel 2
-        if (start_sig):
+        if (self.start_signal):
             # Signal frequency
             f_sig = 1e3
             # Signal time
@@ -270,77 +115,95 @@ class AudioPlayer:
             audio = np.pad(audio, ((0, 0), (0, 1)), mode='constant')
             # Add start signal to audio
             audio[:, 1] = t
-            
-        try:
         
-            fs = self.sample_rate
-    
-            # Queue for recording input
-            global qr
-            qr = queue.Queue()
-            # Queue for output WAVE file
-            global q
-            q = queue.Queue(maxsize=self.buffersize)
+        # Add Overplay
+        if (self.overplay != 0):
+            audio = np.pad(audio,
+                                (0, int(self.sample_rate * self.overplay)),
+                                mode='constant')
             
-            # Thread for callback function
-            event = threading.Event()
-            
-            # NumPy audio array placeholder
-            arr_place = 0
+        #check for 1D audio
+        if(len(audio.shape)==1):
+            #promote a 1D array to a 2D nx1 array
+            audio.shape=(audio.shape[0],1)
 
-            # Add Overplay
-            if (self.overplay != 0):
-                overplay = fs * self.overplay
-            audio = np.pad(audio, ((0, int(overplay)), (0, 0)), mode='constant')
-    
-            for x in range(self.buffersize):
-                
-                data_slice = audio[self.blocksize*x:(self.blocksize*x)+self.blocksize, :]
-                
-                if data_slice.size == 0:
-                    break
-                
-                # Save place of NumPy array slice for next loop
-                arr_place += self.blocksize
-                
-                # Pre-fill queue
-                q.put_nowait(data_slice)  
+        # Queue for recording input
+        self._qr = queue.Queue()
+        # Queue for playback output
+        self._qpb = queue.Queue(maxsize=self.buffersize)
+        
+        # Thread for callback function
+        event = threading.Event()
+        
+        # NumPy audio array placeholder
+        arr_place = 0
             
-            # Output and input stream in one
-            # Latency of zero to try and cut down delay    
-            stream = sd.Stream(   
-                blocksize=self.blocksize, samplerate=fs,
-                dtype='float32', callback=cb_access_time, finished_callback=event.set,
-                latency=0)
+        for x in range(self.buffersize):
             
-            with sf.SoundFile(filename, mode='x', samplerate=fs,
-                              channels=2) as rec_file:
-                with stream:
-                    timeout = self.blocksize * self.buffersize / fs
-    
-                    # For grabbing next blocksize slice of the NumPy audio array
-                    itrr = 0
+            data_slice = audio[self.blocksize*x:(self.blocksize*x)+self.blocksize]
+            
+            if data_slice.size == 0:
+                break
+            
+            # Save place of NumPy array slice for next loop
+            arr_place += self.blocksize
+            
+            # Pre-fill queue
+            self._qpb.put_nowait(data_slice)  
+        
+        # Output and input stream in one
+        # Latency of zero to try and cut down delay    
+        stream = sd.Stream(   
+            blocksize=self.blocksize, samplerate=self.sample_rate,
+            dtype='float32', callback=self._cb_play_rec, finished_callback=event.set,
+            latency=0)
+        
+        with sf.SoundFile(filename, mode='x', samplerate=self.sample_rate,
+                          channels=self.rec_chans) as rec_file:
+            with stream:
+                timeout = self.blocksize * self.buffersize / self.sample_rate
+
+                # For grabbing next blocksize slice of the NumPy audio array
+                itrr = 0
+                
+                while data_slice.size != 0:
                     
-                    while data_slice.size != 0:
-                        
-                        data_slice = audio[arr_place+(self.blocksize*itrr):arr_place+(self.blocksize*itrr)+self.blocksize, :]
-                        itrr += 1
-                        
-                        q.put(data_slice, timeout=timeout)
-                        rec_file.write(qr.get())
-                    # Wait until playback is finished
-                    event.wait()  
+                    data_slice = audio[arr_place+(self.blocksize*itrr):arr_place+(self.blocksize*itrr)+self.blocksize]
+                    itrr += 1
                     
-                # Make sure to write any audio data still left in the recording queue
-                while (qr.empty() != True):
-                    rec_file.write(qr.get())
-            
-            return filename
-        # Catch errors or test cancelation
-        except KeyboardInterrupt:
-            sys.exit('\nInterrupted by user')
-        except queue.Full:
-            # A timeout occurred, i.e. there was an error in the callback
-            sys.exit(1)
-        except Exception as e:
-            sys.exit(type(e).__name__+': '+str(e))
+                    self._qpb.put(data_slice, timeout=timeout)
+                    rec_file.write(np.squeeze(self._qr.get()))
+                # Wait until playback is finished
+                event.wait()  
+                
+            # Make sure to write any audio data still left in the recording queue
+            while (self._qr.empty() != True):
+                rec_file.write(np.squeeze(self._qr.get()))
+
+        
+    def _cb_play_rec(self,indata, outdata, frames, time, status):
+        """
+        Callback function for the stream.
+        Will run as long as there is audio data to play.
+        Currently setup to play stereo.
+        
+        """
+
+        # Record the output
+        self._qr.put_nowait(indata.copy())
+        
+        if status.output_underflow:
+            print('Output underflow: increase blocksize?', file=sys.stderr)
+            raise sd.CallbackStop
+        assert not status
+        try:
+            data = self._qpb.get_nowait()
+        except queue.Empty:
+            print('Buffer is empty: increase buffersize?', file=sys.stderr)
+            raise sd.CallbackStop
+        if data.size < outdata.size:
+            outdata[:len(data)] = data
+            outdata[len(data):] = 0
+            raise sd.CallbackStop
+        else:
+            outdata[:] = data
