@@ -109,7 +109,7 @@ class AudioPlayer:
             t = np.arange(float(len(audio)))
             t = t/self.sample_rate
             # Calculate clip start signal
-            t = np.where((t < t_sig), np.sin(2*np.pi*1000*t), t)
+            t = np.where((t < t_sig), np.sin(2*np.pi*1000*t), 0)
             # Add column to mono audio file (channel 2)
             audio = audio[..., np.newaxis]
             audio = np.pad(audio, ((0, 0), (0, 1)), mode='constant')
