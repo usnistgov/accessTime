@@ -293,7 +293,7 @@ class QoEsim:
             m2e_offset=self.standard_delay[self.channel_tech]
         except KeyError:
             #a key error means we used a bad technology
-            raise ValueError(f'"{self.channel_tech}" is not a valid technology')
+            raise ValueError(f'"{self.channel_tech}" is not a valid technology') from None
             
         #calculate values in samples
         overplay_samples=int(self.overPlay*self.fs)
