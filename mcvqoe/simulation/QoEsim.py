@@ -33,7 +33,7 @@ class QoEsim:
         self.fmpeg_path=shutil.which('ffmpeg')
         #TODO : set based on tech
         self.m2e_latency=21.1e-3
-        self.fs=48e3
+        self.sample_rate=48e3
         self.access_delay=0
         #SNR for audio in dB
         self.rec_snr=60
@@ -159,7 +159,7 @@ class QoEsim:
         
         #add pre channel impairments
         if(self.pre_impairment):
-            tx_dat=self.pre_impairment(tx_data,self.fs)
+            tx_dat=self.pre_impairment(tx_data,self.sample_rate)
     
         # for a clean vocoder, write the rx signal as is
         if self.channel_tech == "clean":
@@ -184,13 +184,13 @@ class QoEsim:
             if(rate not in ['fr','hr']):
                 raise ValueError(f'Invalid rate {rate}')
                 
-            channel_data = self.p25encode(tx_data, self.fs,rate)
+            channel_data = self.p25encode(tx_data, self.sample_rate,rate)
             
             #apply channel impairments
             if(self.channel_impairment):
                 channel_data=self.channel_impairment(channel_data)
             
-            rx_data = self.p25decode(channel_data, self.fs,rate)
+            rx_data = self.p25decode(channel_data, self.sample_rate,rate)
         
         # simulate passing the signal thru an AMR WB vocoder by using ffmpeg
         elif self.channel_tech.startswith("amr"):
@@ -222,7 +222,7 @@ class QoEsim:
                 temp_amr = os.path.join(temp_dir, "temp_out.amr")
                 
                 # write the rx signal as a wav so it can be converted to amr
-                wav.write(temp_wav, int(self.fs), tx_data)
+                wav.write(temp_wav, int(self.sample_rate), tx_data)
                 
                 # use ffmpeg to convert rx wav file to rx wav file
                 # explantion of flags:
@@ -255,7 +255,7 @@ class QoEsim:
                 # convert temp amr file back to wav, and resample to original sample rate
                 dec_args=[self.fmpeg_path,'-hide_banner','-loglevel',log_level,
                         '-channel_layout','mono','-codec',codec,'-i',temp_amr,
-                        '-ar',str(int(self.fs)),'-y',temp_wav]
+                        '-ar',str(int(self.sample_rate)),'-y',temp_wav]
                 if(self.print_args):
                     print(f'MRT decoding args : {" ".join(dec_args)}')
                 result=subprocess.run(dec_args)
@@ -275,7 +275,7 @@ class QoEsim:
         
         #add post channel impairments
         if(self.post_impairment):
-            rx_dat=self.post_impairment(rx_data,self.fs)
+            rx_dat=self.post_impairment(rx_data,self.sample_rate)
     
         return rx_data
         
@@ -296,9 +296,9 @@ class QoEsim:
             raise ValueError(f'"{self.channel_tech}" is not a valid technology') from None
             
         #calculate values in samples
-        overplay_samples=int(self.overPlay*self.fs)
+        overplay_samples=int(self.overPlay*self.sample_rate)
         #correct for audio channel latency
-        m2e_latency_samples=int((self.m2e_latency-m2e_offset)*self.fs)
+        m2e_latency_samples=int((self.m2e_latency-m2e_offset)*self.sample_rate)
 
         if(m2e_latency_samples<0):
             #TODO : it might be possible to get around this but, it sounds slightly nontrivial...
@@ -316,8 +316,8 @@ class QoEsim:
             noise = np.random.normal(0, 1, len(tx_data_with_overplay)).astype(np.float32)
 
             #measure amplitude of signal and noise
-            sig_level=active_speech_level(tx_data_with_overplay,self.fs)
-            noise_level=active_speech_level(noise,self.fs)
+            sig_level=active_speech_level(tx_data_with_overplay,self.sample_rate)
+            noise_level=active_speech_level(noise,self.sample_rate)
             
             #calculate noise gain required to get desired SNR
             noise_gain=sig_level-(self.rec_snr+noise_level)
@@ -334,8 +334,8 @@ class QoEsim:
             ptt_st_dly_samples=0
             access_delay_samples=0
         else:
-            ptt_st_dly_samples=int(self.ptt_wait_delay[1]*self.fs)
-            access_delay_samples=int(self.access_delay*self.fs)
+            ptt_st_dly_samples=int(self.ptt_wait_delay[1]*self.sample_rate)
+            access_delay_samples=int(self.access_delay*self.sample_rate)
         
         #mute portion of tx_data that occurs prior to triggering of PTT
         muted_samples = int(access_delay_samples + ptt_st_dly_samples)
@@ -360,7 +360,7 @@ class QoEsim:
         rx_data = rx_data[:np.size(tx_data_with_overplay)]
            
         #write out audio file
-        wav.write(out_name, int(self.fs), rx_data)
+        wav.write(out_name, int(self.sample_rate), rx_data)
         
     # =====================[p25 encode function]=====================
     def p25encode(self,x, fs,rate='fr'):
