@@ -57,7 +57,7 @@ class AudioTest(unittest.TestCase):
         # Resample audio
         audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
     
-        ap=mcvqoe.hardware.AudioPlayer(fs=fs_dev,rec_chans={'rx_voice':0,'PTT_signal':1},playback_chans={'tx_voice':2,'start_signal':1})
+        ap=mcvqoe.hardware.AudioPlayer(fs=fs_dev,rec_chans={'rx_voice':0,'PTT_signal':1},playback_chans={'tx_voice':0,'start_signal':1})
         
         with mcvqoe.hardware.RadioInterface() as ri,tempfile.TemporaryDirectory() as tmp_dir:
             #generate the name for the file
