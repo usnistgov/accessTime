@@ -21,7 +21,7 @@ def cb_stereo_rec(indata, frames, time, status):
 
 class AudioPlayer:
     
-    def __init__(self, fs=int(48e3), blocksize=512, buffersize=20, overplay=1.0,rec_chans=1,playback_chans=1,start_signal=False):
+    def __init__(self, fs=int(48e3), blocksize=512, buffersize=20, overplay=1.0,rec_chans={'rx_voice':0},playback_chans={'tx_voice':0}):
         
         self.sample_rate = fs
         self.blocksize = blocksize
@@ -30,7 +30,6 @@ class AudioPlayer:
         self.device = AudioPlayer.find_device()
         self.rec_chans=rec_chans
         self.playback_chans=playback_chans
-        self.start_signal=start_signal
     
     #TODO allow different device defaults
     @staticmethod
@@ -80,8 +79,15 @@ class AudioPlayer:
             sys.exit(type(e).__name__ + ': ' + str(e))
 
 
+    def _get_recording_map(self):
+        chan_map=[]
+        chan_names=[]
+        for k,v in self.rec_chans.items():
+            chan_map.append(v)     
+        return (chan_map,chan_names)    
+        
     
-    def play_record(self, audio, filename):
+    def play_record(self, tx_voice, filename):
         """
         Play 'audio' and record to 'filename'.
         
@@ -95,32 +101,61 @@ class AudioPlayer:
         filename : str
             The file extension to write audio data to and return str.
         """
+        
+        if(len(tx_voice.shape)==2):
+            if(tx_voice.shape[1]!=1):
+                #TODO : warn about dropping channels
+                pass
+            #only take one channel of input
+            tx_voice=tx_voice[:,0]
+        
+        audio=np.empty((tx_voice.shape[0],len(self.playback_chans)))
+        
+        #get the highest numbered playback channel
+        #this will be the number of channels that will be played
+        #account for zero based indexing
+        pb_chan=max(self.playback_chans.values())+1
+        rec_chan=max(self.rec_chans.values())+1
+        
+        self._playback_map=[]
+        self._playback_silent=set(range(pb_chan))
+        
+        for n,(k,v) in enumerate(self.playback_chans.items()):
+            #add to playback map
+            self._playback_map.append(v)
+            #remove from silent map
+            self._playback_silent.remove(v)
+            # Add start signal to audio
+            if (k=='start_signal'):
+                # Signal frequency
+                f_sig = 1e3
+                # Signal time
+                t_sig = 22e-3
+                # Calculate time for playback
+                t = np.arange(float(len(audio)))/self.sample_rate
+                # Calculate clip start signal
+                sig = np.where((t < t_sig), np.sin(2*np.pi*1000*t), 0)
+                # Add start signal to audio
+                audio[:, n] = sig
+            elif(k=='tx_voice'):
+                audio[:,n]=tx_voice
+            else:
+                raise ValueError(f'Unknown output channel : {k}')
+
+        #convert to tuple for calback usage
+        self._playback_silent=tuple(self._playback_silent)
+
+        (rec_map,rec_names)=self._get_recording_map()
+        
          # Set device and number of I/O channels
         sd.default.device = self.device
-        sd.default.channels = [self.rec_chans, self.playback_chans]
-        
-        # Add start signal to audio channel 2
-        if (self.start_signal):
-            # Signal frequency
-            f_sig = 1e3
-            # Signal time
-            t_sig = 22e-3
-            # Calculate time for playback
-            t = np.arange(float(len(audio)))
-            t = t/self.sample_rate
-            # Calculate clip start signal
-            t = np.where((t < t_sig), np.sin(2*np.pi*1000*t), 0)
-            # Add column to mono audio file (channel 2)
-            audio = audio[..., np.newaxis]
-            audio = np.pad(audio, ((0, 0), (0, 1)), mode='constant')
-            # Add start signal to audio
-            audio[:, 1] = t
-        
+        sd.default.channels = [rec_chan,pb_chan]
+                
         #check for 1D audio
         if(len(audio.shape)==1):
             #promote a 1D array to a 2D nx1 array
             audio.shape=(audio.shape[0],1)
-            
+        
         # Add Overplay
         if (self.overplay != 0):
             audio = np.pad(audio,
@@ -159,7 +194,7 @@ class AudioPlayer:
             latency=0)
         
         with sf.SoundFile(filename, mode='x', samplerate=self.sample_rate,
-                          channels=self.rec_chans) as rec_file:
+                          channels=len(self.rec_chans)) as rec_file:
             with stream:
                 timeout = self.blocksize * self.buffersize / self.sample_rate
 
@@ -172,14 +207,19 @@ class AudioPlayer:
                     itrr += 1
                     
                     self._qpb.put(data_slice, timeout=timeout)
-                    rec_file.write(np.squeeze(self._qr.get()))
+                    
+                    rx_dat=self._qr.get()
+                    rec_file.write(rx_dat[:,rec_map])
                 # Wait until playback is finished
                 event.wait()  
                 
             # Make sure to write any audio data still left in the recording queue
             while (self._qr.empty() != True):
-                rec_file.write(np.squeeze(self._qr.get()))
-
+                rx_dat=self._qr.get()
+                rec_file.write(rx_dat[:,rec_map])
+    
+        #return the channels in the order recorded in the file
+        return rec_names
         
     def _cb_play_rec(self,indata, outdata, frames, time, status):
         """
@@ -201,9 +241,12 @@ class AudioPlayer:
         except queue.Empty:
             print('Buffer is empty: increase buffersize?', file=sys.stderr)
             raise sd.CallbackStop
-        if data.size < outdata.size:
-            outdata[:len(data)] = data
-            outdata[len(data):] = 0
+        
+        if data.shape[0] < outdata.shape[0]:
+            outdata[:data.shape[0],self._playback_map] = data
+            outdata[:data.shape[0],self._playback_silent] = 0
+            outdata[data.shape[0]:,:] = 0
             raise sd.CallbackStop
         else:
-            outdata[:] = data
+            outdata[:,self._playback_map] = data
+            outdata[:,self._playback_silent] = 0
