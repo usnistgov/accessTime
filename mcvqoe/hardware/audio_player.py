@@ -116,16 +116,16 @@ class AudioPlayer:
             # Add start signal to audio
             audio[:, 1] = t
         
-        # Add Overplay
-        if (self.overplay != 0):
-            audio = np.pad(audio,
-                                (0, int(self.sample_rate * self.overplay)),
-                                mode='constant')
-            
         #check for 1D audio
         if(len(audio.shape)==1):
             #promote a 1D array to a 2D nx1 array
             audio.shape=(audio.shape[0],1)
+            
+        # Add Overplay
+        if (self.overplay != 0):
+            audio = np.pad(audio,
+                                ((0, int(self.sample_rate * self.overplay)),(0,0)),
+                                mode='constant')
 
         # Queue for recording input
         self._qr = queue.Queue()
