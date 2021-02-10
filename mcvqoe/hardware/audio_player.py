@@ -19,75 +19,79 @@ def cb_stereo_rec(indata, frames, time, status):
         print(status, file=sys.stderr, flush=True)
     q_rec.put(indata.copy())
 
-def cb_mono_play_rec(indata, outdata, frames, time, status):
-    """
-    Callback function for the stream.
-    Will run as long as there is audio data to play.
-    Currently setup to play mono audio files.
-    
-    """
-    
-    
-    # Record the output
-    qr.put_nowait(indata.copy())
-    
-    if status.output_underflow:
-        print('Output underflow: increase blocksize?', file=sys.stderr)
-        raise sd.CallbackStop
-    assert not status
-    try:
-        data = q.get_nowait()
-    except queue.Empty:
-        print('Buffer is empty: increase buffersize?', file=sys.stderr)
-        raise sd.CallbackStop
-    if data.size < outdata.size:
-        outdata[:len(data),0] = data
-        outdata[len(data):] = 0
-        raise sd.CallbackStop
-    else:
-        # One column for mono output
-        outdata[:,0] = data
-
-def cb_access_time(indata, outdata, frames, time, status):
-    """
-    Callback function for the stream.
-    Will run as long as there is audio data to play.
-    Currently setup to play stereo.
-    
-    """
-
-    # Record the output
-    qr.put_nowait(indata.copy())
-    
-    if status.output_underflow:
-        print('Output underflow: increase blocksize?', file=sys.stderr)
-        raise sd.CallbackStop
-    assert not status
-    try:
-        data = q.get_nowait()
-    except queue.Empty:
-        print('Buffer is empty: increase buffersize?', file=sys.stderr)
-        raise sd.CallbackStop
-    if data.size < outdata.size:
-        outdata[:len(data)] = data
-        outdata[len(data):] = 0
-        raise sd.CallbackStop
-    else:
-        # One column for mono output
-        outdata[:] = data
-
 class AudioPlayer:
+    """
+    Class to play and record audio for test purposes.
     
-    def __init__(self, fs=int(48e3), blocksize=512, buffersize=20, overplay=1.0,input_chans=1,output_chans=1,start_signal=False):
+    This class has functions for playing and recording audio and is used in QoE
+    testing.
+        
+    Parameters
+    ----------
+    fs : int
+        Sample rate of audio in/out in samples per second.
+    blocksize : int
+        The size of the blocks that are sent/received to/from the audio device.
+    buffersize : int
+        The number of blocks in the output buffer.
+    overplay : float
+        The number of seconds of extra audio to play/record at the end of a clip.
+    rec_chans : dict
+        Dictionary describing the recording. Dictionary keys should be one of
+        {'rx_voice','PTT_signal','timecode','tx_beep'}. The value for each entry
+        is the, zero based, channel number that should be recorded for each signal.
+    playback_chans : dict
+        Dictionary describing the playback channels. Dictionary keys must be one 
+        of {'tx_voice','start_signal'}. The value for each entry is the, zero
+        based, channel number that each signal should be played on.
+    
+    Attributes
+    ----------
+    sample_rate : int
+        Sample rate of audio in/out in samples per second.
+    blocksize : int
+        The size of the blocks that are sent/received to/from the audio device.
+    buffersize : int
+        The number of blocks in the output buffer.
+    overplay : float
+        The number of seconds of extra audio to play/record at the end of a clip.
+    device : str
+        Audio device to use. can be found with find_device().
+    rec_chans : dict
+        Dictionary describing the recording. Dictionary keys should be one of
+        {'rx_voice','PTT_signal','timecode','tx_beep'}. The value for each entry
+        is the, zero based, channel number that should be recorded for each signal.
+    playback_chans : dict
+        Dictionary describing the playback channels. Dictionary keys must be one 
+        of {'tx_voice','start_signal'}. The value for each entry is the, zero
+        based, channel number that each signal should be played on.
+        
+    See Also
+    --------
+    mcvqoe.simulation.QoEsim : Simulated replacement for AudioPlayer.
+    
+    Examples
+    --------
+    
+    play 48 kHz audio stored in tx_voice and record in a file named 'test.wav'.
+    >>>import mcvqoe.hardware.AudioPlayer
+    >>>ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
+    >>>ap.play_record(tx_voice,'test.wav')
+    now do the same but also output the start signal on channel 1 and record the
+    PTT signal on channel 1.
+    >>>ap.playback_chans={'tx_voice':0,'start_signal':1}
+    >>>ap.rec_chans={'rx_voice':0,'PTT_signal':1}
+    >>>ap.play_record(tx_voice,'test.wav')
+    """
+    def __init__(self, fs=int(48e3), blocksize=512, buffersize=20, overplay=1.0,rec_chans={'rx_voice':0},playback_chans={'tx_voice':0}):
         
         self.sample_rate = fs
         self.blocksize = blocksize
         self.buffersize = buffersize
         self.overplay = overplay
         self.device = AudioPlayer.find_device()
-        self.input_chans=input_chans
-        self.output_chans=output_chans
-        self.start_signal=start_signal
+        self.rec_chans=rec_chans
+        self.playback_chans=playback_chans
     
     #TODO allow different device defaults
     @staticmethod
@@ -135,63 +139,137 @@ class AudioPlayer:
             print('\nRecording finished')
         except Exception as e:
             sys.exit(type(e).__name__ + ': ' + str(e))
-    
-    def play_record(self, audio, filename="rec.wav"):
+
+
+    def _get_recording_map(self):
         """
-        Play 'audio' and record to 'filename'. Plays self.input_chans channels
-        and records self.output_chans. if self.start_singal is True then the
-        last output channel is used for the start signal.
+        Get map and names for recording channels.
         
-        ...
+        Returns
+        -------
+        list of ints
+            A channel map of the channel numbers used for each recording channel.
+        list of strings
+            A list of the names of the channels in the order they will be in in
+            the recording file.
+        """
+        chan_map=[]
+        chan_names=[]
+        for k,v in self.rec_chans.items():
+            chan_map.append(v)     
+        return (chan_map,chan_names)    
         
+    
+    def play_record(self, tx_voice, filename):
+        """
+        Play audio out the specified channels and record to 'filename'.
+        
+        Plays the audio specified by self.playback_chans on the respective
+        channels. Records on the channels specified by self.rec_chans. 
+       
         Parameters
         ----------
-        audio : numpy array
-            The audio in numpy array format. Needs to be in proper sample rate.
+        tx_voice : numpy array
+            Voice audio to play through system. Needs to be in proper sample rate.
         filename : str
-            The file extension to write audio data to and return str.
-        """
-        #TODO: make this actually work, just call play_rec_mono for now
-        self.play_rec_mono(audio, filename)
-    
-    def play_rec_mono(self, audio, filename="rec.wav"):
-        """
-        Play 'audio' and record to 'filename'. Used for 2loc Tx and 1loc.
+            The file extension to write audio data to.
+
+        Returns
+        -------
+        list of strings
+            A list of the recorded output channels in the order that they appear
+            in the output file.
         
-        ...
+        See Also
+        --------
+        mcvqoe.simulation.QoEsim : Simulated replacement play_record.
         
-        Parameters
-        ----------
-        audio : numpy array
-            The audio in numpy array format. Needs to be in proper sample rate.
-        filename : str
-            The file extension to write audio data to and return str.
+        Examples
+        --------
+        
+        play 48 kHz audio stored in tx_voice and record in a file named
+        'test.wav'.
+        >>>import mcvqoe.hardware.AudioPlayer
+        >>>ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
+        >>>ap.play_record(tx_voice,'test.wav')
+        now do the same but also output the start signal on channel 1 and record
+        the PTT signal on channel 1.
+        >>>ap.playback_chans={'tx_voice':0,'start_signal':1}
+        >>>ap.rec_chans={'rx_voice':0,'PTT_signal':1}
+        >>>ap.play_record(tx_voice,'test.wav')
         """
         
-        # Set device and number of I/O channels
+        if(len(tx_voice.shape)==2):
+            if(tx_voice.shape[1]!=1):
+                #TODO : warn about dropping channels
+                pass
+            #only take one channel of input
+            tx_voice=tx_voice[:,0]
+        
+        audio=np.empty((tx_voice.shape[0],len(self.playback_chans)))
+        
+        #get the highest numbered playback channel
+        #this will be the number of channels that will be played
+        #account for zero based indexing
+        pb_chan=max(self.playback_chans.values())+1
+        rec_chan=max(self.rec_chans.values())+1
+        
+        self._playback_map=[]
+        self._playback_silent=set(range(pb_chan))
+        
+        for n,(k,v) in enumerate(self.playback_chans.items()):
+            #add to playback map
+            self._playback_map.append(v)
+            #remove from silent map
+            self._playback_silent.remove(v)
+            # Add start signal to audio
+            if (k=='start_signal'):
+                # Signal frequency
+                f_sig = 1e3
+                # Signal time
+                t_sig = 22e-3
+                # Calculate time for playback
+                t = np.arange(float(len(audio)))/self.sample_rate
+                # Calculate clip start signal
+                sig = np.where((t < t_sig), np.sin(2*np.pi*1000*t), 0)
+                # Add start signal to audio
+                audio[:, n] = sig
+            elif(k=='tx_voice'):
+                audio[:,n]=tx_voice
+            else:
+                raise ValueError(f'Unknown output channel : {k}')
+
+        #convert to tuple for calback usage
+        self._playback_silent=tuple(self._playback_silent)
+
+        (rec_map,rec_names)=self._get_recording_map()
+        
+         # Set device and number of I/O channels
         sd.default.device = self.device
-        sd.default.channels = [1, 1]
+        sd.default.channels = [rec_chan,pb_chan]
+                
+        #check for 1D audio
+        if(len(audio.shape)==1):
+            #promote a 1D array to a 2D nx1 array
+            audio.shape=(audio.shape[0],1)
         
-        fs = self.sample_rate
+        # Add Overplay
+        if (self.overplay != 0):
+            audio = np.pad(audio,
+                                ((0, int(self.sample_rate * self.overplay)),(0,0)),
+                                mode='constant')
 
         # Queue for recording input
-        global qr
-        qr = queue.Queue()
-        # Queue for output WAVE file
-        global q
-        q = queue.Queue(maxsize=self.buffersize)
+        self._qr = queue.Queue()
+        # Queue for playback output
+        self._qpb = queue.Queue(maxsize=self.buffersize)
         
         # Thread for callback function
         event = threading.Event()
         
         # NumPy audio array placeholder
         arr_place = 0
-        
-        # Add Overplay
-        if (self.overplay != 0):
-            overplay = fs * self.overplay
-        audio = np.pad(audio, (0, int(overplay)), mode='constant')
-
+            
         for x in range(self.buffersize):
             
             data_slice = audio[self.blocksize*x:(self.blocksize*x)+self.blocksize]
@@ -203,19 +281,19 @@ class AudioPlayer:
             arr_place += self.blocksize
             
             # Pre-fill queue
-            q.put_nowait(data_slice)  
+            self._qpb.put_nowait(data_slice)  
         
         # Output and input stream in one
         # Latency of zero to try and cut down delay    
         stream = sd.Stream(   
-            blocksize=self.blocksize, samplerate=fs,
-            dtype='float32', callback=cb_mono_play_rec, finished_callback=event.set,
+            blocksize=self.blocksize, samplerate=self.sample_rate,
+            dtype='float32', callback=self._cb_play_rec, finished_callback=event.set,
             latency=0)
         
-        with sf.SoundFile(filename, mode='x', samplerate=fs,
-                          channels=1) as rec_file:
+        with sf.SoundFile(filename, mode='x', samplerate=self.sample_rate,
+                          channels=len(self.rec_chans)) as rec_file:
             with stream:
-                timeout = self.blocksize * self.buffersize / fs
+                timeout = self.blocksize * self.buffersize / self.sample_rate
 
                 # For grabbing next blocksize slice of the NumPy audio array
                 itrr = 0
@@ -225,122 +303,46 @@ class AudioPlayer:
                     data_slice = audio[arr_place+(self.blocksize*itrr):arr_place+(self.blocksize*itrr)+self.blocksize]
                     itrr += 1
                     
-                    q.put(data_slice, timeout=timeout)
-                    rec_file.write(qr.get())
+                    self._qpb.put(data_slice, timeout=timeout)
+                    
+                    rx_dat=self._qr.get()
+                    rec_file.write(rx_dat[:,rec_map])
                 # Wait until playback is finished
                 event.wait()  
                 
             # Make sure to write any audio data still left in the recording queue
-            while (qr.empty() != True):
-                rec_file.write(qr.get())
+            while (self._qr.empty() != True):
+                rx_dat=self._qr.get()
+                rec_file.write(rx_dat[:,rec_map])
+    
+        #return the channels in the order recorded in the file
+        return rec_names
         
-        return filename
-
-    def play_rec_access(self, audio, filename="rec.wav", start_sig=False):
+    def _cb_play_rec(self,indata, outdata, frames, time, status):
         """
-        Play 'audio' and record to 'filename'. Used for access_time.
+        Callback function for the stream.
+        Will run as long as there is audio data to play.
         
-        ...
-        
-        Parameters
-        ----------
-        audio : numpy array
-            The audio in numpy array format. Needs to be in proper sample rate.
-        filename : str
-            The file extension to write audio data to and return str.
         """
-        
-        # Set device and number of I/O channels
-        sd.default.device = self.device
-        sd.default.channels = [2, 2]
 
-        # Add start signal to audio channel 2
-        if (start_sig):
-            # Signal frequency
-            f_sig = 1e3
-            # Signal time
-            t_sig = 22e-3
-            # Calculate time for playback
-            t = np.arange(float(len(audio)))
-            t = t/self.sample_rate
-            # Calculate clip start signal
-            t = np.where((t < t_sig), np.sin(2*np.pi*1000*t), t)
-            # Add column to mono audio file (channel 2)
-            audio = audio[..., np.newaxis]
-            audio = np.pad(audio, ((0, 0), (0, 1)), mode='constant')
-            # Add start signal to audio
-            audio[:, 1] = t
-            
+        # Record the output
+        self._qr.put_nowait(indata.copy())
+        
+        if status.output_underflow:
+            print('Output underflow: increase blocksize?', file=sys.stderr)
+            raise sd.CallbackStop
+        assert not status
         try:
+            data = self._qpb.get_nowait()
+        except queue.Empty:
+            print('Buffer is empty: increase buffersize?', file=sys.stderr)
+            raise sd.CallbackStop
         
-            fs = self.sample_rate
-    
-            # Queue for recording input
-            global qr
-            qr = queue.Queue()
-            # Queue for output WAVE file
-            global q
-            q = queue.Queue(maxsize=self.buffersize)
-            
-            # Thread for callback function
-            event = threading.Event()
-            
-            # NumPy audio array placeholder
-            arr_place = 0
-
-            # Add Overplay
-            if (self.overplay != 0):
-                overplay = fs * self.overplay
-            audio = np.pad(audio, ((0, int(overplay)), (0, 0)), mode='constant')
-    
-            for x in range(self.buffersize):
-                
-                data_slice = audio[self.blocksize*x:(self.blocksize*x)+self.blocksize, :]
-                
-                if data_slice.size == 0:
-                    break
-                
-                # Save place of NumPy array slice for next loop
-                arr_place += self.blocksize
-                
-                # Pre-fill queue
-                q.put_nowait(data_slice)  
-            
-            # Output and input stream in one
-            # Latency of zero to try and cut down delay    
-            stream = sd.Stream(   
-                blocksize=self.blocksize, samplerate=fs,
-                dtype='float32', callback=cb_access_time, finished_callback=event.set,
-                latency=0)
-            
-            with sf.SoundFile(filename, mode='x', samplerate=fs,
-                              channels=2) as rec_file:
-                with stream:
-                    timeout = self.blocksize * self.buffersize / fs
-    
-                    # For grabbing next blocksize slice of the NumPy audio array
-                    itrr = 0
-                    
-                    while data_slice.size != 0:
-                        
-                        data_slice = audio[arr_place+(self.blocksize*itrr):arr_place+(self.blocksize*itrr)+self.blocksize, :]
-                        itrr += 1
-                        
-                        q.put(data_slice, timeout=timeout)
-                        rec_file.write(qr.get())
-                    # Wait until playback is finished
-                    event.wait()  
-                    
-                # Make sure to write any audio data still left in the recording queue
-                while (qr.empty() != True):
-                    rec_file.write(qr.get())
-            
-            return filename
-        # Catch errors or test cancelation
-        except KeyboardInterrupt:
-            sys.exit('\nInterrupted by user')
-        except queue.Full:
-            # A timeout occurred, i.e. there was an error in the callback
-            sys.exit(1)
-        except Exception as e:
-            sys.exit(type(e).__name__+': '+str(e))
+        if data.shape[0] < outdata.shape[0]:
+            outdata[:data.shape[0],self._playback_map] = data
+            outdata[:data.shape[0],self._playback_silent] = 0
+            outdata[data.shape[0]:,:] = 0
+            raise sd.CallbackStop
+        else:
+            outdata[:,self._playback_map] = data
+            outdata[:,self._playback_silent] = 0
