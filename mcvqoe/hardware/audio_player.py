@@ -20,7 +20,69 @@ def cb_stereo_rec(indata, frames, time, status):
     q_rec.put(indata.copy())
 
 class AudioPlayer:
+    """
+    Class to play and record audio for test purposes.
     
+    This class has functions for playing and recording audio and is used in QoE
+    testing.
+        
+    Parameters
+    ----------
+    fs : int
+        Sample rate of audio in/out in samples per second.
+    blocksize : int
+        The size of the blocks that are sent/received to/from the audio device.
+    buffersize : int
+        The number of blocks in the output buffer.
+    overplay : float
+        The number of seconds of extra audio to play/record at the end of a clip.
+    rec_chans : dict
+        Dictionary describing the recording. Dictionary keys should be one of
+        {'rx_voice','PTT_signal','timecode','tx_beep'}. The value for each entry
+        is the, zero based, channel number that should be recorded for each signal.
+    playback_chans : dict
+        Dictionary describing the playback channels. Dictionary keys must be one 
+        of {'tx_voice','start_signal'}. The value for each entry is the, zero
+        based, channel number that each signal should be played on.
+    
+    Attributes
+    ----------
+    sample_rate : int
+        Sample rate of audio in/out in samples per second.
+    blocksize : int
+        The size of the blocks that are sent/received to/from the audio device.
+    buffersize : int
+        The number of blocks in the output buffer.
+    overplay : float
+        The number of seconds of extra audio to play/record at the end of a clip.
+    device : str
+        Audio device to use. can be found with find_device().
+    rec_chans : dict
+        Dictionary describing the recording. Dictionary keys should be one of
+        {'rx_voice','PTT_signal','timecode','tx_beep'}. The value for each entry
+        is the, zero based, channel number that should be recorded for each signal.
+    playback_chans : dict
+        Dictionary describing the playback channels. Dictionary keys must be one 
+        of {'tx_voice','start_signal'}. The value for each entry is the, zero
+        based, channel number that each signal should be played on.
+        
+    See Also
+    --------
+    mcvqoe.simulation.QoEsim : Simulated replacement for AudioPlayer.
+    
+    Examples
+    --------
+    
+    play 48 kHz audio stored in tx_voice and record in a file named 'test.wav'.
+    >>>import mcvqoe.hardware.AudioPlayer
+    >>>ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
+    >>>ap.play_record(tx_voice,'test.wav')
+    now do the same but also output the start signal on channel 1 and record the
+    PTT signal on channel 1.
+    >>>ap.playback_chans={'tx_voice':0,'start_signal':1}
+    >>>ap.rec_chans={'rx_voice':0,'PTT_signal':1}
+    >>>ap.play_record(tx_voice,'test.wav')
+    """
     def __init__(self, fs=int(48e3), blocksize=512, buffersize=20, overplay=1.0,rec_chans={'rx_voice':0},playback_chans={'tx_voice':0}):
         
         self.sample_rate = fs
@@ -80,6 +142,17 @@ class AudioPlayer:
 
 
     def _get_recording_map(self):
+        """
+        Get map and names for recording channels.
+        
+        Returns
+        -------
+        list of ints
+            A channel map of the channel numbers used for each recording channel.
+        list of strings
+            A list of the names of the channels in the order they will be in in
+            the recording file.
+        """
         chan_map=[]
         chan_names=[]
         for k,v in self.rec_chans.items():
@@ -89,17 +162,41 @@ class AudioPlayer:
     
     def play_record(self, tx_voice, filename):
         """
-        Play 'audio' and record to 'filename'.
+        Play audio out the specified channels and record to 'filename'.
         
-        Plays self.playback_chans channels and records self.rec_chans. if 
-        self.start_singal is True then the last output channel is used for the
-        start signal.
+        Plays the audio specified by self.playback_chans on the respective
+        channels. Records on the channels specified by self.rec_chans. 
+       
         Parameters
         ----------
-        audio : numpy array
-            The audio in numpy array format. Needs to be in proper sample rate.
+        tx_voice : numpy array
+            Voice audio to play through system. Needs to be in proper sample rate.
         filename : str
-            The file extension to write audio data to and return str.
+            The file extension to write audio data to.
+
+        Returns
+        -------
+        list of strings
+            A list of the recorded output channels in the order that they appear
+            in the output file.
+        
+        See Also
+        --------
+        mcvqoe.simulation.QoEsim : Simulated replacement play_record.
+        
+        Examples
+        --------
+        
+        play 48 kHz audio stored in tx_voice and record in a file named
+        'test.wav'.
+        >>>import mcvqoe.hardware.AudioPlayer
+        >>>ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
+        >>>ap.play_record(tx_voice,'test.wav')
+        now do the same but also output the start signal on channel 1 and record
+        the PTT signal on channel 1.
+        >>>ap.playback_chans={'tx_voice':0,'start_signal':1}
+        >>>ap.rec_chans={'rx_voice':0,'PTT_signal':1}
+        >>>ap.play_record(tx_voice,'test.wav')
         """
         
         if(len(tx_voice.shape)==2):
@@ -225,7 +322,6 @@ class AudioPlayer:
         """
         Callback function for the stream.
         Will run as long as there is audio data to play.
-        Currently setup to play stereo.
         
         """
 
