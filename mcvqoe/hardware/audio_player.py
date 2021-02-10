@@ -156,7 +156,8 @@ class AudioPlayer:
         chan_map=[]
         chan_names=[]
         for k,v in self.rec_chans.items():
-            chan_map.append(v)     
+            chan_map.append(v)
+            chan_names.append(k)
         return (chan_map,chan_names)    
         
     
