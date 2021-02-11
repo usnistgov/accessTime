@@ -73,6 +73,8 @@ class cpyDelay:
         shutil.copytree(src,dest,ignore=self.ignore_func(src,dest),**kwargs)
 
     def copy_skipped(self):
+        #notify user of delayed copies
+        print(f'Copying skipped \'{self.dly_ext}\' files.',flush=True)
         #loop through skipped files
         for src,dest in self.skip_list:
             print('Copying \''+src+'\' to \''+dest+'\'',flush=True)
