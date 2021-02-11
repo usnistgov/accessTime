@@ -12,6 +12,122 @@ from mcvqoe import audio_float
 from mcvqoe.ITS_delay_est import active_speech_level
 
 class QoEsim:
+    """
+Class to use for simulations.
+
+This class simulates the functionalities of mcvqoe.hardware.AudioPlayer and
+mcvqoe.hardware.RadioInterface. 
+
+Parameters
+----------
+port : str
+    For compatibility with 'RadioInterface'. Value has no effect on simulation.
+debug : bool, default=False
+    If true, print some extra 'RadioInterface' things.
+fs : int
+    Sample rate of audio in/out in samples per second.
+blocksize : int
+    For compatibility with 'AudioPlayer'. Value has no effect on simulation.
+buffersize : int
+    For compatibility with 'AudioPlayer'. Value has no effect on simulation.
+overplay : float
+    The number of seconds of extra audio to play/record at the end of a clip.
+rec_chans : dict
+    Dictionary describing the recording. Dictionary keys must be one of
+    {'rx_voice','PTT_signal'. For simulation, the value is ignored, as this
+    normally represents the physical channel number. At this time QoEsim can not
+    simulate 'timecode' or 'tx_beep' audio.
+playback_chans : dict
+    Dictionary describing the playback channels. Dictionary keys should be
+    one of {'tx_voice','start_signal'}. For simulation, the value is ignored,
+    as this normally represents the physical channel number.
+
+Attributes
+----------
+sample_rate : int
+    Sample rate of audio in/out in samples per second.
+blocksize : int
+    For compatibility with 'AudioPlayer'. Value has no effect on
+    simulation.
+buffersize : int
+    For compatibility with 'AudioPlayer'. Value has no effect on simulation.
+overplay : float
+    The number of seconds of extra audio to play/record at the end of a clip.
+device : str
+    Device name for compatibility with 'AudioPlayer'. This is set to the
+    string representation of the class instance by default. Changing has no
+    effect on simulations.
+rec_chans : dict
+    Dictionary describing the recording. Dictionary keys must be one of
+    {'rx_voice','PTT_signal'}. For simulation, the value is ignored, as this
+    normally represents the physical channel number. At this time QoEsim can
+    not simulate 'timecode' or 'tx_beep' audio.
+playback_chans : dict
+    Dictionary describing the playback channels. Dictionary keys must be one 
+    of {'tx_voice','start_signal'}. The value for each entry is the, zero
+    based, channel number that each signal should be played on.
+channel_tech : {'clean','p25','analog','amr-wb','amr-nb'}, default='clean'
+    Technology to use for the simulated channel.
+channel_rate : int or str, default=None
+    rate to simulate channel at. Each channel tech handles this differently.
+    When set to None the default rate is used.
+pre_impairment : function, default=None
+    Impairment function to apply before the audio goes through the channel.
+    This function is passed an audio vector and should return a audio vector,
+    of the same length, with the impairments applied. A value of None skips
+    applying an impairment.
+post_impairment : function, default=None
+    Impairment function to apply after the audio goes through the channel.
+    This function is passed an audio vector and should return a audio vector,
+    of the same length, with the impairments applied. A value of None skips
+    applying an impairment.
+channel_impairment : function, default=None
+    Imparment to apply to the channel data. This is not super well defined
+    as each channel is a bit diffrent. A value of None skips applying an
+    impairment.
+dvsi_path : str, default='pcnrtas'
+    path to the dvsi encode/decode executable. Used to simulate P25 channels.
+fmpeg_path : str
+    path to the ffmpeg executable. Ffmpeg is used to simulate for amr
+    channels. By default the path is searched for ffmpeg, if the ffmpeg
+    program is found on the path then this will be the full path to ffmpeg.
+    Otherwise this will simply be the string 'ffmpeg'.
+m2e_latency : float, default=21.1e-3
+    Simulated mouth to ear latency for the channel in seconds.
+access_delay : float, default=0
+    Delay between the time that the simulated push to talk button is pushed
+    and when audio starts coming through the channel. If the 'ptt_delay'
+    method is called before play_record is called, then the time given to
+    'ptt_delay' is added to access_delay to get the time when access is
+    granted. Otherwise access is granted 'access_delay' seconds after the
+    clip starts.
+rec_snr : float, default=60
+    Signal to noise ratio for audio channel.
+print_args : bool, default=False
+    Print arguments to external programs.
+PTT_sig_freq : float, default=409.6
+    Frequency of the PTT signal from the play_record method.
+PTT_sig_aplitude : float, default=0.7
+    Amplitude of the PTT signal from the play_record method.
+    
+See Also
+--------
+mcvqoe.hardware.AudioPlayer : Play audio on real hardware.
+mcvqoe.hardware.RadioInterface : Key real radios.
+
+Examples
+--------
+
+play 48 kHz audio stored in tx_voice and record in a file named 'test.wav'.
+>>>import mcvqoe.simulation.QoEsim
+>>>sim_obj=mcvqoe.simulation.QoEsim(fs=int(48e3))
+>>>sim_obj.play_record(tx_voice,'test.wav')
+now do the same but also output the start signal on channel 1 and record the
+PTT signal on channel 1.
+>>>sim_obj.playback_chans={'tx_voice':0,'start_signal':1}
+>>>sim_obj.rec_chans={'rx_voice':0,'PTT_signal':1}
+>>>sim_obj.play_record(tx_voice,'test.wav')
+    """
     def __init__(self,
                  port=None,
                  debug=False,
@@ -63,27 +179,64 @@ class QoEsim:
         return self
     
     def ptt(self,state,num=1):
-        ''' 
-            PTT - change the push-to-talk status of the radio interface
+        """ 
+        Change the push-to-talk status of the radio interface.
 
-            PTT(state) if state is true then the PTT is set to transmit. if state is
-        False then the radio is set to not transmit
-
-        PTT(state,num) same as above but control the ptt of radio number num
-        instead of radio number 1
-        '''
+        For 'RadioInterface' this would turn on or off the PTT outputs. For simulation,
+        This function does not have much of an effect. It will clear any PTT time set by
+        the 'ptt_delay' method.
+        
+        Parameters
+        ----------
+        state : bool 
+            State to set PTT output to.
+        num : int, default=1
+            PTT output number to use.
+            
+        See Also
+        --------
+        mcvqoe.hardware.RadioInterface.ptt : Same function but, for hardware.
+        
+        Examples
+        --------
+        Key a fake radio.
+        >>>sim_obj=mcvqoe.simulation.QoEsim()
+        >>>sim_obj.ptt(True)  #key radio
+        >>>sim_obj.ptt(False) #de-key radio
+        """
             
         self.PTT_state[num]=bool(state)
         #clear wait delay
         self.ptt_wait_delay[num]=-1
             
     def led(self,num,state):
-        '''turn on or off LED's on the radio interface board
+        """
+        Turn on and off fake LEDs.
 
-        LED(num,state) changes the state of the LED given by num. If state is
-        true turn the LED on if state is False turn the LED off'''
+        For 'RadioInterface' this would turn on or off LEDs on the device. For simulation
+        this function doesn't do much. 
 
-        #determine LED state string
+        Parameters
+        ----------
+        num : int
+            LED number to set.
+        state : bool
+            The LED state to set. True is on, False is off.
+            
+        See Also
+        --------
+        mcvqoe.hardware.RadioInterface.led : Same function but, for hardware.
+
+        Examples
+        --------
+        Turn on some fake LEDs.
+        >>>sim_obj=mcvqoe.simulation.QoEsim()
+        >>>sim_obj.led(1,True)
+        >>>sim_obj.led(2,True)
+        >>>sim_obj.led(1,False)
+        """
+
+        #check LED state
         if(state):
             if(self.debug):
                 print("RadioInterface LED {%num} state is on")
@@ -91,58 +244,173 @@ class QoEsim:
             if(self.debug):
                 print("RadioInterface LED {%num} state is off")
         
+        #set state in simulation object
         self.LED_state[num]=bool(state)
         
         
     def devtype(self):
-        '''get the devicetype string from the radio interface
+        """
+        Get the devicetype string from the fake radio interface.
+        
+        For 'RadioInterface' this would query the firmware version of the board.
+        For simulation, this just returns a version string.
 
-        dt = DEVTYPE() where dt is the devicetype string'''
+        Returns
+        -------
+        str
+            A string pretending to come from a 'RadioInterface' board.
+
+        See Also
+        --------
+        mcvqoe.hardware.RadioInterface.devtype : Same function but, for hardware.
+
+        Examples
+        --------
+        Query a fake 'RadioInterface'.
+        >>>sim_obj=mcvqoe.simulation.QoEsim()
+        >>>print(sim_obj.devtype())
+        """
 
         #TODO : simulate other versions??
-        return 'MCV radio interface v1.0'
+        return 'MCV radio interface : v1.2.1'
 
     def get_id(self):
-        """Get the ID string from radio interface"""
+        """
+        Get the ID string from radio interface.
+        
+        For 'RadioInterface' this would query the firmware version of the board.
+        For simulation, this just returns the filename.
+        
+        Returns
+        -------
+        str
+            A string pretending to come from a 'RadioInterface' board.
+
+        See Also
+        --------
+        mcvqoe.hardware.RadioInterface.get_id : Same function but, for hardware.
+
+        Examples
+        --------
+        Query a fake 'RadioInterface'.
+        >>>sim_obj=mcvqoe.simulation.QoEsim()
+        >>>print(sim_obj.get_id())
+        """
         
         return os.path.basename(__file__)
 
     def get_version(self):
-        """Get the version number from radio interface"""
- 
+        """
+        Get the version string from fake 'RadioInterface'.
+        
+        For 'RadioInterface' this would query the firmware version of the board.
+        For simulation, this just returns the mcvqoe library version.
+        
+        Returns
+        -------
+        str
+            A string pretending to come from a 'RadioInterface' board.
+
+        See Also
+        --------
+        mcvqoe.hardware.RadioInterface.get_version : Same function but, for hardware.
+
+        Examples
+        --------
+        Query a fake 'RadioInterface'.
+        >>>sim_obj=mcvqoe.simulation.QoEsim()
+        >>>print(sim_obj.get_version())
+        """
+
         return mcvqoe.version
 
     def pttState(self):
-        ''' returns the pttState for a radioInterface object. This is called
-        automatically when pttState is accessed'''
+        """
+        Get the PTT state from fake 'RadioInterface'.
+        
+        Return the state of the simulated PTT outputs.
+        
+        Returns
+        -------
+        bool array
+            An array with the status of each simulated PTT output.
 
+        See Also
+        --------
+        mcvqoe.hardware.RadioInterface.pttState : Same function but, for hardware.
+
+        Examples
+        --------
+        Query a fake 'RadioInterface'.
+        >>>sim_obj=mcvqoe.simulation.QoEsim()
+        >>>print(sim_obj.pttState())
+        >>>sim_obj.ptt(True)
+        >>>print(sim_obj.pttState())
+        """
         return self.PTT_state
             
-
-
-
     def waitState(self):
-        '''returns the WaitState for a radioInterface object. this is called
-        automatically when WaitState is accessed'''
+        """
+        Get the PTT wait state from fake 'RadioInterface'.
+        
+        For 'RadioInterface' this would check if PTT outputs were waiting for a
+        start signal. For simulation this always returns 'Idle'
+        
+        Returns
+        -------
+        str
+            This function always returns 'Idle'.
+
+        See Also
+        --------
+        mcvqoe.hardware.RadioInterface.waitState : Same function but, for hardware.
+
+        Examples
+        --------
+        Query a fake 'RadioInterface'.
+        >>>sim_obj=mcvqoe.simulation.QoEsim()
+        >>>print(sim_obj.waitState())
+        """
 
         #TODO: do we need to simulate this better?
         return 'Idle'
 
     def ptt_delay(self,delay,num=1,use_signal=False):
-        '''setup the radio interface to key the radio after a delay
+        """
+        Set how far into the clip to key the fake radio.
+        
+        For 'RadioInterface' this would setup the PTT output to key up with a
+        specified delay. For simulation, this sets the time in the clip that
+        'access_delay' is referenced to.
+        
+        Parameters
+        ----------
+        delay : float
+            The number of seconds between the start of the clip and when the
+            'access_delay' time starts counting.
+        num : int, default=1
+            The PTT output to use.
+        use_signal : bool, default=True
+            For 'RadioInterface', this would control if the start signal is used
+            to reference the 'delay' to the beginning of the clip. For simulation
+            'delay' is always referenced to the beginning of the clip.
+            
+        See Also
+        --------
+        mcvqoe.hardware.RadioInterface.ptt_delay : Same function but, for hardware.
+        mcvqoe.simulation.QoEsim.play_record : Where 'delay' times are used.
 
-        PTT_DELAY(dly) set the radio to be keyed in dly seconds.
-
-        PTT_DELAY(dly,use_signal=True) set the radio to be keyed dly seconds
-        after the start signal is detected.
-
-        PTT_DELAY(dly,num=n,__) same as above but used key radio number n
-        instead of radio number one
-
-        delay=PTT_DELAY(dly,__) same as above but return the actual delay set on
-        the microcontroller. This is different because of rounding and limits on
-        the possible delay
-        '''
+        Examples
+        --------
+        Generate a simulated clip where the radio is keyed up 1 second into the
+        clip. 'tx_voice' has the 48k Hz voice vector. The result is stored in
+        'test.wav'
+        >>>sim_obj=mcvqoe.simulation.QoEsim(fs=int(48e3))
+        >>>sim_obj.playback_chans={'tx_voice':0,'start_signal':1}
+        >>>sim_obj.rec_chans={'rx_voice':0,'PTT_signal':1}
+        >>>sim_obj.ptt_delay(1)
+        >>>sim_obj.play_record(tx_voice,'test.wav')
+        """
 
         self.ptt_wait_delay[num]=delay
         #set state to true, this isn't 100% correct but the delay will be used 
@@ -151,13 +419,28 @@ class QoEsim:
         
         
     def temp(self):
-        '''read value from temperature sensors
-
-           [ext,int]=temp() - returns the temperature measured by the thermistor
-           external to the radiointerface or the temperature sensor built into the
-           MSP430
-        '''
+        """
+        Read fake temperatures from fake hardware.
         
+        For 'RadioInterface' this would read temperature from the microcontroller.
+        For simulation, this returns some fake values.
+        
+        Returns
+        -------
+        int array
+            Two integers representing the internal temperature and external
+            temperature.
+            
+        See Also
+        --------
+        mcvqoe.hardware.RadioInterface.temp : Same function but, for hardware.
+
+        Examples
+        --------
+        Read some fake temperatures.
+        >>>sim_obj=mcvqoe.simulation.QoEsim()
+        >>>print(sim_obj.temp())
+        """        
         #TODO : generate better fake values??
         return (38,1500)
 
@@ -174,7 +457,32 @@ class QoEsim:
         
     # =====================[audio channel simulation function]=====================
     def simulate_audio_channel(self,tx_data):
+        """
+        Simulate an audio channel based on channel settings.
         
+        This encodes and decodes audio for the channel type given in
+        'channel_tech'. 
+        
+        Parameters
+        ----------
+        tx_data : array
+            Audio samples to pass through the channel.
+            
+        Returns
+        -------
+        array
+            Audio data that has passed through a simulated channel.
+            
+        See Also
+        --------
+        mcvqoe.hardware.RadioInterface.play_record : Where this function is used.
+
+        Examples
+        --------
+        Pass audio data, 'tx_dat', through a channel to get 'rx_dat'.
+        >>>sim_obj=mcvqoe.simulation.QoEsim()
+        >>>rx_dat=sim_obj.simulate_audio_channel(tx_dat)
+        """
         #add pre channel impairments
         if(self.pre_impairment):
             tx_dat=self.pre_impairment(tx_data,self.sample_rate)
@@ -299,13 +607,70 @@ class QoEsim:
         
     # =====================[Find device function]=====================
     def find_device(self):
-        #this function is used for compatibility with AudioPlayer but, it's not 
-        #really needed for simulation
-        return 'sim'
+        """
+        Return fake device name.
+        
+        For 'AudioPlayer' this would return the name of the audio device to use.
+        For simulation this just returns the string representation of the class.
+        
+        Returns
+        -------
+        str
+            The string representation of the class instance.
+            
+        See Also
+        --------
+        mcvqoe.hardware.AudioPlayer.find_device : Same function but for hardware.
+        
+        Examples
+        --------
+        Query a fake 'AudioPlayer'.
+        >>>sim_obj=mcvqoe.simulation.QoEsim()
+        >>>print(sim_obj.find_device())
+        """
+        return __class__
 
     # =====================[record audio function]=====================
     def play_record(self,audio,out_name):
+        """
+        Simulate playing and recording of audio through a communication channel.
+        
+        This function simulates a communication channel. The values in
+        'self.playback_chans' are checked for valid values, but they don't really
+        have any other effect. Only 'rech_chans' of type 'rx_voice' and
+        'PTT_signal' can be used. 
+        
+        Parameters
+        ----------
+        audio : array
+            An array of audio data to pass through the communication channel.
+        out_name : str
+            The name of the output .wav file to write to.
 
+        Returns
+        -------
+        list of strings
+            A list of the recorded output channels in the order that they appear
+            in the output file.
+                
+        See Also
+        --------
+        mcvqoe.hardware.AudioPlayer.play_record : Same function but for hardware.
+        
+        Examples
+        --------
+                
+        play 48 kHz audio stored in tx_voice and record in a file named
+        'test.wav'.
+        >>>import mcvqoe.simulation.QoEsim
+        >>>sim_obj=mcvqoe.simulation.QoEsim(fs=int(48e3))
+        >>>sim_obj.play_record(tx_voice,'test.wav')
+        now do the same but also output the start signal on channel 1 and record
+        the PTT signal on channel 1.
+        >>>sim_obj.playback_chans={'tx_voice':0,'start_signal':1}
+        >>>sim_obj.rec_chans={'rx_voice':0,'PTT_signal':1}
+        >>>sim_obj.play_record(tx_voice,'test.wav')
+        """
         #loop through playback_chans this is mostly just a format check to make
         #sure that all keys used are valid
         for (k,v) in self.playback_chans.items():
