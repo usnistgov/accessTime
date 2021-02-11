@@ -12,14 +12,29 @@ from mcvqoe import audio_float
 from mcvqoe.ITS_delay_est import active_speech_level
 
 class QoEsim:
-    def __init__(self,port=None,debug=False):
+    def __init__(self,
+                 port=None,
+                 debug=False,
+                 fs=int(48e3),
+                 blocksize=512,
+                 buffersize=20,
+                 overplay=1.0,
+                 rec_chans={'rx_voice':0},
+                 playback_chans={'tx_voice':0}
+                 ):
         
         self.debug=debug
         self.PTT_state=[False,]*2
         self.LED_state=[False,]*2
         self.ptt_wait_delay=[-1.0,]*2
-        #overplay value for audio
-        self.overPlay=1
+        #values for AudioPlayer
+        self.sample_rate = fs
+        self.blocksize = blocksize
+        self.buffersize = buffersize
+        self.overplay = overplay
+        self.device = __class__ #fake device name
+        self.rec_chans=rec_chans
+        self.playback_chans=playback_chans
         #channel variables
         self.channel_tech='clean'
         self.channel_rate=None
@@ -33,12 +48,15 @@ class QoEsim:
         self.fmpeg_path=shutil.which('ffmpeg')
         #TODO : set based on tech
         self.m2e_latency=21.1e-3
-        self.sample_rate=48e3
         self.access_delay=0
         #SNR for audio in dB
         self.rec_snr=60
         #print arguments sent to external programs for debugging
         self.print_args=False
+        #PTT signal parameters
+        self.PTT_sig_freq=409.6     #TODO : VERIFY!
+        self.PTT_sig_aplitude=0.7
+        
     
     def __enter__(self):
         
@@ -288,6 +306,25 @@ class QoEsim:
     # =====================[record audio function]=====================
     def play_record(self,audio,out_name):
 
+        #loop through playback_chans this is mostly just a format check to make
+        #sure that all keys used are valid
+        for (k,v) in self.playback_chans.items():
+            if (k=='start_signal'):
+                pass
+            elif(k=='tx_voice'):
+                pass
+            else:
+                raise ValueError(f'Unknown output channel : {k}')
+
+        #list of outputs that we need to produce
+        outputs=[]
+        #loop through rec_chans and detect keys that we can't produce
+        for (k,v) in self.rec_chans.items():
+            if(k not in ('rx_voice','PTT_signal')):
+                raise RuntimeError(f'{__class__} can not generate recordings of type \'{k}\'')
+            outputs.append(k)
+
+
         try:
             #get offset for channel technology
             m2e_offset=self.standard_delay[self.channel_tech]
@@ -296,7 +333,7 @@ class QoEsim:
             raise ValueError(f'"{self.channel_tech}" is not a valid technology') from None
             
         #calculate values in samples
-        overplay_samples=int(self.overPlay*self.sample_rate)
+        overplay_samples=int(self.overplay*self.sample_rate)
         #correct for audio channel latency
         m2e_latency_samples=int((self.m2e_latency-m2e_offset)*self.sample_rate)
 
@@ -304,9 +341,12 @@ class QoEsim:
             #TODO : it might be possible to get around this but, it sounds slightly nontrivial...
             raise ValueError(f'Unable to simulate a latency of {self.m2e_latency}. Minimum simulated latency for technology \'{self.channel_tech}\' is {m2e_offset}')
         
+        #convert audio values to floats to work on them
+        float_audio=mcvqoe.audio_float(audio)
+
         #append overplay to audio   
         overplay_audio = np.zeros(int(overplay_samples), dtype=np.float32)
-        tx_data_with_overplay = np.concatenate((audio, overplay_audio))
+        tx_data_with_overplay = np.concatenate((float_audio, overplay_audio))
 
         if(self.rec_snr is None):
             #don't add any noise
@@ -342,7 +382,7 @@ class QoEsim:
         muted_tx_data_with_overplay = tx_data_with_overplay_and_noise[muted_samples:]
         
         #generate raw rx_data from audio channel
-        rx_data = self.simulate_audio_channel(muted_tx_data_with_overplay)
+        channel_voice = self.simulate_audio_channel(muted_tx_data_with_overplay)
         
         #generate silent noise section comprised of ptt_st_dly, access delay and m2e latency audio snippets
         silence_length = int(ptt_st_dly_samples + access_delay_samples + m2e_latency_samples)
@@ -352,16 +392,39 @@ class QoEsim:
         std = 1.81e-5
         
         silent_section = np.random.normal(mean, std, silence_length)
-        
+
         #prepend silent section to rx_data
-        rx_data = np.concatenate((silent_section, rx_data))
-        
+        rx_voice = np.concatenate((silent_section, channel_voice))
+
         #force rx_data to be the same length as tx_data_with_overplay
-        rx_data = rx_data[:np.size(tx_data_with_overplay)]
-           
+        rx_voice = rx_voice[:tx_data_with_overplay.shape[0]]
+
+        #output array is the length of rx_voice x number of outputs
+        rx_data=np.empty((rx_voice.shape[0],len(outputs)))
+
+        for n,o_type in enumerate(outputs):
+            if (o_type=='PTT_signal'):
+                #calculate length of sine signal in samples
+                sin_len_samples=rx_data.shape[0]-ptt_st_dly_samples
+                #construct sine signal
+                rx_data[ptt_st_dly_samples:,n]=\
+                    self.PTT_sig_aplitude*np.sin(
+                        2*np.pi*self.PTT_sig_freq*np.arange(sin_len_samples)
+                        /float(self.sample_rate)
+                    )
+                #zero out before PTT
+                rx_data[:ptt_st_dly_samples,n]=0
+            elif(o_type=='rx_voice'):
+                #add data to the array
+                rx_data[:,n]=rx_voice
+            else:
+                raise RuntimeError('Internal error')
+
         #write out audio file
         wav.write(out_name, int(self.sample_rate), rx_data)
         
+        return outputs
+
     # =====================[p25 encode function]=====================
     def p25encode(self,x, fs,rate='fr'):
         # given a signal x with fs: fs, returns encoded p25
