@@ -188,7 +188,7 @@ class TestInfoGui(tk.Tk):
                 file.write('Test Type : "%s"\n' % self.test_info['Test Type'])
                 file.write('Tx Device : "%s"\n' % self.test_info['Tx Device'])
                 file.write('Rx Device : "%s"\n' % self.test_info['Rx Device'])
-                file.write('System    : "%s"\n' % self.test_info['system'])
+                file.write('System    : "%s"\n' % self.test_info['System'])
                 file.write('Test Loc  : "%s"\n' % self.test_info['Test Loc'])
                         
         return self.test_info
