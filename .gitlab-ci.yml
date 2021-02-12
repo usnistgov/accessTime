@@ -43,3 +43,10 @@ test-log:
   needs: [venv]
   script:
     - test-env/bin/python tests/test_log.py
+      
+test-sim:
+  stage: test
+  needs: [venv]
+  script:
+    - test-env/bin/python tests/sim_test.py
+      
