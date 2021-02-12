@@ -13,7 +13,7 @@ setuptools.setup(
     url="https://gitlab.nist.gov/gitlab/PSCR/MCV/mcv-qoe-library",
     packages=setuptools.find_packages(),
     include_package_data=True,
-    package_data={'mcvqoe':['hardware','audio_clips','test.wav']},
+    package_data={'mcvqoe':['audio_clips','test.wav']},
     use_scm_version={'write_to' : 'mcvqoe/version.py'},
     setup_requires=['setuptools_scm'],
     classifiers=[

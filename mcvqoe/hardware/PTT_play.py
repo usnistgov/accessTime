@@ -36,7 +36,7 @@ def single_play(ri,ap,audio_file=None,playback=False,ptt_wait=0.68):
     """
     
     if(audio_file is None):
-        audio_file = io.BytesIO(pkgutil.get_data(__name__,'audio_clips/test.wav'))
+        audio_file = io.BytesIO(pkgutil.get_data('mcvqoe','audio_clips/test.wav'))
     
     #get fs from audio player
     fs=ap.sample_rate
