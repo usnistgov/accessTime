@@ -3,6 +3,7 @@ stages:
   - build
   - venv
   - test
+  - deploy
 
 build:
   stage: build
@@ -23,7 +24,7 @@ venv:
   needs: [build]
   script:
     - python -m venv test-env > env.log
-    - test-env/bin/pip install --log pip.log --find-links ./dist/ mcvqoe-nist > install.log 
+    - test-env/bin/pip install --log pip.log --find-links ./dist/ mcvqoe-nist sphinx numpydoc > install.log 
   artifacts:
       when: always
       paths:
@@ -51,3 +52,10 @@ test-sim:
   script:
     - test-env/bin/python tests/sim_test.py
       
+pages:
+  stage: deploy
+  script:
+    - test-env/bin/sphinx-build -b html ./docs/source/ public
+  artifacts:
+    paths:
+      - public
