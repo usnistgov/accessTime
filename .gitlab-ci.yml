@@ -50,3 +50,9 @@ test-sim:
   script:
     - test-env/bin/python tests/sim_test.py
       
+test-testCpy:
+  stage: test
+  needs: [venv]
+  script:
+    - test-env/bin/python tests/test_testCpy.py
+      
