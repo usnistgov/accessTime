@@ -89,12 +89,23 @@ else:
 
 def log_update(log_in_name,log_out_name,dryRun=False):
     with open(log_in_name,'rt') as fin:
+        #will hold extra chars from input file
+        #used to allow for partial line matches
+        extra=''
         if(os.path.exists(log_out_name)):
             with open(log_out_name,'rt') as fout:
-                
                 for line, (lin,lout) in enumerate(zip(fin,fout),start=1):
+                    #check if the last match was not a full match
+                    if(extra):
+                        raise RuntimeError(f'At line {line}, last line was a partial match.')
+                    #check if lines are the same
                     if(lin != lout):
-                        raise RuntimeError(f'Files differ at line {line}, can not copy')
+                        #check if lout starts with lin
+                        if(lin.startswith(lout)):
+                            #get the chars in lout but not lin
+                            extra=lin[len(lout):]
+                        else:
+                            raise RuntimeError(f'Files differ at line {line}, can not copy')
                 
                 #get the remaining data in the file
                 out_dat=fout.read()
@@ -108,8 +119,8 @@ def log_update(log_in_name,log_out_name,dryRun=False):
         #get remaining data in input file
         in_dat=fin.read()
         
-        #strip trailing white space to prevent errors in future
-        in_dat=in_dat.rstrip()
+        #strip trailing white space to prevent errors in future, add extra data 
+        in_dat=extra+in_dat.rstrip()
                 
         #check if we have more data from the input file 
         if(in_dat):
