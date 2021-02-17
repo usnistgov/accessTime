@@ -85,10 +85,66 @@ if platform.system()=='Windows':
         
         return tuple(drive_table)
 else:
-    raise RuntimeError('Only Windows is supported at this time')
+    def list_drives():
+        raise RuntimeError('Only Windows is supported at this time')
+        
+    def get_drive_serial(drive):
+        raise RuntimeError('Only Windows is supported at this time')
+    
 
-
-
+def log_update(log_in_name,log_out_name,dryRun=False):
+    with open(log_in_name,'rt') as fin:
+        #will hold extra chars from input file
+        #used to allow for partial line matches
+        extra=''
+        if(os.path.exists(log_out_name)):
+            with open(log_out_name,'rt') as fout:
+                for line, (lin,lout) in enumerate(zip(fin,fout),start=1):
+                    #check if the last match was not a full match
+                    if(extra):
+                        raise RuntimeError(f'At line {line}, last line was a partial match.')
+                    #check if lines are the same
+                    if(lin != lout):
+                        #check if lout starts with lin
+                        if(lin.startswith(lout)):
+                            #get the chars in lout but not lin
+                            extra=lin[len(lout):]
+                        else:
+                            raise RuntimeError(f'Files differ at line {line}, can not copy')
+                
+                #get the remaining data in the file
+                out_dat=fout.read()
+        else:
+            if(dryRun):
+                #make sure that path to log file exists
+                os.makedirs(os.path.dirname(log_out_name),exist_ok=True)
+            #no in_dat
+            in_dat=None
+            
+        #get remaining data in input file
+        in_dat=fin.read()
+        
+        #strip trailing white space to prevent errors in future, add extra data 
+        in_dat=extra+in_dat.rstrip()
+                
+        #check if we have more data from the input file 
+        if(in_dat):
+            
+            #with open(log_out_name,'at') as fout:
+            with (os.fdopen(os.dup(sys.stdout.fileno()), 'w') if dryRun else open(log_out_name,'at')) as fout:
+                fout.write(in_dat)
+                
+            print(f'{len(in_dat.splitlines())} lines copied')
+            
+        else:
+            if(out_dat):
+                raise RuntimeError('Input file is shorter than output')
+            else:
+                print('Log files are identical, no lines copied')
+                
+    
+    #print success message
+    print(f'Log updated successfully to {log_out_name}\n')
 
 
 #main function 
@@ -164,47 +220,7 @@ def main():
     #file name for output log file
     log_out_name=os.path.join(dest_drive_prefix,set_dict['Path'],set_dict['ComputerName']+'-tests.log')
         
-    with open(log_in_name,'rt') as fin:
-        if(os.path.exists(log_out_name)):
-            with open(log_out_name,'rt') as fout:
-                
-                for line, (lin,lout) in enumerate(zip(fin,fout),start=1):
-                    if(lin != lout):
-                        raise RuntimeError(f'Files differ at line {line}, can not copy')
-                
-                #get the remaining data in the file
-                out_dat=fout.read()
-        else:
-            if(not args.dryRun):
-                #make sure that path to log file exists
-                os.makedirs(os.path.dirname(log_out_name),exist_ok=True)
-            #no in_dat
-            in_dat=None
-            
-        #get remaining data in input file
-        in_dat=fin.read()
-        
-        #strip trailing white space to prevent errors in future
-        in_dat=in_dat.rstrip()
-                
-        #check if we have more data from the input file 
-        if(in_dat):
-            
-            #with open(log_out_name,'at') as fout:
-            with (os.fdopen(os.dup(sys.stdout.fileno()), 'w') if args.dryRun else open(log_out_name,'at')) as fout:
-                fout.write(in_dat)
-                
-            print(f'{len(in_dat.splitlines())} lines copied')
-            
-        else:
-            if(out_dat):
-                raise RuntimeError('Input file is shorter than output')
-            else:
-                print('Log files are identical, no lines copied')
-                
-    
-    #print success message
-    print(f'Log updated successfully to {log_out_name}\n')
+    log_update(log_in_name,log_out_name,args.dryRun)
     
     if(args.syncDir):
         syncDir=args.syncDir

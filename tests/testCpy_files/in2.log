@@ -1,0 +1,50 @@
+
+>>PSuD started at 17-Feb-2021 08:43:21
+	Test Type  : simulation
+	Tx Device  : none
+	Rx Device  : none
+	System     : clean
+	Test Loc   : N/A
+	PBI P_a1   : 0.95
+	PBI P_a2   : 0.95
+	PBI P_r    : 0.95
+	PBI interval : 0.2
+	RI version : 0.1.dev272+gd292ec7.d20210212
+	RI id      : QoEsim.py
+	filename   : PSuD_1way_1loc.py
+	traceback  : PSuD_simulate.py->PSuD_1way_1loc.py(run)
+	Git Hash   : 16dc84157bd0b3cc90bf6c1014415ee3c31abe0a dty
+	mcvqoe version : 0.1.dev272+gd292ec7.d20210212
+	version    : v0.0-126-g16dc841-dty
+	Arguments  : fs = 48000.0,mrt = <abcmrt.ABC_MRT16.ABC_MRT16 object at 0x0000023C465AA3A0>,rng = Generator(PCG64) at 0x23C00CF7B80,audioFiles = ['F1_PSuD_Norm_10.wav', 'F3_PSuD_Norm_10.wav', 'M3_PSuD_Norm_10.wav', 'M4_PSuD_Norm_10.wav'],audioPath = 'C:\\Users\\jmf6\\Documents\\Audio-Clips\\PSuD_Clip_10',overPlay = 1.0,trials = 4,blockSize = 512,bufSize = 20,outdir = '',ri = <mcvqoe.simulation.QoEsim.QoEsim object at 0x0000023C463E9940>,ptt_wait = 0,ptt_gap = 0,audioInterface = <mcvqoe.simulation.QoEsim.QoEsim object at 0x0000023C463E9940>,time_expand = [0.09989, 0.00011],m2e_min_corr = 0.76,get_post_notes = <function <lambda> at 0x0000023C465DE280>,intell_est = 'trial',split_audio_dest = None,full_audio_dir = True,keyword_spacings = [0.9999583333333333, 0.9999583333333333, 0.9999583333333333, 0.9999583333333333]
+===Pre-Test Notes===
+	Test to generate a test log entry
+===Post-Test Notes===
+
+===End Test===
+
+
+>>PSuD started at 17-Feb-2021 08:48:10
+	Test Type  : simulation
+	Tx Device  : none
+	Rx Device  : none
+	System     : clean
+	Test Loc   : N/A
+	PBI P_a1   : 0.95
+	PBI P_a2   : 0.95
+	PBI P_r    : 0.95
+	PBI interval : 0.2
+	RI version : 0.1.dev272+gd292ec7.d20210212
+	RI id      : QoEsim.py
+	filename   : PSuD_1way_1loc.py
+	traceback  : PSuD_simulate.py->PSuD_1way_1loc.py(run)
+	Git Hash   : 16dc84157bd0b3cc90bf6c1014415ee3c31abe0a dty
+	mcvqoe version : 0.1.dev272+gd292ec7.d20210212
+	version    : v0.0-126-g16dc841-dty
+	Arguments  : fs = 48000.0,mrt = <abcmrt.ABC_MRT16.ABC_MRT16 object at 0x000001F9877BA3A0>,rng = Generator(PCG64) at 0x1F9B71E7B80,audioFiles = ['F1_PSuD_Norm_10.wav', 'F3_PSuD_Norm_10.wav', 'M3_PSuD_Norm_10.wav', 'M4_PSuD_Norm_10.wav'],audioPath = 'C:\\Users\\jmf6\\Documents\\Audio-Clips\\PSuD_Clip_10',overPlay = 1.0,trials = 4,blockSize = 512,bufSize = 20,outdir = '',ri = <mcvqoe.simulation.QoEsim.QoEsim object at 0x000001F9875F9940>,ptt_wait = 0,ptt_gap = 0,audioInterface = <mcvqoe.simulation.QoEsim.QoEsim object at 0x000001F9875F9940>,time_expand = [0.09989, 0.00011],m2e_min_corr = 0.76,get_post_notes = <function <lambda> at 0x000001F9877EE280>,intell_est = 'trial',split_audio_dest = None,full_audio_dir = True,keyword_spacings = [0.9999583333333333, 0.9999583333333333, 0.9999583333333333, 0.9999583333333333]
+===Pre-Test Notes===
+	Another test to test adding to logs
+===Post-Test Notes===
+
+===End Test===
+
