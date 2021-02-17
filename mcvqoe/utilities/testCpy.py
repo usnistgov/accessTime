@@ -85,7 +85,12 @@ if platform.system()=='Windows':
         
         return tuple(drive_table)
 else:
-    raise RuntimeError('Only Windows is supported at this time')
+    def list_drives():
+        raise RuntimeError('Only Windows is supported at this time')
+        
+    def get_drive_serial(drive):
+        raise RuntimeError('Only Windows is supported at this time')
+    
 
 def log_update(log_in_name,log_out_name,dryRun=False):
     with open(log_in_name,'rt') as fin:
