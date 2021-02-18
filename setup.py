@@ -27,7 +27,8 @@ setuptools.setup(
     entry_points={
         'console_scripts':[
             'testCpy=mcvqoe.utilities.testCpy:main',
-            'local-copy=mcvqoe.utilities.local_copy:main'
+            'local-copy=mcvqoe.utilities.local_copy:main',
+            'mcvqoe-test-play=mcvqoe.hardware.PTT_play:main'
         ],
     },
     python_requires='>=3.6',
