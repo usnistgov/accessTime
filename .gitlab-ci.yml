@@ -3,6 +3,7 @@ stages:
   - build
   - venv
   - test
+  - deploy
 
 build:
   stage: build
@@ -16,13 +17,14 @@ build:
         - package.log
         - py-ver.log
         - dist/*.whl
+        - mcvqoe/version.py
 
 venv:
   stage: venv
   needs: [build]
   script:
     - python -m venv test-env > env.log
-    - test-env/bin/pip install --log pip.log --find-links ./dist/ mcvqoe-nist > install.log 
+    - test-env/bin/pip install --log pip.log --find-links ./dist/ mcvqoe-nist sphinx numpydoc > install.log 
   artifacts:
       when: always
       paths:
@@ -56,3 +58,12 @@ test-testCpy:
   script:
     - test-env/bin/python tests/test_testCpy.py
       
+pages:
+  stage: deploy
+  script:
+    - test-env/bin/sphinx-build -b html ./docs/source/ public
+  only:
+    - develop
+  artifacts:
+    paths:
+      - public
