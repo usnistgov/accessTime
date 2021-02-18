@@ -16,6 +16,7 @@ build:
         - package.log
         - py-ver.log
         - dist/*.whl
+        - mcvqoe/version.py
 
 venv:
   stage: venv
