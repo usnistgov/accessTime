@@ -76,3 +76,63 @@ def single_play(ri,ap,audio_file=None,playback=False,ptt_wait=0.68):
             sd.default.samplerate = fs_rec
             #play audio over the default device
             sd.play(rec_dat)
+            
+#main function 
+def main():
+    #need a couple of extra things for this to work
+    #import them here
+    import argparse
+    import mcvqoe.hardware
+    #-----------------------[Setup ArgumentParser object]-----------------------
+
+    parser = argparse.ArgumentParser(
+        description='Simple program to key radios')
+    parser.add_argument('-t', '--time', type=float, default=10,metavar='T',
+                        help='Time to key radio for in seconds')
+    parser.add_argument("-r", "--radioport", default="",metavar='PORT',
+                        help='Port to use for radio interface. Defaults to the '+
+                        'first port where a radio interface is detected')
+    parser.add_argument("-a", "--audio-file", default="",metavar='F',
+                        help="audio file to play")
+    parser.add_argument('-p', '--overPlay', type=float, default=1,metavar='DUR',
+                        help='The number of seconds to play silence after the '+
+                        'audio is complete. This allows for all of the audio '+
+                        'to be recorded when there is delay in the system')
+    parser.add_argument('-w', '--PTT-wait', type=float, default=0.68,
+                        metavar='T',dest='ptt_wait',
+                        help='Time to wait between pushing PTT and playing audio')
+    
+                        
+    #-----------------------------[Parse arguments]-----------------------------
+
+    args = parser.parse_args()
+    
+    #-----------------------------[set audio file]-----------------------------
+    
+    if(args.audio_file):
+        #load the file that was given
+        f=args.audio_file
+    else:
+        #no audio given, use default
+        f=None
+    
+    #---------------------------[Create AudioPlayer]---------------------------
+    
+    ap=mcvqoe.hardware.AudioPlayer()
+    
+    #---------------------------[Open RadioInterface]---------------------------
+    
+    with mcvqoe.hardware.RadioInterface(args.radioport) as ri:
+        
+        print(f'RadioInterface opened successfully on {ri.connPort}!')
+        
+    #--------------------------------[Key radio]--------------------------------
+    
+        print(f'Playing audio')
+        
+        single_play(ri,ap,audio_file=f,ptt_wait=args.ptt_wait)
+        
+    print('Complete')   
+
+if __name__ == "__main__":
+    main()
