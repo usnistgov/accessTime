@@ -40,6 +40,9 @@ templates_path = ['_templates']
 exclude_patterns = []
 autodoc_mock_imports = ['sounddevice', 'soundfile']
 
+#don't show inherited class members. Mostly for tkinter subclasses
+numpydoc_show_inherited_class_members=False
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
