@@ -27,6 +27,7 @@ author = 'NIST PSCR'
 # ones.
 extensions = [
                 'sphinx.ext.autodoc',
+                'sphinx.ext.autosummary',
                 'numpydoc',
 ]
 
@@ -37,7 +38,10 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
+autodoc_mock_imports = ['sounddevice', 'soundfile']
 
+#don't show inherited class members. Mostly for tkinter subclasses
+numpydoc_show_inherited_class_members=False
 
 # -- Options for HTML output -------------------------------------------------
 
