@@ -1,4 +1,5 @@
 import contextlib
+import datetime
 import math
 import os
 import queue
@@ -12,6 +13,8 @@ from fractions import Fraction
 import numpy as np
 import sounddevice as sd
 import soundfile as sf
+
+soft_time_fmt='TM%j-%Y_%H-%M-%S.%f'
 
 try:
     import ctypes
@@ -243,8 +246,10 @@ class AudioPlayer:
         Audio device to use. can be found with find_device().
     rec_chans : dict
         Dictionary describing the recording. Dictionary keys should be one of
-        {'rx_voice','PTT_signal','timecode','tx_beep'}. The value for each entry
-        is the, zero based, channel number that should be recorded for each signal.
+        {'rx_voice','PTT_signal','timecode','tx_beep','soft_timecode'}. The
+        value for each entry is the, zero based, channel number that should be
+        recorded for each signal. For the special 'soft_timecode' channel, no
+        audio recording channel is used and the channel number should be 0.
     playback_chans : dict
         Dictionary describing the playback channels. Dictionary keys must be one 
         of {'tx_voice','start_signal'}. The value for each entry is the, zero
@@ -441,7 +446,18 @@ class AudioPlayer:
 
         (rec_map,rec_names)=self._get_recording_map()
         
-         # Set device and number of I/O channels
+        #check if we are "recording" time data
+        if('soft_timecode' in self.rec_chans):
+            self._time_encode=True
+            #find soft timecode channel
+            soft_idx=rec_names.index('soft_timecode')
+            #soft timecode will be appended
+            #it's index will be the number of channels
+            rec_map[soft_idx]=rec_chan
+        else:
+            self._time_encode=False
+
+        # Set device and number of I/O channels
         sd.default.device = self.device
         sd.default.channels = [rec_chan,pb_chan]
                 
@@ -521,10 +537,31 @@ class AudioPlayer:
         Will run as long as there is audio data to play.
         
         """
+        if(self._time_encode):
+            #get time string
+            tstr=datetime.datetime.now().strftime(soft_time_fmt)
+            dat_len=indata.shape[0]
+            #make new column for array
+            tcode=np.empty((dat_len,1),dtype=indata.dtype)
+            #check for floating point types
+            if(np.issubdtype(indata.dtype,np.floating)):
+                #scale 8 bit char values to full range
+                scale=1/(255.0)
+            else:
+                scale=1
+            #check if timecode can fit in our chunk
+            if(dat_len>=len(tstr)):
+                for i in range(len(tstr)):
+                    tcode[i]=ord(tstr[i])*scale
+                tcode[len(tstr):]=0
+            else:
+                tcode.fill(0xFF)
+            #queue values
+            self._qr.put_nowait(np.hstack((indata,tcode)))
+        else:
+            # Record the output
+            self._qr.put_nowait(indata.copy())
 
-        # Record the output
-        self._qr.put_nowait(indata.copy())
-        
         if status.output_underflow:
             print('Output underflow: increase blocksize?', file=sys.stderr)
             raise sd.CallbackStop
