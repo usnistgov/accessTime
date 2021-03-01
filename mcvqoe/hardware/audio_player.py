@@ -9,11 +9,13 @@ import sys
 import threading
 
 from fractions import Fraction
+from .. soft_timecode import soft_time_fmt
 
 import numpy as np
 import sounddevice as sd
 import soundfile as sf
 
+<<<<<<< HEAD
 soft_time_fmt='TM%j-%Y_%H-%M-%S.%f'
 
 try:
@@ -80,6 +82,10 @@ try:
             return False
 except:
     ThreadRecStop=None
+=======
+def cb_stereo_rec(indata, frames, time, status):
+    """This is called (from a separate thread) for each audio block."""
+>>>>>>> 8367de3 (Add soft time decode function)
 
 try:
     import msvcrt 
