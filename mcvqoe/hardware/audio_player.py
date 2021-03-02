@@ -15,7 +15,6 @@ import numpy as np
 import sounddevice as sd
 import soundfile as sf
 
-<<<<<<< HEAD
 soft_time_fmt='TM%j-%Y_%H-%M-%S.%f'
 
 try:
@@ -82,10 +81,6 @@ try:
             return False
 except:
     ThreadRecStop=None
-=======
-def cb_stereo_rec(indata, frames, time, status):
-    """This is called (from a separate thread) for each audio block."""
->>>>>>> 8367de3 (Add soft time decode function)
 
 try:
     import msvcrt 
@@ -544,8 +539,12 @@ class AudioPlayer:
         
         """
         if(self._time_encode):
-            #get time string
-            tstr=datetime.datetime.now().strftime(soft_time_fmt)
+            #get time
+            tobj=datetime.datetime.utcnow()
+            tobj-=datetime.timedelta(
+                seconds=time.currentTime-time.inputBufferAdcTime
+                  )
+            tstr=tobj.strftime(soft_time_fmt)
             dat_len=indata.shape[0]
             #make new column for array
             tcode=np.empty((dat_len,1),dtype=indata.dtype)
