@@ -21,6 +21,7 @@ setuptools.setup(
         "License :: Public Domain",
         "Operating System :: OS Independent",
     ],
+    license='NIST software License',
     install_requires=[
         'numpy',
         'scipy',
