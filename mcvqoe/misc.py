@@ -1,7 +1,9 @@
-import numpy as np
-import scipy.signal as sig
-import scipy.io.wavfile 
 import csv
+import math
+import scipy.io.wavfile
+
+import numpy as np
+import scipy.signal as sig 
 
 #convert audio data to float type with standard scale        
 def audio_float(dat):
