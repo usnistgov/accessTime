@@ -190,7 +190,11 @@ class TestInfoGui(tk.Tk):
                 file.write('Rx Device : "%s"\n' % self.test_info['Rx Device'])
                 file.write('System    : "%s"\n' % self.test_info['System'])
                 file.write('Test Loc  : "%s"\n' % self.test_info['Test Loc'])
-                        
+        
+        #can't seem to find documentation on this but, it fixes the following:
+        #Tcl_AsyncDelete: async handler deleted by the wrong thread
+        self.quit()
+        
         return self.test_info
     
     def _submit_action(self):
@@ -299,6 +303,10 @@ class PostTestGui(tk.Tk):
         
         # Run Tkinter window
         self.mainloop()
+        
+        #can't seem to find documentation on this but, it fixes the following:
+        #Tcl_AsyncDelete: async handler deleted by the wrong thread
+        self.quit()
         
         if(self.err):
             return {"Error Notes": self.notes}
