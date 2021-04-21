@@ -311,6 +311,17 @@ class AudioPlayer:
         chans=max(self.rec_chans.values())+1
 
         (rec_map,rec_names)=self._get_recording_map()
+        
+        #check if we are "recording" time data
+        if('soft_timecode' in self.rec_chans):
+            self._time_encode=True
+            #find soft timecode channel
+            soft_idx=rec_names.index('soft_timecode')
+            #soft timecode will be appended
+            #it's index will be the number of channels
+            rec_map[soft_idx]=chans
+        else:
+            self._time_encode=False
 
         # Queue for recording input
         self._qr = queue.Queue()        
@@ -595,7 +606,34 @@ class AudioPlayer:
 
         if status:
             print(status, file=sys.stderr, flush=True)
-        self._qr.put(indata.copy())
+            
+        if(self._time_encode):
+            #get time
+            tobj=datetime.datetime.utcnow()
+            tobj-=datetime.timedelta(
+                seconds=time.currentTime-time.inputBufferAdcTime
+                  )
+            tstr=tobj.strftime(soft_time_fmt)
+            dat_len=indata.shape[0]
+            #make new column for array
+            tcode=np.empty((dat_len,1),dtype=indata.dtype)
+            #check for floating point types
+            if(np.issubdtype(indata.dtype,np.floating)):
+                #scale 8 bit char values to full range
+                scale=1/(255.0)
+            else:
+                scale=1
+            #check if timecode can fit in our chunk
+            if(dat_len>=len(tstr)):
+                for i in range(len(tstr)):
+                    tcode[i]=ord(tstr[i])*scale
+                tcode[len(tstr):]=0
+            else:
+                tcode.fill(0xFF)
+            #queue values
+            self._qr.put_nowait(np.hstack((indata,tcode)))
+        else:
+            self._qr.put(indata.copy())
         
         
         
