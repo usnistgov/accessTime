@@ -71,13 +71,19 @@ Received audio clips can be stored in the wav folder or within a zipped file cal
 For trials that were deemed a failure, audio clips are named as `BAD{trial-number}_r{retry-number}_{clip-name}.wav`.
 
 #### 2loc_rx-data (optional)
-Contains data from the receive side of two location tests. This folder contains 
+Contains data from the receive side of two location tests. This should be a single .wav file for each test.
 
 #### 2loc_tx-data (optional)
 
+Contains data from the transmit side of two location tests. There should be one subfolder for each test that contains the Tx audio and timecode recordings in a siilar format to the wav directory. 
+
 #### recovery (optional)
 
+Contains files used to restart a test that has stopped. Format is dependant on test. This folder is not synced.
+
 #### error (optional)
+
+Contains information about why a test may have stopped. Information can be stored here that does not fit into a log entry but could aid in debugging.
 
 ### data_matfiles (legacy)
 Contains old data files from old test code. Do not use this in new code, not synced! 
