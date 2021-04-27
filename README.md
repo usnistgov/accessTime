@@ -62,7 +62,13 @@ Contains csv files for each test with all output measurement data. All measureme
 Data that has been reprocessed follows the same format but has a `R` prefix as well.
 
 #### wav (required)
-Contains folders for each test containing all transmit and receive audio.
+Contains folders for each test containing all transmit and receive audio. 
+
+Transmit audio clips should be named in the following convention: `Tx_{clip-name}.wav` and should always have the associated cutpoints file in the same directory if applicable named `Tx_{clip-name}.csv`.
+
+Received audio clips can be stored in the wav folder or within a zipped file called `audio.zip`. Each received audio file should be named in the following convention: `Rx{trial-number}_{clip-name}.wav`.
+
+For trials that were deemed a failure, audio clips are named as `BAD{trial-number}_r{retry-number}_{clip-name}.wav`.
 
 #### 2loc_rx-data (optional)
 Contains data from the receive side of two location tests. This folder contains 
