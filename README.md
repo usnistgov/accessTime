@@ -13,7 +13,7 @@ rm -r build
 git pull
 
 #run setup script
-py setup.py sdist bdist_wheel
+python setup.py sdist bdist_wheel
 ```
 To insall the package
 
