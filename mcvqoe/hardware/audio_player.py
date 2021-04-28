@@ -1,3 +1,5 @@
+import contextlib
+import datetime
 import math
 import os
 import queue
@@ -7,17 +9,203 @@ import sys
 import threading
 
 from fractions import Fraction
+from .. soft_timecode import soft_time_fmt
 
 import numpy as np
 import sounddevice as sd
 import soundfile as sf
 
-def cb_stereo_rec(indata, frames, time, status):
-    """This is called (from a separate thread) for each audio block."""
+soft_time_fmt='TM%j-%Y_%H-%M-%S.%f'
 
-    if status:
-        print(status, file=sys.stderr, flush=True)
-    q_rec.put(indata.copy())
+try:
+    import ctypes
+    import threading
+    class ThreadRecStop:
+        """
+        Class for stopping audio recording
+        
+        This class uses a thread running `input()` to get input from the user.
+        This a fallback RecStop method that should be available on most platforms
+            
+        Parameters
+        ----------
+        
+        Attributes
+        ----------
+        
+        See Also
+        --------
+        mcvqoe.hardware.AudioPlayer : ThreadRecStop works with AudioPlayer.record
+        
+        Examples
+        --------
+        
+        Record audio
+        >>>import mcvqoe.hardware.AudioPlayer
+        >>>ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
+        >>>ap.record('test.wav')
+        
+        """
+        def _input(self):
+            print('Recording, Press enter to stop')
+            #wait for input
+            input()
+            #user pressed enter, done
+            self._done=True
+            
+        def __enter__(self):
+            self._done=False
+            self.thread=threading.Thread(target=self._input,name='Console_Rec_input')
+            self.thread.start()
+            return self
+            
+        def is_done(self):
+            """
+            Method to check if recording should stop
+            
+            Returns
+            -------
+            bool
+                True if recording should stop, False otherwise
+            """
+            return self._done
+            
+        def __exit__(self, exc_type, exc_value, exc_traceback):    
+            if(self.thread.is_alive()):
+                thread_id = self.thread.get_ident()
+                res = ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id,
+                      ctypes.py_object(SystemExit))
+                if res > 1:
+                    ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
+                    print('Error while stopping thread')
+            return False
+except:
+    ThreadRecStop=None
+
+try:
+    import msvcrt 
+    class WinRecStop:
+        """
+        Class for stopping audio recording
+        
+        This class uses msvcrt to get keypresses. This will only work on Windows.
+            
+        Parameters
+        ----------
+        
+        Attributes
+        ----------
+        
+        See Also
+        --------
+        mcvqoe.hardware.AudioPlayer : WinRecStop works with AudioPlayer.record
+        
+        Examples
+        --------
+        
+        Record audio using WinRecStop to stop the recording
+        >>>import mcvqoe.hardware.AudioPlayer
+        >>>ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
+        >>>ap.record('test.wav',rec_stop=WinRecStop())
+        
+        """
+        def __enter__(self):
+            print('Recording running, press any key to stop')
+            return self
+            
+        def __exit__(self, exc_type, exc_value, exc_traceback): 
+            return False
+        
+        def is_done(self):
+            """
+            Method to check if recording should stop
+            
+            Returns
+            -------
+            bool
+                True if recording should stop, False otherwise
+            """
+            if(msvcrt.kbhit()):
+                #flush all keys
+                while msvcrt.kbhit():
+                    msvcrt.getch()
+                #key pressed, we are done
+                return True
+            return False
+except :
+    #there was a problem, set to None
+    WinRecStop=None
+    
+try:
+    import sys, tty, termios    
+    class TermiosRecStop:        
+        """
+        Class for stopping audio recording
+        
+        This class uses termios.tcsetattr to put the terminal into raw mode to
+        be able to check for characters in the input without blocking.
+        The termios library is only available on Unix systems.
+            
+        Parameters
+        ----------
+        
+        Attributes
+        ----------
+        
+        See Also
+        --------
+        mcvqoe.hardware.AudioPlayer : TermiosRecStop works with AudioPlayer.record
+        
+        Examples
+        --------
+        
+        Record audio using TermiosRecStop to stop the recording
+        >>>import mcvqoe.hardware.AudioPlayer
+        >>>ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
+        >>>ap.record('test.wav',rec_stop=TermiosRecStop())
+        
+        """
+        def __enter__(self):
+            print('Recording running, press any key to stop')
+            #get stdin file descriptor
+            self.fd = sys.stdin.fileno()
+            #save old settings to restore later
+            self.old_settings = termios.tcgetattr(fd)
+            #change settings for raw input
+            tty.setraw(sys.stdin.fileno())
+            return self
+            
+        def __exit__(self, exc_type, exc_value, exc_traceback): 
+            termios.tcsetattr(self.fd, termios.TCSADRAIN, self.old_settings)
+            return False
+        
+        def is_done(self):
+            """
+            Method to check if recording should stop
+            
+            Returns
+            -------
+            bool
+                True if recording should stop, False otherwise
+            """
+            ch = sys.stdin.read(1)
+            if(len(ch)==0):
+                return True
+            else:
+                return False
+except:
+    TermiosRecStop=None
+    
+#set a sensible default for recording stop
+if(TermiosRecStop):
+    DefaultRecStop=TermiosRecStop
+elif(WinRecStop):
+    DefaultRecStop=WinRecStop
+elif(ThreadRecStop):
+    DefaultRecStop=ThreadRecStop
+else:
+    #fallback to null context (terminate with ^C)
+    DefaultRecStop=contextlib.nullcontext()
 
 class AudioPlayer:
     """
@@ -59,8 +247,10 @@ class AudioPlayer:
         Audio device to use. can be found with find_device().
     rec_chans : dict
         Dictionary describing the recording. Dictionary keys should be one of
-        {'rx_voice','PTT_signal','timecode','tx_beep'}. The value for each entry
-        is the, zero based, channel number that should be recorded for each signal.
+        {'rx_voice','PTT_signal','timecode','tx_beep','soft_timecode'}. The
+        value for each entry is the, zero based, channel number that should be
+        recorded for each signal. For the special 'soft_timecode' channel, no
+        audio recording channel is used and the channel number should be 0.
     playback_chans : dict
         Dictionary describing the playback channels. Dictionary keys must be one 
         of {'tx_voice','start_signal'}. The value for each entry is the, zero
@@ -83,7 +273,7 @@ class AudioPlayer:
     >>>ap.rec_chans={'rx_voice':0,'PTT_signal':1}
     >>>ap.play_record(tx_voice,'test.wav')
     """
-    def __init__(self, fs=int(48e3), blocksize=512, buffersize=20, overplay=1.0,rec_chans={'rx_voice':0},playback_chans={'tx_voice':0}):
+    def __init__(self, fs=int(48e3), blocksize=512, buffersize=20, overplay=1.0,rec_chans={'rx_voice':0},playback_chans={'tx_voice':0},rec_stop=DefaultRecStop()):
         
         self.sample_rate = fs
         self.blocksize = blocksize
@@ -92,6 +282,7 @@ class AudioPlayer:
         self.device = AudioPlayer.find_device()
         self.rec_chans=rec_chans
         self.playback_chans=playback_chans
+        self.rec_stop=rec_stop
     
     #TODO allow different device defaults
     @staticmethod
@@ -103,42 +294,65 @@ class AudioPlayer:
             if(d['max_input_channels']>0 and d['max_output_channels']>0 and  'UMC' in d['name']):
                 return d['name']
            
-    def record_stereo(self, filename):
+    def record(self, filename):
         """
-        Record a stereo file and save to 'filename'. Used for 2loc Rx.
-        
-        ...
+        Record audio based on rec_chans.
         
         Parameters
         ----------
         filename : str
-            The file extension to write audio to.
+            The file name to write audio to.
 
         """
+         
+        
+        #get the highest numbered channel
+        #this will be the number of channels that will be played
+        #account for zero based indexing
+        chans=max(self.rec_chans.values())+1
+
+        (rec_map,rec_names)=self._get_recording_map()
+        
+        #check if we are "recording" time data
+        if('soft_timecode' in self.rec_chans):
+            self._time_encode=True
+            #find soft timecode channel
+            soft_idx=rec_names.index('soft_timecode')
+            #soft timecode will be appended
+            #it's index will be the number of channels
+            rec_map[soft_idx]=chans
+        else:
+            self._time_encode=False
+
+        # Queue for recording input
+        self._qr = queue.Queue()        
         
         sd.default.device = self.device
         
-        global q_rec
-        q_rec = queue.Queue()
+        #set loop var to Fals (keep looping)
+        rec_done=False
         
-        try:
-
-            # Make sure the file is opened before recording anything:
-            with sf.SoundFile(filename, mode='x', samplerate=self.sample_rate,
-                              channels=2) as file:
-                with sd.InputStream(samplerate=self.sample_rate, device=sd.default.device,
-                                    channels=2, callback=cb_stereo_rec):
+        # Make sure the file is opened before recording anything:
+        with sf.SoundFile(filename, mode='x', samplerate=self.sample_rate,
+                          channels=len(rec_names)) as file:
+            with self.rec_stop ,\
+                sd.InputStream(samplerate=self.sample_rate, device=sd.default.device,
+                                channels=chans, callback=self._cb_rec):
+                
+                while not rec_done:
+                    rx_dat=self._qr.get()
+                    file.write(rx_dat[:,rec_map])
                     
-                    print('#' * 80, flush=True)
-                    print('Recording started, please press Ctrl+C to stop the recording', flush=True)
-                    print('#' * 80, flush=True)
-                    while True:
-                        file.write(q_rec.get())
-                        
-        except KeyboardInterrupt:
-            print('\nRecording finished')
-        except Exception as e:
-            sys.exit(type(e).__name__ + ': ' + str(e))
+                    #check if we are done
+                    rec_done=getattr(self.rec_stop,'is_done',lambda : False)()
+                    
+            # Make sure to write any audio data still left in the recording queue
+            while (self._qr.empty() != True):
+                rx_dat=self._qr.get()
+                rec_file.write(rx_dat[:,rec_map])
+                
+        #return the channels in the order recorded in the file
+        return rec_names
 
 
     def _get_recording_map(self):
@@ -245,7 +459,18 @@ class AudioPlayer:
 
         (rec_map,rec_names)=self._get_recording_map()
         
-         # Set device and number of I/O channels
+        #check if we are "recording" time data
+        if('soft_timecode' in self.rec_chans):
+            self._time_encode=True
+            #find soft timecode channel
+            soft_idx=rec_names.index('soft_timecode')
+            #soft timecode will be appended
+            #it's index will be the number of channels
+            rec_map[soft_idx]=rec_chan
+        else:
+            self._time_encode=False
+
+        # Set device and number of I/O channels
         sd.default.device = self.device
         sd.default.channels = [rec_chan,pb_chan]
                 
@@ -325,10 +550,35 @@ class AudioPlayer:
         Will run as long as there is audio data to play.
         
         """
+        if(self._time_encode):
+            #get time
+            tobj=datetime.datetime.utcnow()
+            tobj-=datetime.timedelta(
+                seconds=time.currentTime-time.inputBufferAdcTime
+                  )
+            tstr=tobj.strftime(soft_time_fmt)
+            dat_len=indata.shape[0]
+            #make new column for array
+            tcode=np.empty((dat_len,1),dtype=indata.dtype)
+            #check for floating point types
+            if(np.issubdtype(indata.dtype,np.floating)):
+                #scale 8 bit char values to full range
+                scale=1/(255.0)
+            else:
+                scale=1
+            #check if timecode can fit in our chunk
+            if(dat_len>=len(tstr)):
+                for i in range(len(tstr)):
+                    tcode[i]=ord(tstr[i])*scale
+                tcode[len(tstr):]=0
+            else:
+                tcode.fill(0xFF)
+            #queue values
+            self._qr.put_nowait(np.hstack((indata,tcode)))
+        else:
+            # Record the output
+            self._qr.put_nowait(indata.copy())
 
-        # Record the output
-        self._qr.put_nowait(indata.copy())
-        
         if status.output_underflow:
             print('Output underflow: increase blocksize?', file=sys.stderr)
             raise sd.CallbackStop
@@ -347,3 +597,44 @@ class AudioPlayer:
         else:
             outdata[:,self._playback_map] = data
             outdata[:,self._playback_silent] = 0
+                    
+    def _cb_rec(self,indata, frames, time, status):
+        """
+        Callback function for the stream.
+        Will run as long as there is audio data to play.
+        
+        """
+
+        if status:
+            print(status, file=sys.stderr, flush=True)
+            
+        if(self._time_encode):
+            #get time
+            tobj=datetime.datetime.utcnow()
+            tobj-=datetime.timedelta(
+                seconds=time.currentTime-time.inputBufferAdcTime
+                  )
+            tstr=tobj.strftime(soft_time_fmt)
+            dat_len=indata.shape[0]
+            #make new column for array
+            tcode=np.empty((dat_len,1),dtype=indata.dtype)
+            #check for floating point types
+            if(np.issubdtype(indata.dtype,np.floating)):
+                #scale 8 bit char values to full range
+                scale=1/(255.0)
+            else:
+                scale=1
+            #check if timecode can fit in our chunk
+            if(dat_len>=len(tstr)):
+                for i in range(len(tstr)):
+                    tcode[i]=ord(tstr[i])*scale
+                tcode[len(tstr):]=0
+            else:
+                tcode.fill(0xFF)
+            #queue values
+            self._qr.put_nowait(np.hstack((indata,tcode)))
+        else:
+            self._qr.put(indata.copy())
+        
+        
+        
