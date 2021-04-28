@@ -40,10 +40,10 @@ try:
         Examples
         --------
         
-        Record audio using ThreadRecStop to stop the recording
+        Record audio
         >>>import mcvqoe.hardware.AudioPlayer
         >>>ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
-        >>>ap.record('test.wav',rec_stop=ThreadRecStop())
+        >>>ap.record('test.wav')
         
         """
         def _input(self):
@@ -273,7 +273,7 @@ class AudioPlayer:
     >>>ap.rec_chans={'rx_voice':0,'PTT_signal':1}
     >>>ap.play_record(tx_voice,'test.wav')
     """
-    def __init__(self, fs=int(48e3), blocksize=512, buffersize=20, overplay=1.0,rec_chans={'rx_voice':0},playback_chans={'tx_voice':0}):
+    def __init__(self, fs=int(48e3), blocksize=512, buffersize=20, overplay=1.0,rec_chans={'rx_voice':0},playback_chans={'tx_voice':0},rec_stop=DefaultRecStop()):
         
         self.sample_rate = fs
         self.blocksize = blocksize
@@ -282,6 +282,7 @@ class AudioPlayer:
         self.device = AudioPlayer.find_device()
         self.rec_chans=rec_chans
         self.playback_chans=playback_chans
+        self.rec_stop=rec_stop
     
     #TODO allow different device defaults
     @staticmethod
@@ -293,7 +294,7 @@ class AudioPlayer:
             if(d['max_input_channels']>0 and d['max_output_channels']>0 and  'UMC' in d['name']):
                 return d['name']
            
-    def record(self, filename,rec_stop=DefaultRecStop()):
+    def record(self, filename):
         """
         Record audio based on rec_chans.
         
@@ -334,7 +335,7 @@ class AudioPlayer:
         # Make sure the file is opened before recording anything:
         with sf.SoundFile(filename, mode='x', samplerate=self.sample_rate,
                           channels=chans) as file:
-            with rec_stop ,\
+            with self.rec_stop ,\
                 sd.InputStream(samplerate=self.sample_rate, device=sd.default.device,
                                 channels=chans, callback=self._cb_rec):
                 
@@ -343,7 +344,7 @@ class AudioPlayer:
                     file.write(rx_dat[:,rec_map])
                     
                     #check if we are done
-                    rec_done=getattr(rec_stop,'is_done',lambda : False)()
+                    rec_done=getattr(self.rec_stop,'is_done',lambda : False)()
                     
             # Make sure to write any audio data still left in the recording queue
             while (self._qr.empty() != True):
