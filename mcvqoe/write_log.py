@@ -26,9 +26,13 @@ def fill_log(test_obj,git_path=None):
     
     #---------------------------[RadioInterface info]---------------------------
     
-    # Get ID and Version number from RadioInterface
-    info['RI version']  = test_obj.ri.get_version()
-    info['RI id'] = test_obj.ri.get_id()        
+    try:
+        # Get ID and Version number from RadioInterface
+        info['RI version']  = test_obj.ri.get_version()
+        info['RI id'] = test_obj.ri.get_id()        
+    except AttributeError:
+        #no RI for this object
+        pass
         
     #---------------------[Get traceback for calling info]---------------------
     
