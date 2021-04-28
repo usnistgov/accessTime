@@ -13,7 +13,7 @@ import time
 
 
 
-def single_play(ri,ap,audio_file=None,playback=False,ptt_wait=0.68):
+def single_play(ri,ap,audio_file=None,playback=False,ptt_wait=0.68,save_name=None):
     """
     Play an audio clip through a PTT system once.
     
@@ -52,8 +52,12 @@ def single_play(ri,ap,audio_file=None,playback=False,ptt_wait=0.68):
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         
-        #set filename of recording
-        rec_file=os.path.join(tmp_dir,'test.wav')
+        if(save_name):
+            #save in user specified location
+            rec_file=save_name
+        else:
+            #set filename of recording
+            rec_file=os.path.join(tmp_dir,'test.wav')
         
         #request access to channel
         ri.ptt(True)
@@ -101,6 +105,11 @@ def main():
     parser.add_argument('-w', '--PTT-wait', type=float, default=0.68,
                         metavar='T',dest='ptt_wait',
                         help='Time to wait between pushing PTT and playing audio')
+    parser.add_argument('-P', '--playback', default=False,action='store_true',
+                        help='Playback audio after it is recorded')
+    parser.add_argument('-o', '--output', default=None,type=str,
+                        help='Save the recording to a file')
+    
     
                         
     #-----------------------------[Parse arguments]-----------------------------
@@ -130,7 +139,8 @@ def main():
     
         print(f'Playing audio')
         
-        single_play(ri,ap,audio_file=f,ptt_wait=args.ptt_wait)
+        single_play(ri,ap,audio_file=f,ptt_wait=args.ptt_wait,
+                    playback=args.playback,save_name=args.output)
         
     print('Complete')   
 
