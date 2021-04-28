@@ -334,7 +334,7 @@ class AudioPlayer:
         
         # Make sure the file is opened before recording anything:
         with sf.SoundFile(filename, mode='x', samplerate=self.sample_rate,
-                          channels=chans) as file:
+                          channels=len(rec_names)) as file:
             with self.rec_stop ,\
                 sd.InputStream(samplerate=self.sample_rate, device=sd.default.device,
                                 channels=chans, callback=self._cb_rec):
