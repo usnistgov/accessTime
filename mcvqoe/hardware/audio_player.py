@@ -232,6 +232,11 @@ class AudioPlayer:
         Dictionary describing the playback channels. Dictionary keys must be one 
         of {'tx_voice','start_signal'}. The value for each entry is the, zero
         based, channel number that each signal should be played on.
+    rec_stop : ContextManager
+        Context manager used to test when a recording should be stopped.
+        `rec_stop` is used as a context manager that is entered when the recording
+        starts and exited when the recording stops. The `is_done` method is called
+        to check if the recording should be terminated.
     
     Attributes
     ----------
@@ -255,6 +260,11 @@ class AudioPlayer:
         Dictionary describing the playback channels. Dictionary keys must be one 
         of {'tx_voice','start_signal'}. The value for each entry is the, zero
         based, channel number that each signal should be played on.
+    rec_stop : ContextManager
+        Context manager used to test when a recording should be stopped.
+        `rec_stop` is used as a context manager that is entered when the recording
+        starts and exited when the recording stops. The `is_done` method is called
+        to check if the recording should be terminated.
         
     See Also
     --------
