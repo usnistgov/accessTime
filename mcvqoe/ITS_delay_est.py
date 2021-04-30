@@ -869,7 +869,7 @@ def short_seg_cor(SDVin,x_speech,y_speech,len_t,len_b,len_s):
             elif loc==1:
                 #Join current segment to right neighbor segment
                 #to create new combined segment
-                SDVin=SDVin[np.setdiff1d[0:n,ptr],:]
+                SDVin=SDVin[np.setdiff1d(range(0,n),ptr),:]
                 #Set status on the new combined segment to 0 so it receives
                 #further consideration
                 SDVin[ptr,4]=False
