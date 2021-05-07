@@ -92,6 +92,11 @@ def local_copy(test_names, test_type, local_path = None,network_path = None, tx_
     # Make local path if it doesn't exist
     os.makedirs(local_path,exist_ok = True)
     
+    #---------------------[Ensure local path has proper subdirs]---------------
+    if(not os.path.exists(os.path.join(local_path,'csv'))):
+        os.makedirs(os.path.join(local_path,'csv'))
+    if(not os.path.exists(os.path.join(local_path,'wav'))):
+        os.makedirs(os.path.join(local_path,'wav'))
     #--------------------[Test CSV files]--------------------------------------------
     csv_path = os.path.join(network_path,'csv')
     csv_files = os.listdir(csv_path)
