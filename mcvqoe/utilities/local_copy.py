@@ -110,7 +110,7 @@ def local_copy(test_names, test_type, local_path = None,network_path = None, tx_
     #--------------------[Cutpoint Files]----------------------------------
     for tname in test_names:
         #Remmove R if reprocessed data
-        tname = tname.replace('R','')
+        tname = tname.replace('Rcapture','capture')
         # Path to wav folder
         wav_path = os.path.join(network_path,'wav',tname)
         if(not os.path.exists(wav_path)):
