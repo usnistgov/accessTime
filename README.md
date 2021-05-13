@@ -15,7 +15,7 @@ git pull
 #run setup script
 python setup.py sdist bdist_wheel
 ```
-To insall the package
+To install the package
 
 ```
 #remove old package
@@ -91,6 +91,16 @@ Contains old data files from old test code. Do not use this in new code, not syn
 ## Date format
 Put something here about dates in filenames...
 
+# Radio Interface Firmware
+In order to update the firmware currently you must:
+* Download Code Composer Studio (CCS)
+* Clone from gitlab 
+* Compile
+* Download to RI board
+
+Future plans: 
+* Write python code to update firmware automagically.
+* Add a check to radio interface class that complains if your FW is out of date.
 
 # License
 
