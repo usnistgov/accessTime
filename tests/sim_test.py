@@ -86,12 +86,12 @@ class AudioTest(unittest.TestCase):
                     
                     fs_file, rec_dat= scipy.io.wavfile.read(test_name)
                     
-                    dly_res = mcvqoe.ITS_delay_est(audio, rec_dat, "f", fsamp=fs_file,min_corr=min_corr)
+                    pos,dly = mcvqoe.ITS_delay_est(audio, rec_dat, "f", fs=fs_file,min_corr=min_corr)
                     
                     #check if we got a value
-                    self.assertFalse(not np.any(dly_res))
+                    self.assertTrue(pos)
                     
-                    estimated_m2e_latency=dly_res[1] / fs_file
+                    estimated_m2e_latency=dly / fs_file
                     
                     #check that we are within 1%
                     self.assertTol(estimated_m2e_latency,m2e,0.01)
