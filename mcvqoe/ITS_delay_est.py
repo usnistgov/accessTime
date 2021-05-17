@@ -37,11 +37,14 @@ def ITS_delay_est(x_speech,y_speech,mode, fs=8000, dlyBounds = [np.NINF, np.inf]
     
     Returns
     -------
-    array :
-        Two column array. The first column holds the end of each delay 
-        estimate segment in samples and the second column holds the 
-        corresponding delay estimate in samples.
-    
+    pos : int or tuple of ints
+        End of each delay estimate segment in samples. If mode is 'f' this will
+        be an int (only one delay) otherwise pos will be a tuple of ints.
+    dly : int or tuple of ints
+        Delay estimates corresponding to the segments in pos. If mode is 'f'
+        this will be an int, otherwise dly will be a tuple of ints the same
+        length as pos.
+        
     See Also
     --------
     mcvqoe.sliding_delay_estimates : Uses ITS_delay_est.
@@ -56,7 +59,7 @@ def ITS_delay_est(x_speech,y_speech,mode, fs=8000, dlyBounds = [np.NINF, np.inf]
     Simple fixed delay example.
     >>> fixed_delay_speech=np.concatenate((np.zeros(shape=[17]),speech))
     >>> mcvqoe.ITS_delay_est(speech,fixed_delay_speech,'f')
-    array([161635,     17])
+    (161635, 17)
     
     This means that the single delay estimate of 17 samples applies to samples
     with indices [0,161635] in y_speech. 
@@ -64,12 +67,16 @@ def ITS_delay_est(x_speech,y_speech,mode, fs=8000, dlyBounds = [np.NINF, np.inf]
     >>> var_delay_speech=np.concatenate((speech[2:12000],np.zeros(shape=[417]),
     ...                                  speech[12015:]))
     >>> mcvqoe.ITS_delay_est(speech,var_delay_speech,'u')
-    array([[ 12184,     -2],
-           [162018,    400]])
+   ((12184, 162018), (-2, 400))
            
     This means that for samples 0 through 12184, the delay is estimated to be -2
     samples. For samples 12184 through 162018, the delay is estimated to be
     400 samples.
+
+    If 'u' mode is used, a tuple of tuples is always returned, even if one delay
+    is found.
+    >>> mcvqoe.ITS_delay_est(speech,fixed_delay_speech,'u')
+    ((161635,), (17,))
     
     Example with too small an input signal.
     >>>ITS_delay_est(speech,speech[:1000],'f')
@@ -132,6 +139,11 @@ def ITS_delay_est(x_speech,y_speech,mode, fs=8000, dlyBounds = [np.NINF, np.inf]
         fxd_fine_delay=fxd_fine_dly_est(comp_x_speech,comp_y_speech)
         #Find total delay
         D_fxd=tau_0+fxd_fine_delay
+        
+        #check if we are in fixed mode (not 'u')
+        if(mode =='f'):
+            #nothing more to do, bail early
+            return (int((len(y_speech)-1)*(fs/8000)), int(D_fxd*(fs/8000)))
     #-------Additional stages for the variable and unknown delay cases---------#
     if mode=='v' or mode=='u':
         #---------------------Speech Activity Detection------------------------#
@@ -178,11 +190,14 @@ def ITS_delay_est(x_speech,y_speech,mode, fs=8000, dlyBounds = [np.NINF, np.inf]
     if mode=='v':
         Delay_est=extend_val_res(SDV)    #Extrapolate variable delay estimate
     elif mode=='f':
-        Delay_est=[len(y_speech)-1, D_fxd]   #Reformat fixed delay estimate
+        Delay_est=np.array([[len(y_speech)-1, D_fxd]])   #Reformat fixed delay estimate
     else:   #Mode is 't' for terminate
           #The output [0 0] indicates no delay estimation was possible
         Delay_est=[0, 0] 
-    return (np.array(Delay_est)*(fs/8000)).astype(np.int)
+    #convert to input sample rate and truncate to integer
+    Delay_est = (np.array(Delay_est)*(fs/8000)).astype(np.int)
+    #return results as a tuple of tuples
+    return (tuple(Delay_est[:,0]),tuple(Delay_est[:,1]))
     #==========================================================================
 
 def active_speech_level(x,fs=8000):
