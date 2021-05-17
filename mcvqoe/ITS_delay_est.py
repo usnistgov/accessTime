@@ -56,14 +56,14 @@ def ITS_delay_est(x_speech,y_speech,mode, fs=8000, dlyBounds = [np.NINF, np.inf]
     Simple fixed delay example.
     >>> fixed_delay_speech=np.concatenate((np.zeros(shape=[17]),speech))
     >>> mcvqoe.ITS_delay_est(speech,fixed_delay_speech,'f')
-    array([161635,     17], dtype=int64)
+    array([161635,     17])
     
     This means that the single delay estimate of 17 samples applies to samples
     with indices [0,161635] in y_speech. 
     
     >>> var_delay_speech=np.concatenate((speech[2:12000],np.zeros(shape=[417]),
     ...                                  speech[12015:]))
-    >>> mcvqoe.ITS_delay_est(speech,var_delay_speech,'u').astype('int')
+    >>> mcvqoe.ITS_delay_est(speech,var_delay_speech,'u')
     array([[ 12184,     -2],
            [162018,    400]])
            
@@ -182,7 +182,7 @@ def ITS_delay_est(x_speech,y_speech,mode, fs=8000, dlyBounds = [np.NINF, np.inf]
     else:   #Mode is 't' for terminate
           #The output [0 0] indicates no delay estimation was possible
         Delay_est=[0, 0] 
-    return np.array(Delay_est) * int(fs/8000)
+    return (np.array(Delay_est)*(fs/8000)).astype(np.int)
     #==========================================================================
 
 def active_speech_level(x,fs=8000):
