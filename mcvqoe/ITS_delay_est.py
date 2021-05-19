@@ -10,12 +10,12 @@ def ITS_delay_est(x_speech,y_speech,mode, fs=8000, dlyBounds = [np.NINF, np.inf]
     y_speech relative to the speech samples in x_speech. Typically y_speech 
     contains samples from the output of some system under test, and x_speech 
     contains the corresponding input samples. Delay_est then holds estimates 
-    of the delay of that system under test.    
+    of the delay of that system under test.
     
     Written by Stephen Voran at the Institute for Telecommunication Sciences,
     325 Broadway, Boulder, Colorado, USA, svoran@its.bldrdoc.gov
     May 10,2004
-    
+
     Parameters
     ----------
     x_speech : array
@@ -34,7 +34,7 @@ def ITS_delay_est(x_speech,y_speech,mode, fs=8000, dlyBounds = [np.NINF, np.inf]
     min_corr : float, default = 0
         Minimum correlation threshold. If the coarse delay correlation is lower
         than min_corr, the delay estimate is determined to be unsuccessful.
-    
+
     Returns
     -------
     pos : int or tuple of ints
@@ -53,10 +53,12 @@ def ITS_delay_est(x_speech,y_speech,mode, fs=8000, dlyBounds = [np.NINF, np.inf]
     Examples
     --------
     load in speech file for examples
+    
     >>> speechf=io.BytesIO(pkgutil.get_data('mcvqoe','audio_clips/test.wav'))
     >>> (fs_speech,speech)=scipy.io.wavfile.read(speechf)
     
     Simple fixed delay example.
+    
     >>> fixed_delay_speech=np.concatenate((np.zeros(shape=[17]),speech))
     >>> mcvqoe.ITS_delay_est(speech,fixed_delay_speech,'f')
     (161635, 17)
@@ -67,22 +69,24 @@ def ITS_delay_est(x_speech,y_speech,mode, fs=8000, dlyBounds = [np.NINF, np.inf]
     >>> var_delay_speech=np.concatenate((speech[2:12000],np.zeros(shape=[417]),
     ...                                  speech[12015:]))
     >>> mcvqoe.ITS_delay_est(speech,var_delay_speech,'u')
-   ((12184, 162018), (-2, 400))
-           
+    ((12184, 162018), (-2, 400))
+    
     This means that for samples 0 through 12184, the delay is estimated to be -2
     samples. For samples 12184 through 162018, the delay is estimated to be
     400 samples.
-
+    
     If 'u' mode is used, a tuple of tuples is always returned, even if one delay
     is found.
+    
     >>> mcvqoe.ITS_delay_est(speech,fixed_delay_speech,'u')
     ((161635,), (17,))
     
     Example with too small an input signal.
-    >>>ITS_delay_est(speech,speech[:1000],'f')
+    
+    >>> ITS_delay_est(speech,speech[:1000],'f')
     array([0, 0])
     """
-    
+
     #----------------------------Parse Arguments--------------------------------
     x_speech = np.array(x_speech, dtype=np.float64)
     if len(x_speech) == 0 or x_speech.ndim != 1:
