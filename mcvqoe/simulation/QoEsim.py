@@ -1,15 +1,23 @@
 
-import os.path
-import scipy.io.wavfile as wav
-import numpy as np
-import tempfile
-import shutil
-import scipy.signal
-import warnings
-import subprocess
 import mcvqoe
+import os.path
+import tempfile
+import scipy.io.wavfile
+import scipy.signal
+import shutil
+import subprocess
+import sys
+import warnings
+
+import numpy as np
+
 from mcvqoe import audio_float
 from mcvqoe.ITS_delay_est import active_speech_level
+
+if sys.version_info < (3, 10):
+    from importlib_metadata import entry_points
+else:
+    from importlib.metadata import entry_points
 
 class QoEsim:
     """
@@ -138,6 +146,15 @@ PTT signal on channel 1.
                  rec_chans={'rx_voice':0},
                  playback_chans={'tx_voice':0}
                  ):
+
+        #locate any channel plugins installed
+        chans=entry_points()['mcvqoe.channel']
+        
+        self.chan_types={}
+        self.chan_mods={}
+        for c in chans:
+            #add to channel dict
+            self.chan_types[c.name]=c
         
         self.debug=debug
         self.PTT_state=[False,]*2
@@ -158,8 +175,6 @@ PTT signal on channel 1.
         self.post_impairment=None
         self.channel_impairment=None
         self.dvsi_path='pcnrtas'
-        #TODO : determine good delays for analog and amr
-        self.standard_delay={'clean' : 0,'p25': 348/8e3,'analog' : 0,'amr-wb':0.0059,'amr-nb':0.0054}
         #try to find ffmpeg in the path
         self.fmpeg_path=shutil.which('ffmpeg')
         #TODO : set based on tech
@@ -455,156 +470,6 @@ PTT signal on channel 1.
         self.ptt(False)
         self.led(1, False)
         
-    # =====================[audio channel simulation function]=====================
-    def simulate_audio_channel(self,tx_data):
-        """
-        Simulate an audio channel based on channel settings.
-        
-        This encodes and decodes audio for the channel type given in
-        'channel_tech'. 
-        
-        Parameters
-        ----------
-        tx_data : array
-            Audio samples to pass through the channel.
-            
-        Returns
-        -------
-        array
-            Audio data that has passed through a simulated channel.
-            
-        See Also
-        --------
-        mcvqoe.hardware.RadioInterface.play_record : Where this function is used.
-
-        Examples
-        --------
-        Pass audio data, 'tx_dat', through a channel to get 'rx_dat'.
-        >>>sim_obj=mcvqoe.simulation.QoEsim()
-        >>>rx_dat=sim_obj.simulate_audio_channel(tx_dat)
-        """
-        #add pre channel impairments
-        if(self.pre_impairment):
-            tx_dat=self.pre_impairment(tx_data,self.sample_rate)
-    
-        # for a clean vocoder, write the rx signal as is
-        if self.channel_tech == "clean":
-            
-            if(self.channel_impairment):
-                warnings.warn('There is no channel for the \'clean\' option. can not use channel_impairment')
-            if(self.channel_rate):
-                warnings.warn('For \'clean\' there is no rate. \'channel_rate\' option ignored')
-            
-            rx_data = tx_data
-        
-        elif self.channel_tech == "analog":
-            # do later
-            pass
-        
-        elif self.channel_tech == "p25":
-            rate=self.channel_rate;
-            
-            if(not rate):
-                rate='fr'
-            
-            if(rate not in ['fr','hr']):
-                raise ValueError(f'Invalid rate {rate}')
-                
-            channel_data = self.p25encode(tx_data, self.sample_rate,rate)
-            
-            #apply channel impairments
-            if(self.channel_impairment):
-                channel_data=self.channel_impairment(channel_data)
-            
-            rx_data = self.p25decode(channel_data, self.sample_rate,rate)
-        
-        # simulate passing the signal thru an AMR WB vocoder by using ffmpeg
-        elif self.channel_tech.startswith("amr"):
-            #get rate from option
-            rate=self.channel_rate
-            
-            if(self.channel_tech == "amr-nb"):
-                codec='amr_nb'
-                audio_rate='8k'
-            else:
-                codec='amr_wb'
-                audio_rate='16k'
-            
-            #check if rate given
-            if(not rate):
-                if(codec == 'amr_wb'):
-                    #set default rate
-                    rate='23.85k'
-                else:
-                    #set default rate
-                    rate='12.2k'
-            
-            #set log level here for easy testing
-            log_level='error'
-            
-            with tempfile.TemporaryDirectory() as temp_dir:
-                # create paths for temporary wav and amr outputs
-                temp_wav = os.path.join(temp_dir, "temp_out.wav")
-                temp_amr = os.path.join(temp_dir, "temp_out.amr")
-                
-                # write the rx signal as a wav so it can be converted to amr
-                wav.write(temp_wav, int(self.sample_rate), tx_data)
-                
-                # use ffmpeg to convert rx wav file to rx wav file
-                # explantion of flags:
-                # -hide_banner (supresses excessive terminal output)
-                # -loglevel [log_level] (supresses excessive terminal output)
-                # -channel_layout mono (specifies that the signal is mono)
-                # -i [temp_wav] (defines input file as temp_wav)
-                # -ar [audio_rate] (changes the sample rate as required for amr conversion)
-                # -b:a 23.85k (changes the bit rate to 23.85k - highest bit rate
-                #              allowed for amr conversion)
-                # -codec [codec] (specifies conversion to amr)
-                # -y [temp_amr] (specified output file as temp_amr)
-                enc_args=[self.fmpeg_path,'-hide_banner','-loglevel',log_level,
-                        '-channel_layout','mono','-i',temp_wav,'-ar',audio_rate,
-                        '-b:a',str(rate),'-codec',codec,'-y',temp_amr]
-                if(self.print_args):
-                    print(f'MRT encoding args : {" ".join(enc_args)}')
-                result=subprocess.run(enc_args)
-                #check for error
-                if(result.returncode):
-                    raise RuntimeError('ffmpeg encountered an error during encoding')
-                
-                #apply channel impairments
-                if(self.channel_impairment):
-                    #TODOD : load channel data
-                    channel_data=self.channel_impairment(channel_data)
-                    #TODOD : write channel data
-                    
-                
-                # convert temp amr file back to wav, and resample to original sample rate
-                dec_args=[self.fmpeg_path,'-hide_banner','-loglevel',log_level,
-                        '-channel_layout','mono','-codec',codec,'-i',temp_amr,
-                        '-ar',str(int(self.sample_rate)),'-y',temp_wav]
-                if(self.print_args):
-                    print(f'MRT decoding args : {" ".join(dec_args)}')
-                result=subprocess.run(dec_args)
-                #check for error
-                if(result.returncode):
-                    raise RuntimeError('ffmpeg encountered an error during decoding')
-                    
-                # read data from new rx wav file
-                _, file_data = wav.read(temp_wav)
-                
-                #scale data to +1 to -1
-                rx_data=audio_float(file_data)
-        
-        else:        
-            raise ValueError(f'"{self.channel_tech}" is not a valid technology')
-        
-        
-        #add post channel impairments
-        if(self.post_impairment):
-            rx_dat=self.post_impairment(rx_data,self.sample_rate)
-    
-        return rx_data
-        
     # =====================[Find device function]=====================
     def find_device(self):
         """
@@ -689,13 +554,24 @@ PTT signal on channel 1.
                 raise RuntimeError(f'{__class__} can not generate recordings of type \'{k}\'')
             outputs.append(k)
 
-
+            
         try:
-            #get offset for channel technology
-            m2e_offset=self.standard_delay[self.channel_tech]
+            chan_mod=self.chan_mods[self.channel_tech]
         except KeyError:
-            #a key error means we used a bad technology
-            raise ValueError(f'"{self.channel_tech}" is not a valid technology') from None
+            try:
+                chan_info=self.chan_types[self.channel_tech]
+            except KeyError:
+                techs=self.chan_types.keys()
+                raise ValueError(f'Unknown channel tech "{self.channel_tech}" valid channels are {techs}')
+            
+            #load module for channel
+            chan_mod=chan_info.load()
+            #save module for later
+            #TODO : is this needed? good idea?
+            self.chan_mods[self.channel_tech]=chan_mod
+
+        #get delay offset for channel technology
+        m2e_offset=self.chan_mods[self.channel_tech].standard_delay
             
         #calculate values in samples
         overplay_samples=int(self.overplay*self.sample_rate)
@@ -745,9 +621,17 @@ PTT signal on channel 1.
         #mute portion of tx_data that occurs prior to triggering of PTT
         muted_samples = int(access_delay_samples + ptt_st_dly_samples)
         muted_tx_data_with_overplay = tx_data_with_overplay_and_noise[muted_samples:]
+
+        #add pre channel impairments
+        if(self.pre_impairment):
+            muted_tx_data_with_overplay=self.pre_impairment(muted_tx_data_with_overplay,self.sample_rate)
+
+        #call audio channel function from module
+        channel_voice=chan_mod.simulate_audio_channel(self,muted_tx_data_with_overplay)
         
-        #generate raw rx_data from audio channel
-        channel_voice = self.simulate_audio_channel(muted_tx_data_with_overplay)
+        #add post channel impairments
+        if(self.post_impairment):
+            channel_voice=self.post_impairment(channel_voice,self.sample_rate)
         
         #generate silent noise section comprised of ptt_st_dly, access delay and m2e latency audio snippets
         silence_length = int(ptt_st_dly_samples + access_delay_samples + m2e_latency_samples)
@@ -786,81 +670,6 @@ PTT signal on channel 1.
                 raise RuntimeError('Internal error')
 
         #write out audio file
-        wav.write(out_name, int(self.sample_rate), rx_data)
+        scipy.io.wavfile.write(out_name, int(self.sample_rate), rx_data)
         
         return outputs
-
-    # =====================[p25 encode function]=====================
-    def p25encode(self,x, fs,rate='fr'):
-        # given a signal x with fs: fs, returns encoded p25
-
-        # resample signal to 8000 Hz, and scale by 2^15
-        new_len = int(len(x) * 8000 / fs)
-        x_rs = scipy.signal.resample(x, new_len)
-        
-        #get info about int16
-        info=np.iinfo(np.int16)
-        
-        #scale to fill new range
-        x_scaled = (x_rs * min(abs(info.min),info.max))
-        #clip to limits
-        x_clipped = np.clip(x_scaled,info.min,info.max)
-        
-        if((x_scaled!=x_clipped).any()):
-            warnings.warn('Clipping detected in P25 encode')
-        
-        #convert convert to integers
-        x_int16=x_clipped.astype(np.int16)
-        
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # create paths for audio and encoded files
-            audio_name = os.path.join(temp_dir, "audio")
-            enc_name = os.path.join(temp_dir, "encoding.bin")
-
-            # write audio file
-            x_int16.tofile(audio_name)
-
-            dvsi_args=[self.dvsi_path,'-enc','-'+rate,audio_name,enc_name]
-            if(self.print_args):
-                print(f'dvsi encode arguments : {" ".join(dvsi_args)}')
-
-            # encode to enc_name
-            subprocess.run(dvsi_args,stdout=subprocess.DEVNULL)
-
-            # read p25 encoding
-            y = np.fromfile(enc_name, np.uint8)
-
-        # convert p25 encoding to logical values
-        y = y.astype(np.bool_)
-        return y
-
-
-    # =====================[p25 decode function]=====================
-
-
-    def p25decode(self,x, target_fs,rate='fr'):
-        # assumes x is a signal with fs: 8000
-        # deocde signal and resample to target_fs
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            enc_name = os.path.join(temp_dir, "encoding.bin")
-            audio_name = os.path.join(temp_dir, "audio")
-            # values are either 0 or 255 convert accordingly
-            x = (255 * x).astype(np.uint8)
-            # write out temporary audio file
-            x.tofile(enc_name)
-            
-            dvsi_args=[self.dvsi_path,'-dec','-'+rate,enc_name,audio_name]
-            if(self.print_args):
-                print(f'dvsi decode arguments : {" ".join(dvsi_args)}')
-            # decode to audio_name
-            subprocess.run(dvsi_args,stdout=subprocess.DEVNULL)
-
-            # read decodede signal
-            dat = np.fromfile(audio_name, np.int16)
-        # normalize signal to -1 to 1
-        dat = audio_float(dat)
-        # resample to target_fs
-        dat = scipy.signal.resample(dat, int(len(dat) * target_fs / 8000))
-        return dat

@@ -36,6 +36,7 @@ setuptools.setup(
             'local-copy=mcvqoe.utilities.local_copy:main',
             'mcvqoe-test-play=mcvqoe.hardware.PTT_play:main'
         ],
+        'mcvqoe.channel':'clean=mcvqoe.simulation.cleanchan',
     },
     python_requires='>=3.6',
 )
