@@ -27,9 +27,9 @@ object, accFit, at the times defined by t.
 #Evaluation of data collected for NISTIR XXXX
 
 # Define time vector
-times <- seq(from = -0.5, to = 2, by = 0.01)
+times <- seq(from=-0.5, to=2, by=0.01)
 
-intelligibility_values <- eval_intell(ptt_gate,times)
+intelligibility_values <- eval_intell(analog_direct, times)
 
 }
 \references{

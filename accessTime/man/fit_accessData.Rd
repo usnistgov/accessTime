@@ -4,13 +4,17 @@
 \alias{fit_accessData}
 \title{Treat and fit access delay data to a logistic curve}
 \usage{
-fit_accessData(dat, cutPoints, speaker_word, fs)
+fit_accessData(dat, test_type, cutPoints, speaker_word, fs, maxiter = 50)
 }
 \arguments{
 \item{dat}{\emph{list.}
 List of data frames containing the access delay data for a
 test. Data frame must have same variables as the csv files
 output from an access delay measurement.}
+
+\item{test_type}{\emph{list.}
+String indicating the type of test accociated with the fit.
+I.e 'SUT', 'PTT', etc.}
 
 \item{cutPoints}{\emph{list.}
 List of data frames containing the cutpoints of the audio clips
@@ -24,6 +28,9 @@ Example: 'F1 hook'}
 \item{fs}{\emph{numeric.}
 Sampling rate of the audio clips used in testing (Hz).
 Allows sample number to be converted to a time in seconds.}
+
+\item{maxiter}{\emph{numeric.}
+Maximum number of iterations passed to fitting algorithm. Defaults to 50}
 }
 \value{
 \emph{accessFit.} object, a list containing the following
@@ -47,13 +54,16 @@ Allows sample number to be converted to a time in seconds.}
 \code{speaker_word} \emph{character array.}
               Array of the speaker and word combination (e.g. 'F1 hook')
               for each audio clip.
+
+\code{test_type} \emph{character array.}
+              String reflecting the type of access fit.
 }
 \description{
 Treat and fit access delay data to a logistic curve. First, recenters timing
 of access delay data so that the start of \code{P1} is at 0 seconds.
 Then, calculates the asymptotic intelligiblity of each word and fits a single
 logistic function across all of the access delay data. Returns an
-'accessFit' object. Compatible with generic functions:
+\code{\link[accessTime]{accessFit}} object. Compatible with generic functions:
 \code{\link[base]{print}}, \code{\link[stats]{coef}},
 \code{\link[stats]{confint}}. See also
 \code{\link[accessTime]{read_accessData}} to read access delay data to be fit,
@@ -62,34 +72,29 @@ function for both \code{read_accessData} and \code{fit_accessData}.
 }
 \examples{
 # Path to included raw data
-raw_path <- system.file("extdata", "Measurements", package = "accessTime")
+dat_path <- system.file("extdata", package="accessTime")
 
-# All included raw data tests
-raw_testNames <- list.files(raw_path)
+# Analog Direct csv files
+data_files <- find_session_csv(
+  "capture_Analog_12-Nov-2020_08-26-11",
+  dat_path
+  )
 
-# Full path to each test
-raw_testPath <- file.path(raw_path,raw_testNames)
-
-# Session CSV Files for each raw test
-raw_sessionFiles <- lapply(raw_testPath,list.files)
-
-# Full path to all session files for each test
-sessionFiles <- mapply(function(x,y){file.path(x,y)},raw_testPath,raw_sessionFiles,SIMPLIFY = FALSE)
-names(sessionFiles) <- raw_testNames
-
-# Directory to audio clip wav files and cut points
-cutDir <- system.file("extdata", "Audio_Clips", package="accessTime")
+# Get the session and cut file for one WUT
+sessionFile <- data_files$sessions[1]
+cutFile <- data_files$cut[1]
 
 # Read session data
-session_dat <- lapply(sessionFiles,read_accessData,cutDir)
+sess_dat <- read_accessData(sessionFile, cutFile)
 
 # Fit session data
-fit_data <- lapply(session_dat,function(access_data){
-                          fit_accessData(dat = access_data$dat,
-                                         cutPoints = access_data$cutPoints,
-                                         speaker_word = access_data$speaker_word,
-                                         fs = access_data$fs)
-                          })
+fit_dat <- fit_accessData(
+  dat=sess_dat$dat,
+  test_type="SUT",
+  cutPoints=sess_dat$cutPoints,
+  speaker_word=sess_dat$speaker_word,
+  fs=sess_dat$fs
+  )
 
 }
 \seealso{

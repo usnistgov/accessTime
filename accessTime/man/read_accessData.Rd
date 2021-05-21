@@ -4,19 +4,13 @@
 \alias{read_accessData}
 \title{Read access delay csv files and associated audio cut point files}
 \usage{
-read_accessData(sessionFiles, cutDir, cutFiles = NULL)
+read_accessData(sessionFiles, cutFiles)
 }
 \arguments{
 \item{sessionFiles}{\emph{character array.} Array of csv file names
 associated with a particular access delay test.}
 
-\item{cutDir}{\emph{character array.} Path of the folder that contains the
-cutpoint files for the audio clips used in the access delay test. Can also
-pass in an array of directories.}
-
-\item{cutFiles}{\emph{character array.} Array of cutpoint file names. Note
-that if \code{cutFiles} is not \code{NULL}, it will override whatever is
-input for \code{cutDir}.}
+\item{cutFiles}{\emph{character array.} Array of cutpoint file names.}
 }
 \value{
 \emph{List} with the following elements:
@@ -43,34 +37,29 @@ clips used for the tests, and load in the associated cut point files from
 \code{cutDir}.
 }
 \examples{
+
 # Path to included raw data
-raw_path <- system.file("extdata", "Measurements", package = "accessTime")
+dat_path <- system.file("extdata", package="accessTime")
 
-# All included raw data tests
-raw_testNames <- list.files(raw_path)
+# Analog Direct csv files
+data_files <- find_session_csv(
+  "capture_Analog_12-Nov-2020_08-26-11",
+  dat_path
+  )
 
-# Full path to each test
-raw_testPath <- file.path(raw_path,raw_testNames)
-
-# Session CSV Files for each raw test
-raw_sessionFiles <- lapply(raw_testPath,list.files)
-
-# Full path to all session files for each test
-sessionFiles <- mapply(function(x,y){file.path(x,y)},raw_testPath,raw_sessionFiles,SIMPLIFY = FALSE)
-names(sessionFiles) <- raw_testNames
-
-# Directory to audio clip wav files and cut points
-cutDir <- system.file("extdata", "Audio_Clips", package="accessTime")
-
+# Get the session and cut file for one WUT
+sessionFile <- data_files$sessions[1]
+cutFile <- data_files$cut[1]
 # Read session data
-session_dat <- lapply(sessionFiles,read_accessData,cutDir)
+sess_dat <- read_accessData(sessionFile, cutFile)
 
 # Fit session data
-fit_data <- lapply(session_dat,function(access_data){
-                          fit_accessData(dat = access_data$dat,
-                                         cutPoints = access_data$cutPoints,
-                                         speaker_word = access_data$speaker_word,
-                                         fs = access_data$fs)
-                          })
+fit_dat <- fit_accessData(
+  dat=sess_dat$dat,
+  test_type="SUT",
+  cutPoints=sess_dat$cutPoints,
+  speaker_word=sess_dat$speaker_word,
+  fs=sess_dat$fs
+  )
 
 }

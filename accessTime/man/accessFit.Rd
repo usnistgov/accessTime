@@ -4,7 +4,7 @@
 \alias{accessFit}
 \title{accessFit constructor}
 \usage{
-accessFit(fit, I0, curve_dat, session_dat, speaker_word)
+accessFit(fit, I0, curve_dat, session_dat, speaker_word, test_type)
 }
 \arguments{
 \item{fit}{\emph{nls.}
@@ -23,6 +23,10 @@ List of raw data loaded from the session csv files.}
 
 \item{speaker_word}{\emph{character vector.}
 Vector of speaker word pairs for data used in accessFit}
+
+\item{test_type}{\emph{character.}
+Type of access fit to return. Either correction fit (PTT),
+system under test fit (SUT), or a legacy fit (LEG).}
 }
 \value{
 \emph{accessFit.}
@@ -57,6 +61,7 @@ Vector of speaker word pairs for data used in accessFit}
                   }
                   \item{speaker_word}{Array of the speaker word combos used for the access
                   delay measurement.}
+                  \item{test_type}{String reflecting the type of access fit.}
     }
 }
 \description{
@@ -67,6 +72,10 @@ Returns an 'accessFit' object. Compatible with generic functions:
 \code{\link[base]{print}},
 \code{\link[stats]{coef}},
 \code{\link[stats]{confint}}.
+\code{\link[stats]{vcov}}.
+}
+\references{
+
 }
 \seealso{
 \code{\link[minpack.lm]{nlsLM}}

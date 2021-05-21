@@ -20,6 +20,9 @@ recording data.}
 
 \item{cp}{\emph{data.frame} Data frame containing cutpoints for rec}
 
+\item{PTT_time}{\emph{numeric scalar} Value at which vertical, black,
+dotted line will be plotted to designate PTT being pressed.}
+
 \item{title}{\emph{character} Title for audio plot}
 
 \item{alpha}{\emph{numeric scalar} Value between 0 and 1 for opacity of
@@ -29,9 +32,6 @@ audio}
 limits for x-axis. See \code{\link[ggplot2]{scale_x_continuous}}.}
 
 \item{color}{\emph{character} Color for audio plot.}
-
-\item{PTT_Time}{\emph{numeric scalar} Value at which vertical, black,
-dotted line will be plotted to designate PTT being pressed.}
 }
 \description{
 Plot audio data in \code{rec}. If cutpoints passed in via \code{cp}, then
