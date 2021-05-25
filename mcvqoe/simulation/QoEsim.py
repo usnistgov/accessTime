@@ -93,13 +93,6 @@ channel_impairment : function, default=None
     Imparment to apply to the channel data. This is not super well defined
     as each channel is a bit diffrent. A value of None skips applying an
     impairment.
-dvsi_path : str, default='pcnrtas'
-    path to the dvsi encode/decode executable. Used to simulate P25 channels.
-fmpeg_path : str
-    path to the ffmpeg executable. Ffmpeg is used to simulate for amr
-    channels. By default the path is searched for ffmpeg, if the ffmpeg
-    program is found on the path then this will be the full path to ffmpeg.
-    Otherwise this will simply be the string 'ffmpeg'.
 m2e_latency : float, default=21.1e-3
     Simulated mouth to ear latency for the channel in seconds.
 access_delay : float, default=0
@@ -174,9 +167,6 @@ PTT signal on channel 1.
         self.pre_impairment=None
         self.post_impairment=None
         self.channel_impairment=None
-        self.dvsi_path='pcnrtas'
-        #try to find ffmpeg in the path
-        self.fmpeg_path=shutil.which('ffmpeg')
         #TODO : set based on tech
         self.m2e_latency=21.1e-3
         self.access_delay=0
