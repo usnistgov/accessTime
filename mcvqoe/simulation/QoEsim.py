@@ -485,6 +485,35 @@ PTT signal on channel 1.
         """
         return __class__
 
+    # =====================[Get Channel Technologies]=====================
+    def get_channel_techs(self):
+        """
+        Return a list of channel technologies.
+        
+        This returns a list of the channel technologies that have been found.
+        These can be used as values for the `channel_tech` property.
+        
+        Returns
+        -------
+        list of strings
+            A list of the names of channel technologies.
+
+        See Also
+        --------
+        mcvqoe.simulation.QoEsim.channel_tech : Channel technology to use.
+        mcvqoe.simulation.QoEsim.play_record : Function to simulate a channel.
+            
+        Examples
+        --------
+        
+        List channel technologies.
+        
+        >>>sim=QoEsim()
+        >>>sim.get_channel_techs()
+        ["clean"]
+        """
+        return list(self.chan_types.keys())
+
     # =====================[record audio function]=====================
     def play_record(self,audio,out_name):
         """
@@ -551,8 +580,7 @@ PTT signal on channel 1.
             try:
                 chan_info=self.chan_types[self.channel_tech]
             except KeyError:
-                techs=self.chan_types.keys()
-                raise ValueError(f'Unknown channel tech "{self.channel_tech}" valid channels are {techs}')
+                raise ValueError(f'Unknown channel tech "{self.channel_tech}" valid channel technologies are {self.get_channel_techs()}')
             
             #load module for channel
             chan_mod=chan_info.load()
