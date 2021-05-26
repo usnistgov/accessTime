@@ -28,7 +28,8 @@ setuptools.setup(
         'sounddevice',
         'pyserial',
         'soundfile',
-        'appdirs'
+        'appdirs',
+        'importlib-metadata ; python_version < "3.8"',
     ],
     entry_points={
         'console_scripts':[

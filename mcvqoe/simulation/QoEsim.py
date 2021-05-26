@@ -14,10 +14,12 @@ import numpy as np
 from mcvqoe import audio_float
 from mcvqoe.ITS_delay_est import active_speech_level
 
-if sys.version_info < (3, 10):
-    from importlib_metadata import entry_points
-else:
+try:
+    #try to import importlib.metadata
     from importlib.metadata import entry_points
+except ModuleNotFoundError:
+    #fall back to importlib_metadata
+    from importlib_metadata import entry_points
 
 class QoEsim:
     """
