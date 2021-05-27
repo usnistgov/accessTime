@@ -26,7 +26,7 @@ class QoEsim:
 Class to use for simulations.
 
 This class simulates the functionalities of mcvqoe.hardware.AudioPlayer and
-mcvqoe.hardware.RadioInterface. 
+mcvqoe.hardware.RadioInterface.
 
 Parameters
 ----------
@@ -73,11 +73,13 @@ rec_chans : dict
     normally represents the physical channel number. At this time QoEsim can
     not simulate 'timecode' or 'tx_beep' audio.
 playback_chans : dict
-    Dictionary describing the playback channels. Dictionary keys must be one 
+    Dictionary describing the playback channels. Dictionary keys must be one
     of {'tx_voice','start_signal'}. The value for each entry is the, zero
     based, channel number that each signal should be played on.
-channel_tech : {'clean','p25','analog','amr-wb','amr-nb'}, default='clean'
-    Technology to use for the simulated channel.
+channel_tech : string, default='clean'
+    Technology to use for the simulated channel. Channel technologies are
+    handled by plugins. The only tech that is available by default is 'clean'.
+    A list of available channel technologies is returned by `get_channel_techs`.
 channel_rate : int or str, default=None
     rate to simulate channel at. Each channel tech handles this differently.
     When set to None the default rate is used.
@@ -112,7 +114,7 @@ PTT_sig_freq : float, default=409.6
     Frequency of the PTT signal from the play_record method.
 PTT_sig_aplitude : float, default=0.7
     Amplitude of the PTT signal from the play_record method.
-    
+
 See Also
 --------
 mcvqoe.hardware.AudioPlayer : Play audio on real hardware.
@@ -144,13 +146,13 @@ PTT signal on channel 1.
 
         #locate any channel plugins installed
         chans=entry_points()['mcvqoe.channel']
-        
-        self.chan_types={}
-        self.chan_mods={}
+
+        self._chan_types={}
+        self._chan_mods={}
         for c in chans:
             #add to channel dict
-            self.chan_types[c.name]=c
-        
+            self._chan_types[c.name]=c
+
         self.debug=debug
         self.PTT_state=[False,]*2
         self.LED_state=[False,]*2
@@ -179,31 +181,31 @@ PTT signal on channel 1.
         #PTT signal parameters
         self.PTT_sig_freq=409.6     #TODO : VERIFY!
         self.PTT_sig_aplitude=0.7
-        
-    
+
+
     def __enter__(self):
-        
+
         return self
-    
+
     def ptt(self,state,num=1):
-        """ 
+        """
         Change the push-to-talk status of the radio interface.
 
         For 'RadioInterface' this would turn on or off the PTT outputs. For simulation,
         This function does not have much of an effect. It will clear any PTT time set by
         the 'ptt_delay' method.
-        
+
         Parameters
         ----------
-        state : bool 
+        state : bool
             State to set PTT output to.
         num : int, default=1
             PTT output number to use.
-            
+
         See Also
         --------
         mcvqoe.hardware.RadioInterface.ptt : Same function but, for hardware.
-        
+
         Examples
         --------
         Key a fake radio.
@@ -211,17 +213,17 @@ PTT signal on channel 1.
         >>>sim_obj.ptt(True)  #key radio
         >>>sim_obj.ptt(False) #de-key radio
         """
-            
+
         self.PTT_state[num]=bool(state)
         #clear wait delay
         self.ptt_wait_delay[num]=-1
-            
+
     def led(self,num,state):
         """
         Turn on and off fake LEDs.
 
         For 'RadioInterface' this would turn on or off LEDs on the device. For simulation
-        this function doesn't do much. 
+        this function doesn't do much.
 
         Parameters
         ----------
@@ -229,7 +231,7 @@ PTT signal on channel 1.
             LED number to set.
         state : bool
             The LED state to set. True is on, False is off.
-            
+
         See Also
         --------
         mcvqoe.hardware.RadioInterface.led : Same function but, for hardware.
@@ -250,15 +252,15 @@ PTT signal on channel 1.
         else:
             if(self.debug):
                 print("RadioInterface LED {%num} state is off")
-        
+
         #set state in simulation object
         self.LED_state[num]=bool(state)
-        
-        
+
+
     def devtype(self):
         """
         Get the devicetype string from the fake radio interface.
-        
+
         For 'RadioInterface' this would query the firmware version of the board.
         For simulation, this just returns a version string.
 
@@ -284,10 +286,10 @@ PTT signal on channel 1.
     def get_id(self):
         """
         Get the ID string from radio interface.
-        
+
         For 'RadioInterface' this would query the firmware version of the board.
         For simulation, this just returns the filename.
-        
+
         Returns
         -------
         str
@@ -303,16 +305,16 @@ PTT signal on channel 1.
         >>>sim_obj=mcvqoe.simulation.QoEsim()
         >>>print(sim_obj.get_id())
         """
-        
+
         return os.path.basename(__file__)
 
     def get_version(self):
         """
         Get the version string from fake 'RadioInterface'.
-        
+
         For 'RadioInterface' this would query the firmware version of the board.
         For simulation, this just returns the mcvqoe library version.
-        
+
         Returns
         -------
         str
@@ -334,9 +336,9 @@ PTT signal on channel 1.
     def pttState(self):
         """
         Get the PTT state from fake 'RadioInterface'.
-        
+
         Return the state of the simulated PTT outputs.
-        
+
         Returns
         -------
         bool array
@@ -355,14 +357,14 @@ PTT signal on channel 1.
         >>>print(sim_obj.pttState())
         """
         return self.PTT_state
-            
+
     def waitState(self):
         """
         Get the PTT wait state from fake 'RadioInterface'.
-        
+
         For 'RadioInterface' this would check if PTT outputs were waiting for a
         start signal. For simulation this always returns 'Idle'
-        
+
         Returns
         -------
         str
@@ -385,11 +387,11 @@ PTT signal on channel 1.
     def ptt_delay(self,delay,num=1,use_signal=False):
         """
         Set how far into the clip to key the fake radio.
-        
+
         For 'RadioInterface' this would setup the PTT output to key up with a
         specified delay. For simulation, this sets the time in the clip that
         'access_delay' is referenced to.
-        
+
         Parameters
         ----------
         delay : float
@@ -401,7 +403,7 @@ PTT signal on channel 1.
             For 'RadioInterface', this would control if the start signal is used
             to reference the 'delay' to the beginning of the clip. For simulation
             'delay' is always referenced to the beginning of the clip.
-            
+
         See Also
         --------
         mcvqoe.hardware.RadioInterface.ptt_delay : Same function but, for hardware.
@@ -420,24 +422,24 @@ PTT signal on channel 1.
         """
 
         self.ptt_wait_delay[num]=delay
-        #set state to true, this isn't 100% correct but the delay will be used 
+        #set state to true, this isn't 100% correct but the delay will be used
         #for the sim so, it shouldn't matter
         self.PTT_state[num]=True
-        
-        
+
+
     def temp(self):
         """
         Read fake temperatures from fake hardware.
-        
+
         For 'RadioInterface' this would read temperature from the microcontroller.
         For simulation, this returns some fake values.
-        
+
         Returns
         -------
         int array
             Two integers representing the internal temperature and external
             temperature.
-            
+
         See Also
         --------
         mcvqoe.hardware.RadioInterface.temp : Same function but, for hardware.
@@ -447,7 +449,7 @@ PTT signal on channel 1.
         Read some fake temperatures.
         >>>sim_obj=mcvqoe.simulation.QoEsim()
         >>>print(sim_obj.temp())
-        """        
+        """
         #TODO : generate better fake values??
         return (38,1500)
 
@@ -456,29 +458,29 @@ PTT signal on channel 1.
     def __del__(self):
         #nothing to do here
         pass
-    
+
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        
+
         self.ptt(False)
         self.led(1, False)
-        
+
     # =====================[Find device function]=====================
     def find_device(self):
         """
         Return fake device name.
-        
+
         For 'AudioPlayer' this would return the name of the audio device to use.
         For simulation this just returns the string representation of the class.
-        
+
         Returns
         -------
         str
             The string representation of the class instance.
-            
+
         See Also
         --------
         mcvqoe.hardware.AudioPlayer.find_device : Same function but for hardware.
-        
+
         Examples
         --------
         Query a fake 'AudioPlayer'.
@@ -491,10 +493,10 @@ PTT signal on channel 1.
     def get_channel_techs(self):
         """
         Return a list of channel technologies.
-        
+
         This returns a list of the channel technologies that have been found.
         These can be used as values for the `channel_tech` property.
-        
+
         Returns
         -------
         list of strings
@@ -504,28 +506,28 @@ PTT signal on channel 1.
         --------
         mcvqoe.simulation.QoEsim.channel_tech : Channel technology to use.
         mcvqoe.simulation.QoEsim.play_record : Function to simulate a channel.
-            
+
         Examples
         --------
-        
+
         List channel technologies.
-        
+
         >>>sim=QoEsim()
         >>>sim.get_channel_techs()
         ["clean"]
         """
-        return list(self.chan_types.keys())
+        return list(self._chan_types.keys())
 
     # =====================[record audio function]=====================
     def play_record(self,audio,out_name):
         """
         Simulate playing and recording of audio through a communication channel.
-        
+
         This function simulates a communication channel. The values in
         'self.playback_chans' are checked for valid values, but they don't really
         have any other effect. Only 'rech_chans' of type 'rx_voice' and
-        'PTT_signal' can be used. 
-        
+        'PTT_signal' can be used.
+
         Parameters
         ----------
         audio : array
@@ -538,21 +540,24 @@ PTT signal on channel 1.
         list of strings
             A list of the recorded output channels in the order that they appear
             in the output file.
-                
+
         See Also
         --------
         mcvqoe.hardware.AudioPlayer.play_record : Same function but for hardware.
-        
+
         Examples
         --------
-                
+
         play 48 kHz audio stored in tx_voice and record in a file named
         'test.wav'.
+
         >>>import mcvqoe.simulation.QoEsim
         >>>sim_obj=mcvqoe.simulation.QoEsim(fs=int(48e3))
         >>>sim_obj.play_record(tx_voice,'test.wav')
+
         now do the same but also output the start signal on channel 1 and record
         the PTT signal on channel 1.
+
         >>>sim_obj.playback_chans={'tx_voice':0,'start_signal':1}
         >>>sim_obj.rec_chans={'rx_voice':0,'PTT_signal':1}
         >>>sim_obj.play_record(tx_voice,'test.wav')
@@ -575,24 +580,24 @@ PTT signal on channel 1.
                 raise RuntimeError(f'{__class__} can not generate recordings of type \'{k}\'')
             outputs.append(k)
 
-            
+
         try:
-            chan_mod=self.chan_mods[self.channel_tech]
+            chan_mod=self._chan_mods[self.channel_tech]
         except KeyError:
             try:
-                chan_info=self.chan_types[self.channel_tech]
+                chan_info=self._chan_types[self.channel_tech]
             except KeyError:
                 raise ValueError(f'Unknown channel tech "{self.channel_tech}" valid channel technologies are {self.get_channel_techs()}')
-            
+
             #load module for channel
             chan_mod=chan_info.load()
             #save module for later
             #TODO : is this needed? good idea?
-            self.chan_mods[self.channel_tech]=chan_mod
+            self._chan_mods[self.channel_tech]=chan_mod
 
         #get delay offset for channel technology
-        m2e_offset=self.chan_mods[self.channel_tech].standard_delay
-            
+        m2e_offset=self._chan_mods[self.channel_tech].standard_delay
+
         #calculate values in samples
         overplay_samples=int(self.overplay*self.sample_rate)
         #correct for audio channel latency
@@ -601,17 +606,17 @@ PTT signal on channel 1.
         if(m2e_latency_samples<0):
             #TODO : it might be possible to get around this but, it sounds slightly nontrivial...
             raise ValueError(f'Unable to simulate a latency of {self.m2e_latency}. Minimum simulated latency for technology \'{self.channel_tech}\' is {m2e_offset}')
-        
+
         #convert audio values to floats to work on them
         float_audio=mcvqoe.audio_float(audio)
 
-        #append overplay to audio   
+        #append overplay to audio
         overplay_audio = np.zeros(int(overplay_samples), dtype=np.float32)
         tx_data_with_overplay = np.concatenate((float_audio, overplay_audio))
 
         if(self.rec_snr is None):
             #don't add any noise
-            tx_data_with_overplay_and_noise = tx_data_with_overplay      
+            tx_data_with_overplay_and_noise = tx_data_with_overplay
         else:
             #generate gaussian noise, of unit standard deveation
             noise = np.random.normal(0, 1, len(tx_data_with_overplay)).astype(np.float32)
@@ -619,7 +624,7 @@ PTT signal on channel 1.
             #measure amplitude of signal and noise
             sig_level=active_speech_level(tx_data_with_overplay,self.sample_rate)
             noise_level=active_speech_level(noise,self.sample_rate)
-            
+
             #calculate noise gain required to get desired SNR
             noise_gain=sig_level-(self.rec_snr+noise_level)
 
@@ -627,8 +632,8 @@ PTT signal on channel 1.
             noise_scaled = noise * (10**(noise_gain/20))
 
             #add noise to audio
-            tx_data_with_overplay_and_noise = tx_data_with_overplay + noise_scaled   
-        
+            tx_data_with_overplay_and_noise = tx_data_with_overplay + noise_scaled
+
         #check if PTT was keyed during audio
         if(self.ptt_wait_delay[1] == -1):
             #PTT wait not set, don't simulate access time
@@ -637,7 +642,7 @@ PTT signal on channel 1.
         else:
             ptt_st_dly_samples=int(self.ptt_wait_delay[1]*self.sample_rate)
             access_delay_samples=int(self.access_delay*self.sample_rate)
-        
+
         #mute portion of tx_data that occurs prior to triggering of PTT
         muted_samples = int(access_delay_samples + ptt_st_dly_samples)
         muted_tx_data_with_overplay = tx_data_with_overplay_and_noise[muted_samples:]
@@ -648,18 +653,18 @@ PTT signal on channel 1.
 
         #call audio channel function from module
         channel_voice=chan_mod.simulate_audio_channel(self,muted_tx_data_with_overplay)
-        
+
         #add post channel impairments
         if(self.post_impairment):
             channel_voice=self.post_impairment(channel_voice,self.sample_rate)
-        
+
         #generate silent noise section comprised of ptt_st_dly, access delay and m2e latency audio snippets
         silence_length = int(ptt_st_dly_samples + access_delay_samples + m2e_latency_samples)
-        
+
         #derive mean and standard deviation from real-world noise observed in the audio recordings
         mean = 0
         std = 1.81e-5
-        
+
         silent_section = np.random.normal(mean, std, silence_length)
 
         #prepend silent section to rx_data
@@ -691,5 +696,5 @@ PTT signal on channel 1.
 
         #write out audio file
         scipy.io.wavfile.write(out_name, int(self.sample_rate), rx_data)
-        
+
         return outputs
