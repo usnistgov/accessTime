@@ -68,6 +68,9 @@ class TestInfoGui(tk.Tk):
         self.chk_audio_function=chk_audio_function
         self.write_test_info=write_test_info
         
+        # Show MCV logo
+        self.tk.call('wm', 'iconphoto', self._w, tk.PhotoImage(file='MCV-sm.png'))
+
     def load_settings(self,fname):
         """
         Load test info defaults from a file.
@@ -260,6 +263,8 @@ class PostTestGui(tk.Tk):
         #kind of notes we will create
         self.err=err
         
+        # Show MCV logo
+        self.tk.call('wm', 'iconphoto', self._w, tk.PhotoImage(file='MCV-sm.png'))
              
     def show(self):
         """
