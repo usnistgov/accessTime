@@ -6,8 +6,10 @@ from math import exp
 import mcvqoe
 import numpy as np
 import scipy
+from mcvqoe.ITS_delay_est import active_speech_level
 
 audio_files = ["test.wav", "test_nb_12200.wav", "test_wb_23850.wav"]
+expected_speech_level = [-29.079965170524318, -31.12585881587833, -30.115341804098797]
 
 
 def load_audio_file(name):
@@ -119,6 +121,14 @@ class ITSTest(unittest.TestCase):
                     (-6 + (len(audio_data) % 2 * 2), 94 + (len(audio_data) % 2 * 2)),
                 ),
                 msg=name,
+            )
+
+    def test_active_speech_level(self):
+        for i, name in enumerate(audio_files):
+            audio_fs, audio_data = load_audio_file(name)
+
+            self.assertEqual(
+                active_speech_level(audio_data, fs=audio_fs), expected_speech_level[i]
             )
 
 

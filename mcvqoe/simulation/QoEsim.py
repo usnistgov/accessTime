@@ -1,16 +1,15 @@
 
-import mcvqoe
 import os.path
-import tempfile
-import scipy.io.wavfile
-import scipy.signal
 import shutil
 import subprocess
 import sys
+import tempfile
 import warnings
 
+import mcvqoe
 import numpy as np
-
+import scipy.io.wavfile
+import scipy.signal
 from mcvqoe import audio_float
 from mcvqoe.ITS_delay_est import active_speech_level
 
@@ -187,7 +186,7 @@ PTT signal on channel 1.
 
         return self
 
-    def ptt(self,state,num=1):
+    def ptt(self, state, num=1):
         """
         Change the push-to-talk status of the radio interface.
 
@@ -214,11 +213,11 @@ PTT signal on channel 1.
         >>>sim_obj.ptt(False) #de-key radio
         """
 
-        self.PTT_state[num]=bool(state)
-        #clear wait delay
-        self.ptt_wait_delay[num]=-1
+        self.PTT_state[num] = bool(state)
+        # clear wait delay
+        self.ptt_wait_delay[num] = -1
 
-    def led(self,num,state):
+    def led(self, num, state):
         """
         Turn on and off fake LEDs.
 
@@ -245,17 +244,16 @@ PTT signal on channel 1.
         >>>sim_obj.led(1,False)
         """
 
-        #check LED state
-        if(state):
-            if(self.debug):
+        # check LED state
+        if state:
+            if self.debug:
                 print("RadioInterface LED {%num} state is on")
         else:
-            if(self.debug):
+            if self.debug:
                 print("RadioInterface LED {%num} state is off")
 
-        #set state in simulation object
-        self.LED_state[num]=bool(state)
-
+        # set state in simulation object
+        self.LED_state[num] = bool(state)
 
     def devtype(self):
         """
@@ -280,8 +278,8 @@ PTT signal on channel 1.
         >>>print(sim_obj.devtype())
         """
 
-        #TODO : simulate other versions??
-        return 'MCV radio interface : v1.2.1'
+        # TODO : simulate other versions??
+        return "MCV radio interface : v1.2.1"
 
     def get_id(self):
         """
@@ -381,10 +379,10 @@ PTT signal on channel 1.
         >>>print(sim_obj.waitState())
         """
 
-        #TODO: do we need to simulate this better?
-        return 'Idle'
+        # TODO: do we need to simulate this better?
+        return "Idle"
 
-    def ptt_delay(self,delay,num=1,use_signal=False):
+    def ptt_delay(self, delay, num=1, use_signal=False):
         """
         Set how far into the clip to key the fake radio.
 
@@ -421,11 +419,10 @@ PTT signal on channel 1.
         >>>sim_obj.play_record(tx_voice,'test.wav')
         """
 
-        self.ptt_wait_delay[num]=delay
-        #set state to true, this isn't 100% correct but the delay will be used
-        #for the sim so, it shouldn't matter
-        self.PTT_state[num]=True
-
+        self.ptt_wait_delay[num] = delay
+        # set state to true, this isn't 100% correct but the delay will be used
+        # for the sim so, it shouldn't matter
+        self.PTT_state[num] = True
 
     def temp(self):
         """
@@ -450,20 +447,18 @@ PTT signal on channel 1.
         >>>sim_obj=mcvqoe.simulation.QoEsim()
         >>>print(sim_obj.temp())
         """
-        #TODO : generate better fake values??
-        return (38,1500)
+        # TODO : generate better fake values??
+        return (38, 1500)
 
-
-    #delete method
+    # delete method
     def __del__(self):
-        #nothing to do here
+        # nothing to do here
         pass
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
 
         self.ptt(False)
         self.led(1, False)
-
     # =====================[Find device function]=====================
     def find_device(self):
         """
@@ -516,15 +511,15 @@ PTT signal on channel 1.
         >>>sim.get_channel_techs()
         ["clean"]
         """
-        return list(self._chan_types.keys())    
-        
+        return list(self._chan_types.keys())
+
     # =====================[Get Channel Rates]=====================
     def get_channel_rates(self,tech):
         """
         Return possible rates for a given channel tech.
 
         This queries a channel plugin for the default rate and a list of unique
-        rates that can be used on the channel. 
+        rates that can be used on the channel.
 
         Returns
         -------
@@ -551,7 +546,7 @@ PTT signal on channel 1.
         """
         mod=self._get_chan_mod(tech)
         return (mod.default_rate,mod.rates)
-        
+
     # =====================[get channel module]=====================
     def _get_chan_mod(self,tech):
         try:
@@ -567,12 +562,12 @@ PTT signal on channel 1.
             #save module for later
             #TODO : is this needed? good idea?
             self._chan_mods[self.channel_tech]=chan_mod
-        
+
         return chan_mod
 
 
     # =====================[record audio function]=====================
-    def play_record(self,audio,out_name):
+    def play_record(self, audio, out_name):
         """
         Simulate playing and recording of audio through a communication channel.
 
@@ -615,27 +610,30 @@ PTT signal on channel 1.
         >>>sim_obj.rec_chans={'rx_voice':0,'PTT_signal':1}
         >>>sim_obj.play_record(tx_voice,'test.wav')
         """
-        #loop through playback_chans this is mostly just a format check to make
-        #sure that all keys used are valid
-        for (k,v) in self.playback_chans.items():
-            if (k=='start_signal'):
+        # loop through playback_chans this is mostly just a format check to make
+        # sure that all keys used are valid
+        for (k, v) in self.playback_chans.items():
+            if k == "start_signal":
                 pass
-            elif(k=='tx_voice'):
+            elif k == "tx_voice":
                 pass
             else:
-                raise ValueError(f'Unknown output channel : {k}')
+                raise ValueError(f"Unknown output channel : {k}")
 
-        #list of outputs that we need to produce
-        outputs=[]
-        #loop through rec_chans and detect keys that we can't produce
-        for (k,v) in self.rec_chans.items():
-            if(k not in ('rx_voice','PTT_signal')):
-                raise RuntimeError(f'{__class__} can not generate recordings of type \'{k}\'')
+        # list of outputs that we need to produce
+        outputs = []
+        # loop through rec_chans and detect keys that we can't produce
+        for (k, v) in self.rec_chans.items():
+            if k not in ("rx_voice", "PTT_signal"):
+                raise RuntimeError(
+                    f"{__class__} can not generate recordings of type '{k}'"
+                )
             outputs.append(k)
-        
+
         #get the module for the chosen channel tech
         chan_mod=self._get_chan_mod(self.channel_tech)
 
+<<<<<<< HEAD
         #get delay offset for channel technology
         m2e_offset=chan_mod.standard_delay
 
@@ -703,39 +701,193 @@ PTT signal on channel 1.
         silence_length = int(ptt_st_dly_samples + access_delay_samples + m2e_latency_samples)
 
         #derive mean and standard deviation from real-world noise observed in the audio recordings
+=======
+        try:
+            # get offset for channel technology
+            m2e_offset = self.standard_delay[self.channel_tech]
+        except KeyError:
+            # a key error means we used a bad technology
+            raise ValueError(
+                f'"{self.channel_tech}" is not a valid technology'
+            ) from None
+
+        # calculate values in samples
+        overplay_samples = int(self.overplay * self.sample_rate)
+        # correct for audio channel latency
+        m2e_latency_samples = int((self.m2e_latency - m2e_offset) * self.sample_rate)
+
+        if m2e_latency_samples < 0:
+            # TODO : it might be possible to get around this but, it sounds slightly nontrivial...
+            raise ValueError(
+                f"Unable to simulate a latency of {self.m2e_latency}. Minimum simulated latency for technology '{self.channel_tech}' is {m2e_offset}"
+            )
+
+        # convert audio values to floats to work on them
+        float_audio = mcvqoe.audio_float(audio)
+
+        # append overplay to audio
+        overplay_audio = np.zeros(int(overplay_samples), dtype=np.float32)
+        tx_data_with_overplay = np.concatenate((float_audio, overplay_audio))
+
+        if self.rec_snr is None:
+            # don't add any noise
+            tx_data_with_overplay_and_noise = tx_data_with_overplay
+        else:
+            # generate gaussian noise, of unit standard deveation
+            noise = np.random.normal(0, 1, len(tx_data_with_overplay)).astype(
+                np.float32
+            )
+
+            # measure amplitude of signal and noise
+            sig_level = active_speech_level(tx_data_with_overplay, self.sample_rate)
+            noise_level = active_speech_level(noise, self.sample_rate)
+
+            # calculate noise gain required to get desired SNR
+            noise_gain = sig_level - (self.rec_snr + noise_level)
+
+            # set noise to the correct level
+            noise_scaled = noise * (10 ** (noise_gain / 20))
+
+            # add noise to audio
+            tx_data_with_overplay_and_noise = tx_data_with_overplay + noise_scaled
+
+        # check if PTT was keyed during audio
+        if self.ptt_wait_delay[1] == -1:
+            # PTT wait not set, don't simulate access time
+            ptt_st_dly_samples = 0
+            access_delay_samples = 0
+        else:
+            ptt_st_dly_samples = int(self.ptt_wait_delay[1] * self.sample_rate)
+            access_delay_samples = int(self.access_delay * self.sample_rate)
+
+        # mute portion of tx_data that occurs prior to triggering of PTT
+        muted_samples = int(access_delay_samples + ptt_st_dly_samples)
+        muted_tx_data_with_overplay = tx_data_with_overplay_and_noise[muted_samples:]
+
+        # generate raw rx_data from audio channel
+        channel_voice = self.simulate_audio_channel(muted_tx_data_with_overplay)
+
+        # generate silent noise section comprised of ptt_st_dly, access delay and m2e latency audio snippets
+        silence_length = int(
+            ptt_st_dly_samples + access_delay_samples + m2e_latency_samples
+        )
+
+        # derive mean and standard deviation from real-world noise observed in the audio recordings
+>>>>>>> 942f85a (Format repository with Black)
         mean = 0
         std = 1.81e-5
 
         silent_section = np.random.normal(mean, std, silence_length)
 
-        #prepend silent section to rx_data
+        # prepend silent section to rx_data
         rx_voice = np.concatenate((silent_section, channel_voice))
 
-        #force rx_data to be the same length as tx_data_with_overplay
-        rx_voice = rx_voice[:tx_data_with_overplay.shape[0]]
+        # force rx_data to be the same length as tx_data_with_overplay
+        rx_voice = rx_voice[: tx_data_with_overplay.shape[0]]
 
-        #output array is the length of rx_voice x number of outputs
-        rx_data=np.empty((rx_voice.shape[0],len(outputs)))
+        # output array is the length of rx_voice x number of outputs
+        rx_data = np.empty((rx_voice.shape[0], len(outputs)))
 
-        for n,o_type in enumerate(outputs):
-            if (o_type=='PTT_signal'):
-                #calculate length of sine signal in samples
-                sin_len_samples=rx_data.shape[0]-ptt_st_dly_samples
-                #construct sine signal
-                rx_data[ptt_st_dly_samples:,n]=\
-                    self.PTT_sig_aplitude*np.sin(
-                        2*np.pi*self.PTT_sig_freq*np.arange(sin_len_samples)
-                        /float(self.sample_rate)
-                    )
-                #zero out before PTT
-                rx_data[:ptt_st_dly_samples,n]=0
-            elif(o_type=='rx_voice'):
-                #add data to the array
-                rx_data[:,n]=rx_voice
+        for n, o_type in enumerate(outputs):
+            if o_type == "PTT_signal":
+                # calculate length of sine signal in samples
+                sin_len_samples = rx_data.shape[0] - ptt_st_dly_samples
+                # construct sine signal
+                rx_data[ptt_st_dly_samples:, n] = self.PTT_sig_aplitude * np.sin(
+                    2
+                    * np.pi
+                    * self.PTT_sig_freq
+                    * np.arange(sin_len_samples)
+                    / float(self.sample_rate)
+                )
+                # zero out before PTT
+                rx_data[:ptt_st_dly_samples, n] = 0
+            elif o_type == "rx_voice":
+                # add data to the array
+                rx_data[:, n] = rx_voice
             else:
-                raise RuntimeError('Internal error')
+                raise RuntimeError("Internal error")
 
+<<<<<<< HEAD
         #write out audio file
         scipy.io.wavfile.write(out_name, int(self.sample_rate), rx_data)
 
         return outputs
+=======
+        # write out audio file
+        wav.write(out_name, int(self.sample_rate), rx_data)
+
+        return outputs
+
+    # =====================[p25 encode function]=====================
+    def p25encode(self, x, fs, rate="fr"):
+        # given a signal x with fs: fs, returns encoded p25
+
+        # resample signal to 8000 Hz, and scale by 2^15
+        new_len = int(len(x) * 8000 / fs)
+        x_rs = scipy.signal.resample(x, new_len)
+
+        # get info about int16
+        info = np.iinfo(np.int16)
+
+        # scale to fill new range
+        x_scaled = x_rs * min(abs(info.min), info.max)
+        # clip to limits
+        x_clipped = np.clip(x_scaled, info.min, info.max)
+
+        if (x_scaled != x_clipped).any():
+            warnings.warn("Clipping detected in P25 encode")
+
+        # convert convert to integers
+        x_int16 = x_clipped.astype(np.int16)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # create paths for audio and encoded files
+            audio_name = os.path.join(temp_dir, "audio")
+            enc_name = os.path.join(temp_dir, "encoding.bin")
+
+            # write audio file
+            x_int16.tofile(audio_name)
+
+            dvsi_args = [self.dvsi_path, "-enc", "-" + rate, audio_name, enc_name]
+            if self.print_args:
+                print(f'dvsi encode arguments : {" ".join(dvsi_args)}')
+
+            # encode to enc_name
+            subprocess.run(dvsi_args, stdout=subprocess.DEVNULL)
+
+            # read p25 encoding
+            y = np.fromfile(enc_name, np.uint8)
+
+        # convert p25 encoding to logical values
+        y = y.astype(np.bool_)
+        return y
+
+    # =====================[p25 decode function]=====================
+
+    def p25decode(self, x, target_fs, rate="fr"):
+        # assumes x is a signal with fs: 8000
+        # deocde signal and resample to target_fs
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            enc_name = os.path.join(temp_dir, "encoding.bin")
+            audio_name = os.path.join(temp_dir, "audio")
+            # values are either 0 or 255 convert accordingly
+            x = (255 * x).astype(np.uint8)
+            # write out temporary audio file
+            x.tofile(enc_name)
+
+            dvsi_args = [self.dvsi_path, "-dec", "-" + rate, enc_name, audio_name]
+            if self.print_args:
+                print(f'dvsi decode arguments : {" ".join(dvsi_args)}')
+            # decode to audio_name
+            subprocess.run(dvsi_args, stdout=subprocess.DEVNULL)
+
+            # read decodede signal
+            dat = np.fromfile(audio_name, np.int16)
+        # normalize signal to -1 to 1
+        dat = audio_float(dat)
+        # resample to target_fs
+        dat = scipy.signal.resample(dat, int(len(dat) * target_fs / 8000))
+        return dat
+>>>>>>> 942f85a (Format repository with Black)
