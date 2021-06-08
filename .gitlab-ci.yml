@@ -10,8 +10,8 @@ build:
   script:
     - python --version > py-ver.log
     - pip install wheel
-    - python setup.py sdist bdist_wheel > package.log 
-    - pip install --log pip.log --find-links ./dist/ mcvqoe-nist sphinx numpydoc unittest-xml-reporting > install.log 
+    - python setup.py sdist bdist_wheel > package.log
+    - pip install --log pip.log --find-links ./dist/ mcvqoe-nist sphinx numpydoc unittest-xml-reporting > install.log
   artifacts:
       when: always
       paths:
@@ -38,17 +38,22 @@ test-log:
   stage: test
   script:
     - python tests/test_log.py
-      
+
 test-sim:
   stage: test
   script:
     - python tests/sim_test.py
-      
+
 test-testCpy:
   stage: test
   script:
     - python tests/test_testCpy.py
-      
+
+test-ITS-delay:
+  stage: test
+  script:
+    - python tests/test_ITS_delay.py
+
 pages:
   stage: deploy
   script:
