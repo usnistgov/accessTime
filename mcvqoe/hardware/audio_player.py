@@ -3,17 +3,17 @@ import datetime
 import math
 import os
 import queue
-import scipy.io.wavfile
-import scipy.signal
 import sys
 import threading
-
 from fractions import Fraction
-from ..soft_timecode import soft_time_fmt
 
 import numpy as np
+import scipy.io.wavfile
+import scipy.signal
 import sounddevice as sd
 import soundfile as sf
+
+from ..soft_timecode import soft_time_fmt
 
 soft_time_fmt = "TM%j-%Y_%H-%M-%S.%f"
 
@@ -42,9 +42,9 @@ try:
         --------
 
         Record audio
-        >>>import mcvqoe.hardware.AudioPlayer
-        >>>ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
-        >>>ap.record('test.wav')
+        >>> import mcvqoe.hardware.AudioPlayer
+        >>> ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
+        >>> ap.record('test.wav')
 
         """
 
@@ -110,9 +110,9 @@ try:
         --------
 
         Record audio using WinRecStop to stop the recording
-        >>>import mcvqoe.hardware.AudioPlayer
-        >>>ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
-        >>>ap.record('test.wav',rec_stop=WinRecStop())
+        >>> import mcvqoe.hardware.AudioPlayer
+        >>> ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
+        >>> ap.record('test.wav',rec_stop=WinRecStop())
 
         """
 
@@ -146,7 +146,9 @@ except:
     WinRecStop = None
 
 try:
-    import sys, tty, termios
+    import sys
+    import termios
+    import tty
 
     class TermiosRecStop:
         """
@@ -170,9 +172,9 @@ try:
         --------
 
         Record audio using TermiosRecStop to stop the recording
-        >>>import mcvqoe.hardware.AudioPlayer
-        >>>ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
-        >>>ap.record('test.wav',rec_stop=TermiosRecStop())
+        >>> import mcvqoe.hardware.AudioPlayer
+        >>> ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
+        >>> ap.record('test.wav',rec_stop=TermiosRecStop())
 
         """
 
@@ -288,14 +290,14 @@ class AudioPlayer:
     --------
 
     play 48 kHz audio stored in tx_voice and record in a file named 'test.wav'.
-    >>>import mcvqoe.hardware.AudioPlayer
-    >>>ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
-    >>>ap.play_record(tx_voice,'test.wav')
+    >>> import mcvqoe.hardware.AudioPlayer
+    >>> ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
+    >>> ap.play_record(tx_voice,'test.wav')
     now do the same but also output the start signal on channel 1 and record the
     PTT signal on channel 1.
-    >>>ap.playback_chans={'tx_voice':0,'start_signal':1}
-    >>>ap.rec_chans={'rx_voice':0,'PTT_signal':1}
-    >>>ap.play_record(tx_voice,'test.wav')
+    >>> ap.playback_chans={'tx_voice':0,'start_signal':1}
+    >>> ap.rec_chans={'rx_voice':0,'PTT_signal':1}
+    >>> ap.play_record(tx_voice,'test.wav')
     """
 
     def __init__(
@@ -443,14 +445,14 @@ class AudioPlayer:
 
         play 48 kHz audio stored in tx_voice and record in a file named
         'test.wav'.
-        >>>import mcvqoe.hardware.AudioPlayer
-        >>>ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
-        >>>ap.play_record(tx_voice,'test.wav')
+        >>> import mcvqoe.hardware.AudioPlayer
+        >>> ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
+        >>> ap.play_record(tx_voice,'test.wav')
         now do the same but also output the start signal on channel 1 and record
         the PTT signal on channel 1.
-        >>>ap.playback_chans={'tx_voice':0,'start_signal':1}
-        >>>ap.rec_chans={'rx_voice':0,'PTT_signal':1}
-        >>>ap.play_record(tx_voice,'test.wav')
+        >>> ap.playback_chans={'tx_voice':0,'start_signal':1}
+        >>> ap.rec_chans={'rx_voice':0,'PTT_signal':1}
+        >>> ap.play_record(tx_voice,'test.wav')
         """
 
         if len(tx_voice.shape) == 2:

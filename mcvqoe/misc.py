@@ -1,8 +1,8 @@
 import csv
 import math
-import scipy.io.wavfile
 
 import numpy as np
+import scipy.io.wavfile
 import scipy.signal as sig
 
 
@@ -30,8 +30,8 @@ def audio_float(dat):
     Examples
     --------
     load audio and ensure that it is on the -1 to +1 range
-    >>>fs, dat = scipy.io.wavfile('audio.wav')
-    >>>float_dat=audio_float(dat)
+    >>> fs, dat = scipy.io.wavfile('audio.wav')
+    >>> float_dat=audio_float(dat)
     """
     if dat.dtype is np.dtype("uint8"):
         return (dat.astype("float") - 128) / 128
@@ -93,7 +93,7 @@ def svp56_fast(x, fs=8000):
     Examples
     --------
     Measure the active speech level of a .wav file
-    >>>(asl,_,_)=svp56_fast('speech.wav')
+    >>> (asl,_,_)=svp56_fast('speech.wav')
     """
 
     # if x is a filename, extact data from the wav file
@@ -237,7 +237,7 @@ def load_cp(fname):
     --------
     Example of loading cutpoints
 
-    >>>load_cp('cp.csv')
+    >>> load_cp('cp.csv')
     """
     # field names for cutpoints
     cp_fields = ["Clip", "Start", "End"]
@@ -289,8 +289,8 @@ def write_cp(fname, cutpoints):
     Examples
     --------
     Example of saving cutpoints
-    >>>cutpoints=({'Clip': 24, 'Start': 0, 'End': 41970})
-    >>>write_cp('cp.csv',cutpoints)
+    >>> cutpoints=({'Clip': 24, 'Start': 0, 'End': 41970})
+    >>> write_cp('cp.csv',cutpoints)
     """
     # field names for cutpoints
     cp_fields = ["Clip", "Start", "End"]
@@ -342,7 +342,7 @@ def a_weighted_power(x, fs=48000):
     Examples
     --------
     Calculate the A-weighted power for a 48 kHz audio vector
-    >>>a_weighted_power(audio)
+    >>> a_weighted_power(audio)
     """
 
     # Coefficients for A-weighting filter with fs=48000

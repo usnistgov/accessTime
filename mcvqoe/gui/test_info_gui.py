@@ -41,9 +41,9 @@ class TestInfoGui(tk.Tk):
     --------
 
     get test notes from the user
-    >>>gui=TestInfoGui()
-    >>>test_info=gui.show()
-    >>>print(test_info)
+    >>> gui=TestInfoGui()
+    >>> test_info=gui.show()
+    >>> print(test_info)
     """
 
     def __init__(
@@ -263,9 +263,9 @@ class PostTestGui(tk.Tk):
     Examples
     --------
     Get post test notes from user
-    >>>gui=PostTestGui()
-    >>>notes=gui.show()
-    >>>print(notes)
+    >>> gui=PostTestGui()
+    >>> notes=gui.show()
+    >>> print(notes)
     """
 
     def __init__(self, err, *args, **kwargs):

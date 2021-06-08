@@ -1,4 +1,3 @@
-
 import os.path
 import shutil
 import subprocess
@@ -14,173 +13,186 @@ from mcvqoe import audio_float
 from mcvqoe.ITS_delay_est import active_speech_level
 
 try:
-    #try to import importlib.metadata
+    # try to import importlib.metadata
     from importlib.metadata import entry_points
 except ModuleNotFoundError:
-    #fall back to importlib_metadata
+    # fall back to importlib_metadata
     from importlib_metadata import entry_points
+
 
 class QoEsim:
     """
-Class to use for simulations.
+    Class to use for simulations.
 
-This class simulates the functionalities of mcvqoe.hardware.AudioPlayer and
-mcvqoe.hardware.RadioInterface.
+    This class simulates the functionalities of mcvqoe.hardware.AudioPlayer and
+    mcvqoe.hardware.RadioInterface.
 
-Parameters
-----------
-port : str
-    For compatibility with 'RadioInterface'. Value has no effect on simulation.
-debug : bool, default=False
-    If true, print some extra 'RadioInterface' things.
-fs : int
-    Sample rate of audio in/out in samples per second.
-blocksize : int
-    For compatibility with 'AudioPlayer'. Value has no effect on simulation.
-buffersize : int
-    For compatibility with 'AudioPlayer'. Value has no effect on simulation.
-overplay : float
-    The number of seconds of extra audio to play/record at the end of a clip.
-rec_chans : dict
-    Dictionary describing the recording. Dictionary keys must be one of
-    {'rx_voice','PTT_signal'. For simulation, the value is ignored, as this
-    normally represents the physical channel number. At this time QoEsim can not
-    simulate 'timecode' or 'tx_beep' audio.
-playback_chans : dict
-    Dictionary describing the playback channels. Dictionary keys should be
-    one of {'tx_voice','start_signal'}. For simulation, the value is ignored,
-    as this normally represents the physical channel number.
+    Parameters
+    ----------
+    port : str
+        For compatibility with 'RadioInterface'. Value has no effect on simulation.
+    debug : bool, default=False
+        If true, print some extra 'RadioInterface' things.
+    fs : int
+        Sample rate of audio in/out in samples per second.
+    blocksize : int
+        For compatibility with 'AudioPlayer'. Value has no effect on simulation.
+    buffersize : int
+        For compatibility with 'AudioPlayer'. Value has no effect on simulation.
+    overplay : float
+        The number of seconds of extra audio to play/record at the end of a clip.
+    rec_chans : dict
+        Dictionary describing the recording. Dictionary keys must be one of
+        {'rx_voice','PTT_signal'. For simulation, the value is ignored, as this
+        normally represents the physical channel number. At this time QoEsim can not
+        simulate 'timecode' or 'tx_beep' audio.
+    playback_chans : dict
+        Dictionary describing the playback channels. Dictionary keys should be
+        one of {'tx_voice','start_signal'}. For simulation, the value is ignored,
+        as this normally represents the physical channel number.
 
-Attributes
-----------
-sample_rate : int
-    Sample rate of audio in/out in samples per second.
-blocksize : int
-    For compatibility with 'AudioPlayer'. Value has no effect on
-    simulation.
-buffersize : int
-    For compatibility with 'AudioPlayer'. Value has no effect on simulation.
-overplay : float
-    The number of seconds of extra audio to play/record at the end of a clip.
-device : str
-    Device name for compatibility with 'AudioPlayer'. This is set to the
-    string representation of the class instance by default. Changing has no
-    effect on simulations.
-rec_chans : dict
-    Dictionary describing the recording. Dictionary keys must be one of
-    {'rx_voice','PTT_signal'}. For simulation, the value is ignored, as this
-    normally represents the physical channel number. At this time QoEsim can
-    not simulate 'timecode' or 'tx_beep' audio.
-playback_chans : dict
-    Dictionary describing the playback channels. Dictionary keys must be one
-    of {'tx_voice','start_signal'}. The value for each entry is the, zero
-    based, channel number that each signal should be played on.
-channel_tech : string, default='clean'
-    Technology to use for the simulated channel. Channel technologies are
-    handled by plugins. The only tech that is available by default is 'clean'.
-    A list of available channel technologies is returned by `get_channel_techs`.
-channel_rate : int or str, default=None
-    rate to simulate channel at. Each channel tech handles this differently.
-    When set to None the default rate is used.
-pre_impairment : function, default=None
-    Impairment function to apply before the audio goes through the channel.
-    This function is passed an audio vector and should return a audio vector,
-    of the same length, with the impairments applied. A value of None skips
-    applying an impairment.
-post_impairment : function, default=None
-    Impairment function to apply after the audio goes through the channel.
-    This function is passed an audio vector and should return a audio vector,
-    of the same length, with the impairments applied. A value of None skips
-    applying an impairment.
-channel_impairment : function, default=None
-    Imparment to apply to the channel data. This is not super well defined
-    as each channel is a bit diffrent. A value of None skips applying an
-    impairment.
-m2e_latency : float, default=21.1e-3
-    Simulated mouth to ear latency for the channel in seconds.
-access_delay : float, default=0
-    Delay between the time that the simulated push to talk button is pushed
-    and when audio starts coming through the channel. If the 'ptt_delay'
-    method is called before play_record is called, then the time given to
-    'ptt_delay' is added to access_delay to get the time when access is
-    granted. Otherwise access is granted 'access_delay' seconds after the
-    clip starts.
-rec_snr : float, default=60
-    Signal to noise ratio for audio channel.
-print_args : bool, default=False
-    Print arguments to external programs.
-PTT_sig_freq : float, default=409.6
-    Frequency of the PTT signal from the play_record method.
-PTT_sig_aplitude : float, default=0.7
-    Amplitude of the PTT signal from the play_record method.
+    Attributes
+    ----------
+    sample_rate : int
+        Sample rate of audio in/out in samples per second.
+    blocksize : int
+        For compatibility with 'AudioPlayer'. Value has no effect on
+        simulation.
+    buffersize : int
+        For compatibility with 'AudioPlayer'. Value has no effect on simulation.
+    overplay : float
+        The number of seconds of extra audio to play/record at the end of a clip.
+    device : str
+        Device name for compatibility with 'AudioPlayer'. This is set to the
+        string representation of the class instance by default. Changing has no
+        effect on simulations.
+    rec_chans : dict
+        Dictionary describing the recording. Dictionary keys must be one of
+        {'rx_voice','PTT_signal'}. For simulation, the value is ignored, as this
+        normally represents the physical channel number. At this time QoEsim can
+        not simulate 'timecode' or 'tx_beep' audio.
+    playback_chans : dict
+        Dictionary describing the playback channels. Dictionary keys must be one
+        of {'tx_voice','start_signal'}. The value for each entry is the, zero
+        based, channel number that each signal should be played on.
+    channel_tech : {'clean','p25','analog','amr-wb','amr-nb'}, default='clean'
+        Technology to use for the simulated channel.
+    channel_rate : int or str, default=None
+        rate to simulate channel at. Each channel tech handles this differently.
+        When set to None the default rate is used.
+    pre_impairment : function, default=None
+        Impairment function to apply before the audio goes through the channel.
+        This function is passed an audio vector and should return a audio vector,
+        of the same length, with the impairments applied. A value of None skips
+        applying an impairment.
+    post_impairment : function, default=None
+        Impairment function to apply after the audio goes through the channel.
+        This function is passed an audio vector and should return a audio vector,
+        of the same length, with the impairments applied. A value of None skips
+        applying an impairment.
+    channel_impairment : function, default=None
+        Imparment to apply to the channel data. This is not super well defined
+        as each channel is a bit diffrent. A value of None skips applying an
+        impairment.
+    dvsi_path : str, default='pcnrtas'
+        path to the dvsi encode/decode executable. Used to simulate P25 channels.
+    fmpeg_path : str
+        path to the ffmpeg executable. Ffmpeg is used to simulate for amr
+        channels. By default the path is searched for ffmpeg, if the ffmpeg
+        program is found on the path then this will be the full path to ffmpeg.
+        Otherwise this will simply be the string 'ffmpeg'.
+    m2e_latency : float, default=21.1e-3
+        Simulated mouth to ear latency for the channel in seconds.
+    access_delay : float, default=0
+        Delay between the time that the simulated push to talk button is pushed
+        and when audio starts coming through the channel. If the 'ptt_delay'
+        method is called before play_record is called, then the time given to
+        'ptt_delay' is added to access_delay to get the time when access is
+        granted. Otherwise access is granted 'access_delay' seconds after the
+        clip starts.
+    rec_snr : float, default=60
+        Signal to noise ratio for audio channel.
+    print_args : bool, default=False
+        Print arguments to external programs.
+    PTT_sig_freq : float, default=409.6
+        Frequency of the PTT signal from the play_record method.
+    PTT_sig_aplitude : float, default=0.7
+        Amplitude of the PTT signal from the play_record method.
 
-See Also
---------
-mcvqoe.hardware.AudioPlayer : Play audio on real hardware.
-mcvqoe.hardware.RadioInterface : Key real radios.
+    See Also
+    --------
+    mcvqoe.hardware.AudioPlayer : Play audio on real hardware.
+    mcvqoe.hardware.RadioInterface : Key real radios.
 
-Examples
---------
+    Examples
+    --------
 
-play 48 kHz audio stored in tx_voice and record in a file named 'test.wav'.
->>>import mcvqoe.simulation.QoEsim
->>>sim_obj=mcvqoe.simulation.QoEsim(fs=int(48e3))
->>>sim_obj.play_record(tx_voice,'test.wav')
-now do the same but also output the start signal on channel 1 and record the
-PTT signal on channel 1.
->>>sim_obj.playback_chans={'tx_voice':0,'start_signal':1}
->>>sim_obj.rec_chans={'rx_voice':0,'PTT_signal':1}
->>>sim_obj.play_record(tx_voice,'test.wav')
+    play 48 kHz audio stored in tx_voice and record in a file named 'test.wav'.
+    >>> import mcvqoe.simulation.QoEsim
+    >>> sim_obj=mcvqoe.simulation.QoEsim(fs=int(48e3))
+    >>> sim_obj.play_record(tx_voice,'test.wav')
+    now do the same but also output the start signal on channel 1 and record the
+    PTT signal on channel 1.
+    >>> sim_obj.playback_chans={'tx_voice':0,'start_signal':1}
+    >>> sim_obj.rec_chans={'rx_voice':0,'PTT_signal':1}
+    >>> sim_obj.play_record(tx_voice,'test.wav')
     """
-    def __init__(self,
-                 port=None,
-                 debug=False,
-                 fs=int(48e3),
-                 blocksize=512,
-                 buffersize=20,
-                 overplay=1.0,
-                 rec_chans={'rx_voice':0},
-                 playback_chans={'tx_voice':0}
-                 ):
 
-        #locate any channel plugins installed
-        chans=entry_points()['mcvqoe.channel']
+    def __init__(
+        self,
+        port=None,
+        debug=False,
+        fs=int(48e3),
+        blocksize=512,
+        buffersize=20,
+        overplay=1.0,
+        rec_chans={"rx_voice": 0},
+        playback_chans={"tx_voice": 0},
+    ):
 
-        self._chan_types={}
-        self._chan_mods={}
+        # locate any channel plugins installed
+        chans = entry_points()["mcvqoe.channel"]
+
+        self._chan_types = {}
+        self._chan_mods = {}
         for c in chans:
-            #add to channel dict
-            self._chan_types[c.name]=c
+            # add to channel dict
+            self._chan_types[c.name] = c
 
-        self.debug=debug
-        self.PTT_state=[False,]*2
-        self.LED_state=[False,]*2
-        self.ptt_wait_delay=[-1.0,]*2
-        #values for AudioPlayer
+        self.debug = debug
+        self.PTT_state = [
+            False,
+        ] * 2
+        self.LED_state = [
+            False,
+        ] * 2
+        self.ptt_wait_delay = [
+            -1.0,
+        ] * 2
+        # values for AudioPlayer
         self.sample_rate = fs
         self.blocksize = blocksize
         self.buffersize = buffersize
         self.overplay = overplay
-        self.device = __class__ #fake device name
-        self.rec_chans=rec_chans
-        self.playback_chans=playback_chans
-        #channel variables
-        self.channel_tech='clean'
-        self.channel_rate=None
-        self.pre_impairment=None
-        self.post_impairment=None
-        self.channel_impairment=None
-        #TODO : set based on tech
-        self.m2e_latency=21.1e-3
-        self.access_delay=0
-        #SNR for audio in dB
-        self.rec_snr=60
-        #print arguments sent to external programs for debugging
-        self.print_args=False
-        #PTT signal parameters
-        self.PTT_sig_freq=409.6     #TODO : VERIFY!
-        self.PTT_sig_aplitude=0.7
-
+        self.device = __class__  # fake device name
+        self.rec_chans = rec_chans
+        self.playback_chans = playback_chans
+        # channel variables
+        self.channel_tech = "clean"
+        self.channel_rate = None
+        self.pre_impairment = None
+        self.post_impairment = None
+        self.channel_impairment = None
+        # TODO : set based on tech
+        self.m2e_latency = 21.1e-3
+        self.access_delay = 0
+        # SNR for audio in dB
+        self.rec_snr = 60
+        # print arguments sent to external programs for debugging
+        self.print_args = False
+        # PTT signal parameters
+        self.PTT_sig_freq = 409.6  # TODO : VERIFY!
+        self.PTT_sig_aplitude = 0.7
 
     def __enter__(self):
 
@@ -208,9 +220,9 @@ PTT signal on channel 1.
         Examples
         --------
         Key a fake radio.
-        >>>sim_obj=mcvqoe.simulation.QoEsim()
-        >>>sim_obj.ptt(True)  #key radio
-        >>>sim_obj.ptt(False) #de-key radio
+        >>> sim_obj=mcvqoe.simulation.QoEsim()
+        >>> sim_obj.ptt(True)  #key radio
+        >>> sim_obj.ptt(False) #de-key radio
         """
 
         self.PTT_state[num] = bool(state)
@@ -238,10 +250,10 @@ PTT signal on channel 1.
         Examples
         --------
         Turn on some fake LEDs.
-        >>>sim_obj=mcvqoe.simulation.QoEsim()
-        >>>sim_obj.led(1,True)
-        >>>sim_obj.led(2,True)
-        >>>sim_obj.led(1,False)
+        >>> sim_obj=mcvqoe.simulation.QoEsim()
+        >>> sim_obj.led(1,True)
+        >>> sim_obj.led(2,True)
+        >>> sim_obj.led(1,False)
         """
 
         # check LED state
@@ -274,8 +286,8 @@ PTT signal on channel 1.
         Examples
         --------
         Query a fake 'RadioInterface'.
-        >>>sim_obj=mcvqoe.simulation.QoEsim()
-        >>>print(sim_obj.devtype())
+        >>> sim_obj=mcvqoe.simulation.QoEsim()
+        >>> print(sim_obj.devtype())
         """
 
         # TODO : simulate other versions??
@@ -300,8 +312,8 @@ PTT signal on channel 1.
         Examples
         --------
         Query a fake 'RadioInterface'.
-        >>>sim_obj=mcvqoe.simulation.QoEsim()
-        >>>print(sim_obj.get_id())
+        >>> sim_obj=mcvqoe.simulation.QoEsim()
+        >>> print(sim_obj.get_id())
         """
 
         return os.path.basename(__file__)
@@ -325,8 +337,8 @@ PTT signal on channel 1.
         Examples
         --------
         Query a fake 'RadioInterface'.
-        >>>sim_obj=mcvqoe.simulation.QoEsim()
-        >>>print(sim_obj.get_version())
+        >>> sim_obj=mcvqoe.simulation.QoEsim()
+        >>> print(sim_obj.get_version())
         """
 
         return mcvqoe.version
@@ -349,10 +361,10 @@ PTT signal on channel 1.
         Examples
         --------
         Query a fake 'RadioInterface'.
-        >>>sim_obj=mcvqoe.simulation.QoEsim()
-        >>>print(sim_obj.pttState())
-        >>>sim_obj.ptt(True)
-        >>>print(sim_obj.pttState())
+        >>> sim_obj=mcvqoe.simulation.QoEsim()
+        >>> print(sim_obj.pttState())
+        >>> sim_obj.ptt(True)
+        >>> print(sim_obj.pttState())
         """
         return self.PTT_state
 
@@ -375,8 +387,8 @@ PTT signal on channel 1.
         Examples
         --------
         Query a fake 'RadioInterface'.
-        >>>sim_obj=mcvqoe.simulation.QoEsim()
-        >>>print(sim_obj.waitState())
+        >>> sim_obj=mcvqoe.simulation.QoEsim()
+        >>> print(sim_obj.waitState())
         """
 
         # TODO: do we need to simulate this better?
@@ -412,11 +424,11 @@ PTT signal on channel 1.
         Generate a simulated clip where the radio is keyed up 1 second into the
         clip. 'tx_voice' has the 48k Hz voice vector. The result is stored in
         'test.wav'
-        >>>sim_obj=mcvqoe.simulation.QoEsim(fs=int(48e3))
-        >>>sim_obj.playback_chans={'tx_voice':0,'start_signal':1}
-        >>>sim_obj.rec_chans={'rx_voice':0,'PTT_signal':1}
-        >>>sim_obj.ptt_delay(1)
-        >>>sim_obj.play_record(tx_voice,'test.wav')
+        >>> sim_obj=mcvqoe.simulation.QoEsim(fs=int(48e3))
+        >>> sim_obj.playback_chans={'tx_voice':0,'start_signal':1}
+        >>> sim_obj.rec_chans={'rx_voice':0,'PTT_signal':1}
+        >>> sim_obj.ptt_delay(1)
+        >>> sim_obj.play_record(tx_voice,'test.wav')
         """
 
         self.ptt_wait_delay[num] = delay
@@ -444,8 +456,8 @@ PTT signal on channel 1.
         Examples
         --------
         Read some fake temperatures.
-        >>>sim_obj=mcvqoe.simulation.QoEsim()
-        >>>print(sim_obj.temp())
+        >>> sim_obj=mcvqoe.simulation.QoEsim()
+        >>> print(sim_obj.temp())
         """
         # TODO : generate better fake values??
         return (38, 1500)
@@ -459,6 +471,7 @@ PTT signal on channel 1.
 
         self.ptt(False)
         self.led(1, False)
+
     # =====================[Find device function]=====================
     def find_device(self):
         """
@@ -479,8 +492,9 @@ PTT signal on channel 1.
         Examples
         --------
         Query a fake 'AudioPlayer'.
-        >>>sim_obj=mcvqoe.simulation.QoEsim()
-        >>>print(sim_obj.find_device())
+
+        >>> sim_obj=mcvqoe.simulation.QoEsim()
+        >>> print(sim_obj.find_device())
         """
         return __class__
 
@@ -514,7 +528,7 @@ PTT signal on channel 1.
         return list(self._chan_types.keys())
 
     # =====================[Get Channel Rates]=====================
-    def get_channel_rates(self,tech):
+    def get_channel_rates(self, tech):
         """
         Return possible rates for a given channel tech.
 
@@ -537,34 +551,34 @@ PTT signal on channel 1.
 
         Examples
         --------
-
-        get rates for a clean channel
+        Get rates for a clean channel
 
         >>> sim=QoEsim()
         >>> sim.get_channel_techs('clean')
         (None,[])
         """
-        mod=self._get_chan_mod(tech)
-        return (mod.default_rate,mod.rates)
+        mod = self._get_chan_mod(tech)
+        return (mod.default_rate, mod.rates)
 
     # =====================[get channel module]=====================
-    def _get_chan_mod(self,tech):
+    def _get_chan_mod(self, tech):
         try:
-            chan_mod=self._chan_mods[tech]
+            chan_mod = self._chan_mods[tech]
         except KeyError:
             try:
-                chan_info=self._chan_types[tech]
+                chan_info = self._chan_types[tech]
             except KeyError:
-                raise ValueError(f'Unknown channel tech "{tech}" valid channel technologies are {self.get_channel_techs()}')
+                raise ValueError(
+                    f'Unknown channel tech "{tech}" valid channel technologies are {self.get_channel_techs()}'
+                )
 
-            #load module for channel
-            chan_mod=chan_info.load()
-            #save module for later
-            #TODO : is this needed? good idea?
-            self._chan_mods[self.channel_tech]=chan_mod
+            # load module for channel
+            chan_mod = chan_info.load()
+            # save module for later
+            # TODO : is this needed? good idea?
+            self._chan_mods[self.channel_tech] = chan_mod
 
         return chan_mod
-
 
     # =====================[record audio function]=====================
     def play_record(self, audio, out_name):
@@ -596,19 +610,16 @@ PTT signal on channel 1.
         Examples
         --------
 
-        play 48 kHz audio stored in tx_voice and record in a file named
+        Play 48 kHz audio stored in tx_voice and record in a file named
         'test.wav'.
-
-        >>>import mcvqoe.simulation.QoEsim
-        >>>sim_obj=mcvqoe.simulation.QoEsim(fs=int(48e3))
-        >>>sim_obj.play_record(tx_voice,'test.wav')
-
-        now do the same but also output the start signal on channel 1 and record
+        >>> import mcvqoe.simulation.QoEsim
+        >>> sim_obj=mcvqoe.simulation.QoEsim(fs=int(48e3))
+        >>> sim_obj.play_record(tx_voice,'test.wav')
+        Now do the same but also output the start signal on channel 1 and record
         the PTT signal on channel 1.
-
-        >>>sim_obj.playback_chans={'tx_voice':0,'start_signal':1}
-        >>>sim_obj.rec_chans={'rx_voice':0,'PTT_signal':1}
-        >>>sim_obj.play_record(tx_voice,'test.wav')
+        >>> sim_obj.playback_chans={'tx_voice':0,'start_signal':1}
+        >>> sim_obj.rec_chans={'rx_voice':0,'PTT_signal':1}
+        >>> sim_obj.play_record(tx_voice,'test.wav')
         """
         # loop through playback_chans this is mostly just a format check to make
         # sure that all keys used are valid
@@ -630,86 +641,11 @@ PTT signal on channel 1.
                 )
             outputs.append(k)
 
-        #get the module for the chosen channel tech
-        chan_mod=self._get_chan_mod(self.channel_tech)
+        # get the module for the chosen channel tech
+        chan_mod = self._get_chan_mod(self.channel_tech)
 
-<<<<<<< HEAD
-        #get delay offset for channel technology
-        m2e_offset=chan_mod.standard_delay
-
-        #calculate values in samples
-        overplay_samples=int(self.overplay*self.sample_rate)
-        #correct for audio channel latency
-        m2e_latency_samples=int((self.m2e_latency-m2e_offset)*self.sample_rate)
-
-        if(m2e_latency_samples<0):
-            #TODO : it might be possible to get around this but, it sounds slightly nontrivial...
-            raise ValueError(f'Unable to simulate a latency of {self.m2e_latency}. Minimum simulated latency for technology \'{self.channel_tech}\' is {m2e_offset}')
-
-        #convert audio values to floats to work on them
-        float_audio=mcvqoe.audio_float(audio)
-
-        #append overplay to audio
-        overplay_audio = np.zeros(int(overplay_samples), dtype=np.float32)
-        tx_data_with_overplay = np.concatenate((float_audio, overplay_audio))
-
-        if(self.rec_snr is None):
-            #don't add any noise
-            tx_data_with_overplay_and_noise = tx_data_with_overplay
-        else:
-            #generate gaussian noise, of unit standard deveation
-            noise = np.random.normal(0, 1, len(tx_data_with_overplay)).astype(np.float32)
-
-            #measure amplitude of signal and noise
-            sig_level=active_speech_level(tx_data_with_overplay,self.sample_rate)
-            noise_level=active_speech_level(noise,self.sample_rate)
-
-            #calculate noise gain required to get desired SNR
-            noise_gain=sig_level-(self.rec_snr+noise_level)
-
-            #set noise to the correct level
-            noise_scaled = noise * (10**(noise_gain/20))
-
-            #add noise to audio
-            tx_data_with_overplay_and_noise = tx_data_with_overplay + noise_scaled
-
-        #check if PTT was keyed during audio
-        if(self.ptt_wait_delay[1] == -1):
-            #PTT wait not set, don't simulate access time
-            ptt_st_dly_samples=0
-            access_delay_samples=0
-        else:
-            ptt_st_dly_samples=int(self.ptt_wait_delay[1]*self.sample_rate)
-            access_delay_samples=int(self.access_delay*self.sample_rate)
-
-        #mute portion of tx_data that occurs prior to triggering of PTT
-        muted_samples = int(access_delay_samples + ptt_st_dly_samples)
-        muted_tx_data_with_overplay = tx_data_with_overplay_and_noise[muted_samples:]
-
-        #add pre channel impairments
-        if(self.pre_impairment):
-            muted_tx_data_with_overplay=self.pre_impairment(muted_tx_data_with_overplay,self.sample_rate)
-
-        #call audio channel function from module
-        channel_voice=chan_mod.simulate_audio_channel(self,muted_tx_data_with_overplay)
-
-        #add post channel impairments
-        if(self.post_impairment):
-            channel_voice=self.post_impairment(channel_voice,self.sample_rate)
-
-        #generate silent noise section comprised of ptt_st_dly, access delay and m2e latency audio snippets
-        silence_length = int(ptt_st_dly_samples + access_delay_samples + m2e_latency_samples)
-
-        #derive mean and standard deviation from real-world noise observed in the audio recordings
-=======
-        try:
-            # get offset for channel technology
-            m2e_offset = self.standard_delay[self.channel_tech]
-        except KeyError:
-            # a key error means we used a bad technology
-            raise ValueError(
-                f'"{self.channel_tech}" is not a valid technology'
-            ) from None
+        # get delay offset for channel technology
+        m2e_offset = chan_mod.standard_delay
 
         # calculate values in samples
         overplay_samples = int(self.overplay * self.sample_rate)
@@ -764,8 +700,20 @@ PTT signal on channel 1.
         muted_samples = int(access_delay_samples + ptt_st_dly_samples)
         muted_tx_data_with_overplay = tx_data_with_overplay_and_noise[muted_samples:]
 
-        # generate raw rx_data from audio channel
-        channel_voice = self.simulate_audio_channel(muted_tx_data_with_overplay)
+        # add pre channel impairments
+        if self.pre_impairment:
+            muted_tx_data_with_overplay = self.pre_impairment(
+                muted_tx_data_with_overplay, self.sample_rate
+            )
+
+        # call audio channel function from module
+        channel_voice = chan_mod.simulate_audio_channel(
+            self, muted_tx_data_with_overplay
+        )
+
+        # add post channel impairments
+        if self.post_impairment:
+            channel_voice = self.post_impairment(channel_voice, self.sample_rate)
 
         # generate silent noise section comprised of ptt_st_dly, access delay and m2e latency audio snippets
         silence_length = int(
@@ -773,7 +721,6 @@ PTT signal on channel 1.
         )
 
         # derive mean and standard deviation from real-world noise observed in the audio recordings
->>>>>>> 942f85a (Format repository with Black)
         mean = 0
         std = 1.81e-5
 
@@ -808,86 +755,7 @@ PTT signal on channel 1.
             else:
                 raise RuntimeError("Internal error")
 
-<<<<<<< HEAD
-        #write out audio file
+        # write out audio file
         scipy.io.wavfile.write(out_name, int(self.sample_rate), rx_data)
 
         return outputs
-=======
-        # write out audio file
-        wav.write(out_name, int(self.sample_rate), rx_data)
-
-        return outputs
-
-    # =====================[p25 encode function]=====================
-    def p25encode(self, x, fs, rate="fr"):
-        # given a signal x with fs: fs, returns encoded p25
-
-        # resample signal to 8000 Hz, and scale by 2^15
-        new_len = int(len(x) * 8000 / fs)
-        x_rs = scipy.signal.resample(x, new_len)
-
-        # get info about int16
-        info = np.iinfo(np.int16)
-
-        # scale to fill new range
-        x_scaled = x_rs * min(abs(info.min), info.max)
-        # clip to limits
-        x_clipped = np.clip(x_scaled, info.min, info.max)
-
-        if (x_scaled != x_clipped).any():
-            warnings.warn("Clipping detected in P25 encode")
-
-        # convert convert to integers
-        x_int16 = x_clipped.astype(np.int16)
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # create paths for audio and encoded files
-            audio_name = os.path.join(temp_dir, "audio")
-            enc_name = os.path.join(temp_dir, "encoding.bin")
-
-            # write audio file
-            x_int16.tofile(audio_name)
-
-            dvsi_args = [self.dvsi_path, "-enc", "-" + rate, audio_name, enc_name]
-            if self.print_args:
-                print(f'dvsi encode arguments : {" ".join(dvsi_args)}')
-
-            # encode to enc_name
-            subprocess.run(dvsi_args, stdout=subprocess.DEVNULL)
-
-            # read p25 encoding
-            y = np.fromfile(enc_name, np.uint8)
-
-        # convert p25 encoding to logical values
-        y = y.astype(np.bool_)
-        return y
-
-    # =====================[p25 decode function]=====================
-
-    def p25decode(self, x, target_fs, rate="fr"):
-        # assumes x is a signal with fs: 8000
-        # deocde signal and resample to target_fs
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            enc_name = os.path.join(temp_dir, "encoding.bin")
-            audio_name = os.path.join(temp_dir, "audio")
-            # values are either 0 or 255 convert accordingly
-            x = (255 * x).astype(np.uint8)
-            # write out temporary audio file
-            x.tofile(enc_name)
-
-            dvsi_args = [self.dvsi_path, "-dec", "-" + rate, enc_name, audio_name]
-            if self.print_args:
-                print(f'dvsi decode arguments : {" ".join(dvsi_args)}')
-            # decode to audio_name
-            subprocess.run(dvsi_args, stdout=subprocess.DEVNULL)
-
-            # read decodede signal
-            dat = np.fromfile(audio_name, np.int16)
-        # normalize signal to -1 to 1
-        dat = audio_float(dat)
-        # resample to target_fs
-        dat = scipy.signal.resample(dat, int(len(dat) * target_fs / 8000))
-        return dat
->>>>>>> 942f85a (Format repository with Black)

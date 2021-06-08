@@ -1,10 +1,11 @@
 import datetime
+import importlib
 import os
-import traceback
 import shutil
 import subprocess
+import traceback
+
 import mcvqoe.version
-import importlib
 
 
 def fill_log(test_obj, git_path=None):
