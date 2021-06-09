@@ -39,8 +39,8 @@ class TestInfoGui(tk.Tk):
 
     Examples
     --------
-
     get test notes from the user
+
     >>> gui=TestInfoGui()
     >>> test_info=gui.show()
     >>> print(test_info)
@@ -263,6 +263,7 @@ class PostTestGui(tk.Tk):
     Examples
     --------
     Get post test notes from user
+
     >>> gui=PostTestGui()
     >>> notes=gui.show()
     >>> print(notes)

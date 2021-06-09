@@ -1,12 +1,12 @@
-import os
 import glob
-from datetime import datetime
+import os
 import re
-import subprocess
-import tempfile
 import shutil
 import stat
+import subprocess
+import tempfile
 import warnings
+from datetime import datetime
 
 
 class log_search:

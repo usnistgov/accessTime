@@ -30,6 +30,7 @@ def audio_float(dat):
     Examples
     --------
     load audio and ensure that it is on the -1 to +1 range
+
     >>> fs, dat = scipy.io.wavfile('audio.wav')
     >>> float_dat=audio_float(dat)
     """
@@ -93,6 +94,7 @@ def svp56_fast(x, fs=8000):
     Examples
     --------
     Measure the active speech level of a .wav file
+
     >>> (asl,_,_)=svp56_fast('speech.wav')
     """
 
@@ -289,6 +291,7 @@ def write_cp(fname, cutpoints):
     Examples
     --------
     Example of saving cutpoints
+
     >>> cutpoints=({'Clip': 24, 'Start': 0, 'End': 41970})
     >>> write_cp('cp.csv',cutpoints)
     """
@@ -342,6 +345,7 @@ def a_weighted_power(x, fs=48000):
     Examples
     --------
     Calculate the A-weighted power for a 48 kHz audio vector
+
     >>> a_weighted_power(audio)
     """
 

@@ -40,8 +40,8 @@ try:
 
         Examples
         --------
-
         Record audio
+
         >>> import mcvqoe.hardware.AudioPlayer
         >>> ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
         >>> ap.record('test.wav')

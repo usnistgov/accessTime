@@ -126,13 +126,15 @@ class QoEsim:
 
     Examples
     --------
+    Play 48 kHz audio stored in tx_voice and record in a file named 'test.wav'.
 
-    play 48 kHz audio stored in tx_voice and record in a file named 'test.wav'.
     >>> import mcvqoe.simulation.QoEsim
     >>> sim_obj=mcvqoe.simulation.QoEsim(fs=int(48e3))
     >>> sim_obj.play_record(tx_voice,'test.wav')
-    now do the same but also output the start signal on channel 1 and record the
+
+    Now do the same but also output the start signal on channel 1 and record the
     PTT signal on channel 1.
+
     >>> sim_obj.playback_chans={'tx_voice':0,'start_signal':1}
     >>> sim_obj.rec_chans={'rx_voice':0,'PTT_signal':1}
     >>> sim_obj.play_record(tx_voice,'test.wav')
