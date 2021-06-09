@@ -1,5 +1,6 @@
 import datetime
 import os
+import pkg_resources
 import sys
 
 from tkinter import scrolledtext
@@ -69,7 +70,8 @@ class TestInfoGui(tk.Tk):
         self.write_test_info=write_test_info
         
         # Show MCV logo
-        self.tk.call('wm', 'iconphoto', self._w, tk.PhotoImage(file='MCV-sm.png'))
+        img_file = pkg_resources.resource_filename('mcvqoe', 'gui/MCV-sm.png')
+        self.tk.call('wm', 'iconphoto', self._w, tk.PhotoImage(file=img_file))
 
     def load_settings(self,fname):
         """
@@ -264,7 +266,8 @@ class PostTestGui(tk.Tk):
         self.err=err
         
         # Show MCV logo
-        self.tk.call('wm', 'iconphoto', self._w, tk.PhotoImage(file='MCV-sm.png'))
+        img_file = pkg_resources.resource_filename('mcvqoe', 'gui/MCV-sm.png')
+        self.tk.call('wm', 'iconphoto', self._w, tk.PhotoImage(file=img_file))
              
     def show(self):
         """
