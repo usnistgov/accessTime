@@ -105,6 +105,11 @@ class ITSTest(unittest.TestCase):
                 msg=name,
             )
 
+            self.assertEqual(
+                mcvqoe.ITS_delay_est(audio_data, audio_fixed_delay, "u", fs=audio_fs),
+                ((expected_length,), (20,)),
+                msg=name,
+            )
             audio_var_delay = np.concatenate(
                 (
                     audio_data[5:10000],
@@ -127,8 +132,13 @@ class ITSTest(unittest.TestCase):
         for i, name in enumerate(audio_files):
             audio_fs, audio_data = load_audio_file(name)
 
-            self.assertEqual(
-                active_speech_level(audio_data, fs=audio_fs), expected_speech_level[i]
+            self.assertTrue(
+                abs(
+                    active_speech_level(audio_data, fs=audio_fs)
+                    - expected_speech_level[i]
+                )
+                < 1e-4,
+                msg=name,
             )
 
 
