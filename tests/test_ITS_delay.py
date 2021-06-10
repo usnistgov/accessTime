@@ -107,7 +107,7 @@ class ITSTest(unittest.TestCase):
 
             self.assertEqual(
                 mcvqoe.ITS_delay_est(audio_data, audio_fixed_delay, "u", fs=audio_fs),
-                ((expected_length,), (24,)),
+                ((expected_length,), (20,)),
                 msg=name,
             )
             audio_var_delay = np.concatenate(
