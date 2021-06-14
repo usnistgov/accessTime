@@ -73,6 +73,8 @@ class cpyDelay:
         shutil.copytree(src,dest,ignore=self.ignore_func(src,dest),**kwargs)
 
     def copy_skipped(self):
+        #notify user of delayed copies
+        print(f'Copying skipped \'{self.dly_ext}\' files.',flush=True)
         #loop through skipped files
         for src,dest in self.skip_list:
             print('Copying \''+src+'\' to \''+dest+'\'',flush=True)
@@ -119,6 +121,10 @@ def sync_files(spath,dpath,bd=True,cull=False,sunset=30,thorough=True):
     skip_zip=cpyDelay('.zip',verbose=True)
     #get datetime object for current time
     current_time=datetime.datetime.now()
+    
+    #create set to store copied files for
+    copied_files = set()
+    
     #loop over files in data_dirs
     for dat in data_dirs:
         #check for directory of directory path
@@ -165,6 +171,7 @@ def sync_files(spath,dpath,bd=True,cull=False,sunset=30,thorough=True):
                     if(os.path.isdir(sname)):
                         #yes, copy with dir_cpy
                         dir_cpy(sname,dname)
+                        copied_files.add(os.path.basename(dname))
                     else:
                         #no, check extension
                         _,ext=os.path.splitext(sname)
@@ -176,6 +183,9 @@ def sync_files(spath,dpath,bd=True,cull=False,sunset=30,thorough=True):
                             shutil.copyfile(sname,dname)
                             #and its metadata
                             shutil.copystat(sname,dname)
+                            #add copied file name to set
+                            simple_name,_ = os.path.splitext(os.path.basename(dname))
+                            copied_files.add(simple_name)
                         else:
                             #no, print a message
                             print(f'Skipping \'{sname}\' it is not a directory or .zip file',flush=True)
@@ -207,6 +217,9 @@ def sync_files(spath,dpath,bd=True,cull=False,sunset=30,thorough=True):
                             shutil.copyfile(sname,dname)
                             #copy metadata
                             shutil.copystat(sname,dname)
+                            #add copied file name to set
+                            simple_name,_ = os.path.splitext(os.path.basename(dname))
+                            copied_files.add(simple_name)
                 else:
                     print('\t'+'No new files found to copy to \''+dest+'\'')
 
@@ -297,6 +310,10 @@ def sync_files(spath,dpath,bd=True,cull=False,sunset=30,thorough=True):
 
     #copy .zip files that we skipped earlier
     skip_zip.copy_skipped()
+    
+    
+    copy_str = 'local-copy list: ' + ' '.join(copied_files)
+    print(copy_str)
 
 
 

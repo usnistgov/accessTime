@@ -1,43 +1,54 @@
 
 stages:
   - build
-  - venv
   - test
+  - deploy
 
 build:
   stage: build
+  needs: []
   script:
     - python --version > py-ver.log
+    - pip install wheel
     - python setup.py sdist bdist_wheel > package.log 
+    - pip install --log pip.log --find-links ./dist/ mcvqoe-nist sphinx numpydoc unittest-xml-reporting > install.log 
   artifacts:
       when: always
       paths:
         - package.log
         - py-ver.log
-        - dist/*.whl
-
-venv:
-  stage: venv
-  script:
-    - python -m venv test-env > env.log
-    - test-env/bin/pip install --log pip.log --find-links ./dist/ mcvqoe-nist unittest-xml-reporting > install.log 
-  artifacts:
-      when: always
-      paths:
-        - pip.log
-        - env.log
         - install.log
-        - test-env/*
-
+        - pip.log
+        - dist/*.whl
+        - mcvqoe/version.py
 
 test-math:
   stage: test
   script:
-    - test-env/bin/python tests/test_math.py > mathtest.log 
+    - python tests/test_math.py
+
+test-log:
+  stage: test
+  script:
+    - python tests/test_log.py
+      
+test-sim:
+  stage: test
+  script:
+    - python tests/sim_test.py
+      
+test-testCpy:
+  stage: test
+  script:
+    - python tests/test_testCpy.py
+      
+pages:
+  stage: deploy
+  script:
+    - sphinx-build -b html ./docs/source/ public
+  only:
+    - develop
+    - sphinx
   artifacts:
-      when: always
-      paths:
-        - mathtest.log
-        - math-tests.xml
-      reports:
-        junit: math-tests.xml
+    paths:
+      - public

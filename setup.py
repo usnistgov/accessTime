@@ -13,6 +13,8 @@ setuptools.setup(
     url="https://gitlab.nist.gov/gitlab/PSCR/MCV/mcv-qoe-library",
     packages=setuptools.find_packages(),
     include_package_data=True,
+    package_data={'mcvqoe':['audio_clips','test.wav'],
+                  'mcvqoe' : ['gui', 'MCV-sm.png']},
     use_scm_version={'write_to' : 'mcvqoe/version.py'},
     setup_requires=['setuptools_scm'],
     classifiers=[
@@ -20,14 +22,23 @@ setuptools.setup(
         "License :: Public Domain",
         "Operating System :: OS Independent",
     ],
+    license='NIST software License',
     install_requires=[
-        'numpy','scipy','sounddevice','serial','pyserial','gitpython','soundfile','appdirs'
+        'numpy',
+        'scipy',
+        'sounddevice',
+        'pyserial',
+        'soundfile',
+        'appdirs',
+        'importlib-metadata ; python_version < "3.8"',
     ],
     entry_points={
         'console_scripts':[
             'testCpy=mcvqoe.utilities.testCpy:main',
-            'local-copy=mcvqoe.utilities.local_copy:main'
+            'local-copy=mcvqoe.utilities.local_copy:main',
+            'mcvqoe-test-play=mcvqoe.hardware.PTT_play:main'
         ],
+        'mcvqoe.channel':'clean=mcvqoe.simulation.cleanchan',
     },
     python_requires='>=3.6',
 )

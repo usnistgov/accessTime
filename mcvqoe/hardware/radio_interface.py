@@ -217,6 +217,11 @@ class RadioInterface:
         resp=self.textin.readline()
         #get delay from string
         m=re.match('(?:Error : (?P<err>.+)$)|(?:PTT in (?P<dly>[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?) sec)',resp)
+        
+        #check for match
+        if(not m):
+            raise RuntimeError(f'Unable to parse esponse {resp}')
+        
         #check PTT delay was found
         if(m.group('dly')):
             return float(m.group('dly'))

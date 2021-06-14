@@ -1,10 +1,13 @@
 
 import datetime
 import os
-import git
 import traceback
+import shutil
+import subprocess
+import mcvqoe.version
+import importlib
 
-def fill_log(test_obj):
+def fill_log(test_obj,git_path=None):
     """
     Take in QoE measurement class and fill in standard log entries
     
@@ -14,6 +17,8 @@ def fill_log(test_obj):
     ----------
     test_obj : QoE measurement class
         Class to generate test info for
+    git_path : string, default=None
+        path to git executable. Will look in the path if None
     """
     
     #initialize info
@@ -21,21 +26,14 @@ def fill_log(test_obj):
     
     #---------------------------[RadioInterface info]---------------------------
     
-    # Get ID and Version number from RadioInterface
-    info['RI version']  = test_obj.ri.get_version()
-    info['RI id'] = test_obj.ri.get_id()
-
-    #------------------------------[Get Git Hash]------------------------------
-
-    sha = ""
     try:
-        repo = git.Repo(search_parent_directories=True)
-        sha = repo.head.object.hexsha
-    except git.exc.InvalidGitRepositoryError:
-        sha = "No Git Hash Found"
-    
-    info["Git Hash"]=sha
-    
+        # Get ID and Version number from RadioInterface
+        info['RI version']  = test_obj.ri.get_version()
+        info['RI id'] = test_obj.ri.get_id()        
+    except AttributeError:
+        #no RI for this object
+        pass
+        
     #---------------------[Get traceback for calling info]---------------------
     
     #get a stack trace
@@ -52,6 +50,69 @@ def fill_log(test_obj):
     
     #format string with '->' between files
     info['traceback']='->'.join([f'{f}({n})' if n is not None else f for f,n in tb_info])
+    
+    #------------------------------[Get Git Hash]------------------------------
+    
+    if(git_path is None):
+        #try to find git
+        git_path=shutil.which('git')
+    
+    if(git_path):        
+        repo_path=os.path.dirname(tb[-1].filename)
+
+        #get the full has of the commit described by rev
+        p=subprocess.run([git_path,'-C',repo_path,'rev-parse','--verify','HEAD'],capture_output=True)
+        
+        #convert to string and trim whitespace
+        rev=p.stdout.decode("utf-8").strip()
+        
+        #check for error
+        if(p.returncode) == 0:
+        
+            #check if there are local mods
+            mods_p=subprocess.run([git_path,'-C',repo_path,'diff-index','--quiet','HEAD','--'],capture_output=True)
+            
+            if(mods_p.returncode):
+                dirty=' dty'
+            else:
+                dirty=''
+            
+            #set info
+            info["Git Hash"]=rev+dirty
+        
+    #---------------------------[Add MCV QoE version]---------------------------
+    
+    info['mcvqoe version']=mcvqoe.version
+    
+    #----------------------[Add Measurement class version]----------------------
+    
+    #get module for test_obj
+    module=test_obj.__class__.__module__
+    
+    #set default version
+    info['version']='Unknown'
+    
+    if(module):
+        #import base level module
+        mod=importlib.import_module(module.split('.')[0])
+        try:
+            info['version']=mod.version
+        except AttributeError as e:
+            pass
+    
+    #check if version was found
+    if(info['version']=='Unknown'):
+        #no module was found, let's try git
+        #see if we found git before
+        if(git_path):
+            #we did, use repo_path from before
+            
+            #get version from git describe
+            p=subprocess.run([git_path,'-C',repo_path,'describe','--match=v*.*','--always','--dirty=-dty'],capture_output=True)
+            
+            if(p.returncode==0):
+                #get version from output
+                info['version']=p.stdout.decode("utf-8").strip()
     
     #---------------------------[Fill Arguments list]---------------------------
     
@@ -104,7 +165,7 @@ def pre(info={}, outdir=""):
         # Add pre test notes to tests.log
         if info["Pre Test Notes"] is not None:
             # Add tabs for each newline in pretest string
-            file.write("\n===Pre-Test Notes===%s" % '\t'.join(('\n'+
+            file.write("===Pre-Test Notes===%s" % '\t'.join(('\n'+
                         info["Pre Test Notes"].lstrip()).splitlines(True))
                       )
         else:

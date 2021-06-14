@@ -2,50 +2,90 @@ import numpy as np
 import scipy.signal as sig
 from numpy.fft import fft, ifft
 
-def ITS_delay_est(x_speech,y_speech,mode, fsamp=8000, dlyBounds = [np.NINF, np.inf],min_corr=0):
+def ITS_delay_est(x_speech,y_speech,mode, fs=8000, dlyBounds = [np.NINF, np.inf],min_corr=0):
+    """
+    Estimate the delay history for speech wave forms.
+ 
+    This function estimates the delay history for the speech samples in 
+    y_speech relative to the speech samples in x_speech. Typically y_speech 
+    contains samples from the output of some system under test, and x_speech 
+    contains the corresponding input samples. Delay_est then holds estimates 
+    of the delay of that system under test.
+    
+    Written by Stephen Voran at the Institute for Telecommunication Sciences,
+    325 Broadway, Boulder, Colorado, USA, svoran@its.bldrdoc.gov
+    May 10,2004
 
-    #Usage: Delay_est=ITS_delay_est(x_speech,y_speech,mode)
-    #
-    #This function estimates the delay history for the speech samples in
-    #y_speech relative to the speech samples in x_speech.
-    #
-    #x_speech and y_speech are row vectors of speech samples
-    #with sample rate 8000 samples/sec. At least 1185 samples (148 ms)
-    #is required in each vector.
-    #
-    #mode='f','v', or 'u' for fixed delay, variable delay or unknown delay type
-    #
-    #fsamp is the sample rate, defaults to 8000
-    #
-    #dlyBounds is the interval of acceptable delays in seconds
-    #
-    #Delay_est holds estimates of the delay of the speech samples in y_speech
-    #relative to speech samples in x_speech. Typically y_speech contains
-    #samples from the output of some system under test, and x_speech contains
-    #the corresponding input samples. Delay_est then holds estimates of the
-    #delay of that system under test.
-    #
-    #Delay_est is 2 by n, with one row for each segment of constant delay.
-    #Column 0 holds the number of the last sample of a segment of constant
-    #delay, column 1 holds the estimated delay for that segment. Here are two
-    #examples:
-    #
-    #Example 1 Delay_est=[32000,17] means that a single delay estimate of 17
-    #samples applies to samples with indices [0, 32000] in y_speech
-    #
-    #Example 2 Delay_est=[12345,-2
-    # 32000,400]
-    #means that for samples 0 through 12345, the delay is estimated to be -2
-    #samples. For samples 12346 through 32000, the delay is estimated to be
-    #400 samples.
-    #
-    #In addition, the output [0 0] indicates no delay estimation was possible.
-    #This can happen when x_speech and y_speech contain unrelated signals,
-    #or no signal at all.
-    #
-    #Written by Stephen Voran at the Institute for Telecommunication Sciences,
-    #325 Broadway, Boulder, Colorado, USA, svoran@its.bldrdoc.gov
-    #May 10,2004
+    Parameters
+    ----------
+    x_speech : array
+        Vector of speech samples. At least 148 ms of speech is required.
+    y_speech : array
+        Vector of speech samples. At least 148 ms of speech is required.
+    mode : {'f','v','u'}
+        Delay mode to use. Fixed delay ('f') assumes that the delay is fixed 
+        for all of y_speech. Variable delay ('v') assumes that the delay can 
+        change. Unknown delay ('u') checks if the coarse delay was well 
+        correlated, fixed delay is used, otherwise variable delay is used.
+    fs : numeric, default=8000
+        Sample rate for the audio vectors.
+    dlyBounds : array, default = [-Inf,Inf]
+        The interval of acceptable delays in seconds.
+    min_corr : float, default = 0
+        Minimum correlation threshold. If the coarse delay correlation is lower
+        than min_corr, the delay estimate is determined to be unsuccessful.
+
+    Returns
+    -------
+    pos : int or tuple of ints
+        End of each delay estimate segment in samples. If mode is 'f' this will
+        be an int (only one delay) otherwise pos will be a tuple of ints.
+    dly : int or tuple of ints
+        Delay estimates corresponding to the segments in pos. If mode is 'f'
+        this will be an int, otherwise dly will be a tuple of ints the same
+        length as pos.
+        
+    See Also
+    --------
+    mcvqoe.sliding_delay_estimates : Uses ITS_delay_est.
+    scipy.io.wavfile.read : Function for reading in audio data.
+    
+    Examples
+    --------
+    load in speech file for examples
+    
+    >>> speechf=io.BytesIO(pkgutil.get_data('mcvqoe','audio_clips/test.wav'))
+    >>> (fs_speech,speech)=scipy.io.wavfile.read(speechf)
+    
+    Simple fixed delay example.
+    
+    >>> fixed_delay_speech=np.concatenate((np.zeros(shape=[17]),speech))
+    >>> mcvqoe.ITS_delay_est(speech,fixed_delay_speech,'f')
+    (161635, 17)
+    
+    This means that the single delay estimate of 17 samples applies to samples
+    with indices [0,161635] in y_speech. 
+    
+    >>> var_delay_speech=np.concatenate((speech[2:12000],np.zeros(shape=[417]),
+    ...                                  speech[12015:]))
+    >>> mcvqoe.ITS_delay_est(speech,var_delay_speech,'u')
+    ((12184, 162018), (-2, 400))
+    
+    This means that for samples 0 through 12184, the delay is estimated to be -2
+    samples. For samples 12184 through 162018, the delay is estimated to be
+    400 samples.
+    
+    If 'u' mode is used, a tuple of tuples is always returned, even if one delay
+    is found.
+    
+    >>> mcvqoe.ITS_delay_est(speech,fixed_delay_speech,'u')
+    ((161635,), (17,))
+    
+    Example with too small an input signal.
+    
+    >>> ITS_delay_est(speech,speech[:1000],'f')
+    array([0, 0])
+    """
 
     #----------------------------Parse Arguments--------------------------------
     x_speech = np.array(x_speech, dtype=np.float64)
@@ -66,11 +106,11 @@ def ITS_delay_est(x_speech,y_speech,mode, fsamp=8000, dlyBounds = [np.NINF, np.i
         raise ValueError("error with optional input")
 
     #----------------------Resample Arguments to 8kHz--------------------------
-    if fsamp != 8000:
+    if fs != 8000:
         xlen = len(x_speech)
         ylen = len(y_speech)
-        x_speech = sig.resample(x_speech, int(xlen * 8000/fsamp))
-        y_speech = sig.resample(y_speech, int(ylen * 8000/fsamp))
+        x_speech = sig.resample(x_speech, int(xlen * 8000/fs))
+        y_speech = sig.resample(y_speech, int(ylen * 8000/fs))
 
     #--------------------------Level Normalization-----------------------------#
     #Measure active speech level
@@ -103,6 +143,11 @@ def ITS_delay_est(x_speech,y_speech,mode, fsamp=8000, dlyBounds = [np.NINF, np.i
         fxd_fine_delay=fxd_fine_dly_est(comp_x_speech,comp_y_speech)
         #Find total delay
         D_fxd=tau_0+fxd_fine_delay
+        
+        #check if we are in fixed mode (not 'u')
+        if(mode =='f'):
+            #nothing more to do, bail early
+            return (int((len(y_speech)-1)*(fs/8000)), int(D_fxd*(fs/8000)))
     #-------Additional stages for the variable and unknown delay cases---------#
     if mode=='v' or mode=='u':
         #---------------------Speech Activity Detection------------------------#
@@ -149,11 +194,14 @@ def ITS_delay_est(x_speech,y_speech,mode, fsamp=8000, dlyBounds = [np.NINF, np.i
     if mode=='v':
         Delay_est=extend_val_res(SDV)    #Extrapolate variable delay estimate
     elif mode=='f':
-        Delay_est=[len(y_speech)-1, D_fxd]   #Reformat fixed delay estimate
+        Delay_est=np.array([[len(y_speech)-1, D_fxd]])   #Reformat fixed delay estimate
     else:   #Mode is 't' for terminate
           #The output [0 0] indicates no delay estimation was possible
         Delay_est=[0, 0] 
-    return np.array(Delay_est) * int(fsamp/8000)
+    #convert to input sample rate and truncate to integer
+    Delay_est = (np.array(Delay_est)*(fs/8000)).astype(np.int)
+    #return results as a tuple of tuples
+    return (tuple(Delay_est[:,0]),tuple(Delay_est[:,1]))
     #==========================================================================
 
 def active_speech_level(x,fs=8000):
@@ -869,7 +917,7 @@ def short_seg_cor(SDVin,x_speech,y_speech,len_t,len_b,len_s):
             elif loc==1:
                 #Join current segment to right neighbor segment
                 #to create new combined segment
-                SDVin=SDVin[np.setdiff1d[0:n,ptr],:]
+                SDVin=SDVin[np.setdiff1d(range(0,n),ptr),:]
                 #Set status on the new combined segment to 0 so it receives
                 #further consideration
                 SDVin[ptr,4]=False

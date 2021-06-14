@@ -1,10 +1,37 @@
-import numpy as np
-import scipy.signal as sig
-import scipy.io.wavfile 
 import csv
+import math
+import scipy.io.wavfile
 
-#convert audio data to float type with standard scale        
+import numpy as np
+import scipy.signal as sig 
+
 def audio_float(dat):
+    """
+    Convert audio data to float with standard scale.
+
+    Data read with scipi.io.wavefile can be returned in a number of number
+    formats. `audio_float` returns audio data in floating point for scaled to =/-1
+
+    Parameters
+    ----------
+    dat : numpy array
+        Audio data to convert to float.
+
+    Returns
+    -------
+    numpy array
+        Floating point audio data scaled to a range of +/-1.
+
+    See Also
+    --------
+    scipi.io.wavefile : Functions for reading and writing .wav files.
+
+    Examples
+    --------
+    load audio and ensure that it is on the -1 to +1 range
+    >>>fs, dat = scipy.io.wavfile('audio.wav')
+    >>>float_dat=audio_float(dat)
+    """
     if(dat.dtype is np.dtype('uint8')):
         return (dat.astype('float')-128)/128
     if(dat.dtype is np.dtype('int16')):
@@ -19,36 +46,53 @@ def audio_float(dat):
         raise RuntimeError(f'unknown audio type \'{dat.dtype}\'')
 
 def svp56_fast(x,fs=8000):
-    #This code implements the "Speech Voltmeter" given in CCITT Rec. P.56.
-    #It is a fast version of svp56.m which was written from the description in
-    #the hard copy doc that came with UGST STL 96.  svp56.m results have been
-    #verified against results of the C code from UGST.
-    #
-    #svp56_fast.m agrees with with svp56.m as follows.  It either agrees
-    #exactly (the integer counts in all 16 bits of "a" match exactly at
-    #inspection point A) or almost exactly (the integer counts in some of the
-    #16 bits of "a" are off by one at inspection point A, and the asl and saf
-    #differ in the 4th or 5th decimal place)
-    #Note that on a fixed platform svp56_fast.m requires about 8# of the
-    #running time that svp56.m requires
-    #
-    #Usage:  [asl,saf,active]=svp56_fast(x, fs)
-    #
-    # INPUTS:
-    #x is the speech signal, which can be passed as either a list, numpy array, 
-    #   or as a file name. If passed as the string path to a wav file, the wav 
-    #   file will be read and converted to a signal
-    #fs is the sample rate of x, and will default to 8000
-    #
-    # OUTPUTS:
-    #asl is active speech level in dB (relative to the clipping point of a 
-    #   16 bit file)
-    #saf is the speech activity factor (0 to 1)
-    #active has the same length as the speech signal, it has 1's in active 
-    #   areas, 0's elsewhere.  "active" is an approximation, and the average
-    #   absolute error: mean(abs( saf - sum(active)/n )) is about 0.2# or 0.3#.
-    #
-    #Written by S. Voran, in mid 1990's
+    """
+    Digital Speech Voltmeter function for audio.
+
+    This code implements the "Speech Voltmeter" given in CCITT Rec. P.56.
+    It is a fast version of svp56.m which was written from the description in
+    the hard copy doc that came with UGST STL 96.  svp56.m results have been
+    verified against results of the C code from UGST.
+
+    svp56_fast.m agrees with with svp56.m as follows.  It either agrees
+    exactly (the integer counts in all 16 bits of "a" match exactly at
+    inspection point A) or almost exactly (the integer counts in some of the
+    16 bits of "a" are off by one at inspection point A, and the asl and saf
+    differ in the 4th or 5th decimal place)
+    Note that on a fixed platform svp56_fast.m requires about 8# of the
+    running time that svp56.m requires
+
+    Written by S. Voran, in mid 1990's
+
+    Usage:  [asl,saf,active]=svp56_fast(x, fs)
+
+    Parameters
+    ----------
+    x : list or str
+        Speech signal or file name of a .wav file.
+    fs : number, default=8000
+        Sample rate of x.
+
+    Returns
+    -------
+    asl : number
+        Active speech level in dB (relative to 16 bits).
+    saf : float
+        Speech activity factor (0 to 1).
+    active : tuple
+        Same length as the speech signal. Contains 1's in active areas, 0's else.
+        "active" is an approximation, and the average absolute error:
+        mean(abs( saf - sum(active)/n )) is about 0.2# or 0.3#.
+
+    See Also
+    --------
+    mcvqoe.a_weighted_power : Human ear model power level meter.
+
+    Examples
+    --------
+    Measure the active speech level of a .wav file
+    >>>(asl,_,_)=svp56_fast('speech.wav')
+    """
 
     #if x is a filename, extact data from the wav file
     if isinstance(x, str):
@@ -159,8 +203,34 @@ def svp56_fast(x,fs=8000):
     return asl,saf,active
 
     
-#read in cutpoints from file
 def load_cp(fname):
+    """
+    Read in cutpoints from file.
+
+    Read cutpoints from the file with the given filename. Convert cutpoint
+    indices from 1 based indices to zero based indices. Returns a tuple containing
+    a dict for each segment of the file.
+
+    Parameters
+    ----------
+    fname : str
+        Name of cutpoint file to read.
+
+    Returns
+    -------
+    tuple of dicts
+        Tuple of dicts each with keys ['Clip','Start','End'].
+
+    See Also
+    --------
+    mcvqoe.write_cp : Function to write cutpoints.
+
+    Examples
+    --------
+    Example of loading cutpoints
+
+    >>>load_cp('cp.csv')
+    """
     #field names for cutpoints
     cp_fields=['Clip','Start','End']
     #open cutpoints file
@@ -190,8 +260,29 @@ def load_cp(fname):
             cp.append(row)
         return tuple(cp)
      
-#write cutpoints to file
 def write_cp(fname,cutpoints):
+    """
+    Write cutpoints to file.
+
+    Write cutpoints from `cutpoints` to the file named `fname`.
+
+    Parameters
+    ----------
+    fname : str
+        Name of cutpoint file to read.
+    cutpoints : tuple of dicts
+        Tuple of dicts each with keys ['Clip','Start','End'].
+
+    See Also
+    --------
+    mcvqoe.load_cp : Function to write cutpoints.
+
+    Examples
+    --------
+    Example of saving cutpoints
+    >>>cutpoints=({'Clip': 24, 'Start': 0, 'End': 41970})
+    >>>write_cp('cp.csv',cutpoints)
+    """
     #field names for cutpoints
     cp_fields=['Clip','Start','End']
     #open cutpoints file
@@ -210,6 +301,8 @@ def write_cp(fname,cutpoints):
 
 def a_weighted_power(x, fs=48000):
     """
+    Calculate A-weighted power level for audio vector.
+
     Calculates an A-weighted power level in dB for the input audio vector x.
     This is a good approximation to relative loudness because the A-weighting
     function emulates a fundamental attribute of human hearing.
@@ -220,17 +313,26 @@ def a_weighted_power(x, fs=48000):
     difficult so this code just converts input signals to 48000 instead.
     -S. Voran, Sept. 25, 2012
     
-    ...
-    
     Parameters
     ----------
     x : NumPy Array
-        The audio in NumPy array format
-    fs : Int/Float
-        fs is an optional sample rate:
-        8000, 16000, 24000, 32000, or 48000 smp/sec are allowed
-        default is 48000 smp/sec if not specified
+        The audio in NumPy array format.
+    fs : numeric, default=48000
+        Sample rate for audio. Must be one of [8000, 16000, 24000, 32000,48000].
+
+    Returns
+    -------
+    float
+        A-weighted power for audio vector.
         
+    See Also
+    --------
+    mcvqoe.svp56_fast : Speech Voltmeter function.
+
+    Examples
+    --------
+    Calculate the A-weighted power for a 48 kHz audio vector
+    >>>a_weighted_power(audio)
     """
     
     # Coefficients for A-weighting filter with fs=48000

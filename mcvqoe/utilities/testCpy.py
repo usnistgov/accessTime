@@ -85,10 +85,66 @@ if platform.system()=='Windows':
         
         return tuple(drive_table)
 else:
-    raise RuntimeError('Only Windows is supported at this time')
+    def list_drives():
+        raise RuntimeError('Only Windows is supported at this time')
+        
+    def get_drive_serial(drive):
+        raise RuntimeError('Only Windows is supported at this time')
+    
 
-
-
+def log_update(log_in_name,log_out_name,dryRun=False):
+    with open(log_in_name,'rt') as fin:
+        #will hold extra chars from input file
+        #used to allow for partial line matches
+        extra=''
+        if(os.path.exists(log_out_name)):
+            with open(log_out_name,'rt') as fout:
+                for line, (lin,lout) in enumerate(zip(fin,fout),start=1):
+                    #check if the last match was not a full match
+                    if(extra):
+                        raise RuntimeError(f'At line {line}, last line was a partial match.')
+                    #check if lines are the same
+                    if(lin != lout):
+                        #check if lout starts with lin
+                        if(lin.startswith(lout)):
+                            #get the chars in lout but not lin
+                            extra=lin[len(lout):]
+                        else:
+                            raise RuntimeError(f'Files differ at line {line}, can not copy')
+                
+                #get the remaining data in the file
+                out_dat=fout.read()
+        else:
+            if(dryRun):
+                #make sure that path to log file exists
+                os.makedirs(os.path.dirname(log_out_name),exist_ok=True)
+            #no in_dat
+            in_dat=None
+            
+        #get remaining data in input file
+        in_dat=fin.read()
+        
+        #strip trailing white space to prevent errors in future, add extra data 
+        in_dat=extra+in_dat.rstrip()
+                
+        #check if we have more data from the input file 
+        if(in_dat):
+            
+            #with open(log_out_name,'at') as fout:
+            with (os.fdopen(os.dup(sys.stdout.fileno()), 'w') if dryRun else open(log_out_name,'at')) as fout:
+                fout.write(in_dat)
+                
+            print(f'{len(in_dat.splitlines())} lines copied')
+            
+        else:
+            if(out_dat):
+                raise RuntimeError('Input file is shorter than output')
+            else:
+                print('Log files are identical, no lines copied')
+                
+    
+    #print success message
+    print(f'Log updated successfully to {log_out_name}\n')
 
 
 #main function 
@@ -108,6 +164,8 @@ def main():
                         help='Go through all the motions but, don\'t copy any files')
     parser.add_argument('-f', '--force', action='store_true', default=False,
                         help='overwrite config files with values from arguments')
+    parser.add_argument('-i', '--direct', action='store_true', default=False,
+                        help='Copy directly to destination, not to a HD')
                         
     #parse arguments
     args = parser.parse_args()
@@ -125,16 +183,24 @@ def main():
         
         with open(set_file,'rt') as fp_set:
             set_dict=json.load(fp_set)
-    
-        drives=list_drives()
         
-        drive_info=next((item for item in drives if item["serial"] == set_dict['DriveSerial']),None)
+        if('Direct' not in set_dict):
+            #default direct to False
+            set_dict['Direct']=False
         
-        if(not drive_info):
-            raise RuntimeError(f'Could not find drive with serial {set_dict["DriveSerial"]}')
+        if(set_dict['Direct']):
+            dest_drive_prefix=''
+        else:
+            drives=list_drives()
             
-        #create drive prefix, add slash for path concatenation
-        dest_drive_prefix=drive_info['drive']+os.sep
+            drive_info=next((item for item in drives if item["serial"] == set_dict['DriveSerial']),None)
+            
+            if(not drive_info):
+                raise RuntimeError(f'Could not find drive with serial {set_dict["DriveSerial"]}')
+                
+            #create drive prefix, add slash for path concatenation
+            dest_drive_prefix=drive_info['drive']+os.sep
+            
     else:
         if(not args.cname):
             raise RuntimeError(f'--computer-name not given and \'{set_file}\' does not exist')
@@ -144,17 +210,22 @@ def main():
             
         #TODO : check for questionable names in path?
         
-        #split drive from path
-        (dest_drive_prefix,rel_path)=os.path.splitdrive(args.destDir)
-        
-        #get serial number for drive
-        drive_ser=get_drive_serial(dest_drive_prefix)
-        
-        #add slash for path concatenation
-        dest_drive_prefix=dest_drive_prefix+os.sep
+        if(args.direct):
+            dest_drive_prefix=""
+            rel_path=args.destDir
+            drive_ser=None
+        else:
+            #split drive from path
+            (dest_drive_prefix,rel_path)=os.path.splitdrive(args.destDir)
+            
+            #get serial number for drive
+            drive_ser=get_drive_serial(dest_drive_prefix)
+            
+            #add slash for path concatenation
+            dest_drive_prefix=dest_drive_prefix+os.sep
         
         #create dictionary of options, normalize paths
-        set_dict={'ComputerName' : os.path.normpath(args.cname),'DriveSerial' : drive_ser,'Path' : os.path.normpath(rel_path)}
+        set_dict={'ComputerName' : os.path.normpath(args.cname),'DriveSerial' : drive_ser,'Path' : os.path.normpath(rel_path),'Direct' : args.direct}
         
     with (os.fdopen(os.dup(sys.stdout.fileno()), 'w') if args.dryRun else open(set_file, 'w')) as sf:
         if(args.dryRun):
@@ -164,116 +235,86 @@ def main():
     #file name for output log file
     log_out_name=os.path.join(dest_drive_prefix,set_dict['Path'],set_dict['ComputerName']+'-tests.log')
         
-    with open(log_in_name,'rt') as fin:
-        if(os.path.exists(log_out_name)):
-            with open(log_out_name,'rt') as fout:
-                
-                for line, (lin,lout) in enumerate(zip(fin,fout),start=1):
-                    if(lin != lout):
-                        raise RuntimeError(f'Files differ at line {line}, can not copy')
-                
-                #get the remaining data in the file
-                out_dat=fout.read()
-        else:
-            if(not args.dryRun):
-                #make sure that path to log file exists
-                os.makedirs(os.path.dirname(log_out_name),exist_ok=True)
-            #no in_dat
-            in_dat=None
-            
-        #get remaining data in input file
-        in_dat=fin.read()
+    log_update(log_in_name,log_out_name,args.dryRun)    
         
-        #strip trailing white space to prevent errors in future
-        in_dat=in_dat.rstrip()
-                
-        #check if we have more data from the input file 
-        if(in_dat):
-            
-            #with open(log_out_name,'at') as fout:
-            with (os.fdopen(os.dup(sys.stdout.fileno()), 'w') if args.dryRun else open(log_out_name,'at')) as fout:
-                fout.write(in_dat)
-                
-            print(f'{len(in_dat.splitlines())} lines copied')
-            
-        else:
-            if(out_dat):
-                raise RuntimeError('Input file is shorter than output')
-            else:
-                print('Log files are identical, no lines copied')
-                
-    
-    #print success message
-    print(f'Log updated successfully to {log_out_name}\n')
-    
-    if(args.syncDir):
-        syncDir=args.syncDir
-    else:
-        syncDir=os.path.join(dest_drive_prefix,'sync')
-    
     print('Prefix : '+dest_drive_prefix)
     
     #create destination path
     destDir=os.path.join(dest_drive_prefix,set_dict['Path']);
-        
-    SyncScript=os.path.join(syncDir,'sync.py')    
-    sync_ver_path=os.path.join(syncDir,'version.txt')
     
-    sync_update=False
-    
-    if(not os.path.exists(SyncScript)):
-        sync_update=True
-        #print message
-        print('Sync directory not found, updating');
+    if(not set_dict['Direct']):
         
-    if(not sync_update):
-    
-        if(os.path.exists(sync_ver_path)):
-            #read version from file
-            with open(sync_ver_path,'r') as f:
-                sync_ver=pkg_resources.parse_version(f.read())
-            
-            #get version from package
-            qoe_ver=pkg_resources.parse_version(mcvqoe.version)
-            
-            #we need to update if sync version is older than mcvqoe version
-            sync_update=qoe_ver>sync_ver
-            
-            if(sync_update):
-                print('Sync version old, updating')
-        
+        if(args.syncDir):
+            syncDir=args.syncDir
         else:
-            sync_update=True
-            print('Sync version missing, updating')
-    
-    if(sync_update and not args.dryRun):
-        #there is no sync script
-        #make sync dir
-        os.makedirs(syncDir,exist_ok=True)
-        #copy sync script
-        with open(SyncScript,'wb') as f:
-            f.write(pkgutil.get_data('mcvqoe','utilities/sync.py'))
+            syncDir=os.path.join(dest_drive_prefix,'sync')
             
-        with open(sync_ver_path,'w') as f:
-            f.write(mcvqoe.version)
-    
-    #try to get path to python
-    py_path=sys.executable
-    
-    if(not py_path):
-        #couldn't get path, try 'python' and hope for the best
-        py_path='python'
-    
-    syncCmd=[py_path,SyncScript,'--import',OutDir,destDir,'--cull']
-    
-    if(args.dryRun):
-        print('Calling sync command:\n\t'+' '.join(syncCmd))
-    else:
-        stat=subprocess.run(syncCmd)
+        SyncScript=os.path.join(syncDir,'sync.py')    
+        sync_ver_path=os.path.join(syncDir,'version.txt')
         
-        if(stat.returncode):
-            raise RuntimeError(f'Failed to run sync script exit status {stat.returncode}')
-    
+        sync_update=False
+        
+        if(not os.path.exists(SyncScript)):
+            sync_update=True
+            #print message
+            print('Sync directory not found, updating');
+            
+        if(not sync_update):
+        
+            if(os.path.exists(sync_ver_path)):
+                #read version from file
+                with open(sync_ver_path,'r') as f:
+                    sync_ver=pkg_resources.parse_version(f.read())
+                
+                #get version from package
+                qoe_ver=pkg_resources.parse_version(mcvqoe.version)
+                
+                #we need to update if sync version is older than mcvqoe version
+                sync_update=qoe_ver>sync_ver
+                
+                if(sync_update):
+                    print('Sync version old, updating')
+            
+            else:
+                sync_update=True
+                print('Sync version missing, updating')
+        
+        if(sync_update and not args.dryRun):
+            #there is no sync script
+            #make sync dir
+            os.makedirs(syncDir,exist_ok=True)
+            #copy sync script
+            with open(SyncScript,'wb') as f:
+                f.write(pkgutil.get_data('mcvqoe','utilities/sync.py'))
+                
+            with open(sync_ver_path,'w') as f:
+                f.write(mcvqoe.version)
+        
+        #try to get path to python
+        py_path=sys.executable
+        
+        if(not py_path):
+            #couldn't get path, try 'python' and hope for the best
+            py_path='python'
+        
+        syncCmd=[py_path,SyncScript,'--import',OutDir,destDir,'--cull']
+        
+        if(args.dryRun):
+            print('Calling sync command:\n\t'+' '.join(syncCmd))
+        else:
+            stat=subprocess.run(syncCmd)
+            
+            if(stat.returncode):
+                raise RuntimeError(f'Failed to run sync script exit status {stat.returncode}')
+    else:
+        #direct sync, use library version
+        from . sync import sync_files
+        
+        if(args.dryRun):
+            print('Calling sync command:\n\t'+
+                f'sync.sync_files({repr(OutDir)}, {repr(destDir)}, bd=False, cull=True, sunset=30)')
+        else:
+            sync_files(OutDir,destDir,bd=False,cull=True,sunset=30);
     
 if __name__ == "__main__":
     main()
