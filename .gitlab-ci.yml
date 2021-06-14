@@ -10,12 +10,15 @@ build:
   needs: []
   script:
     - python --version > py-ver.log
+    - pip install --log pip.log wheel > install.log 
     - python setup.py sdist bdist_wheel > package.log 
   artifacts:
       when: always
       paths:
         - package.log
         - py-ver.log
+        - install.log
+        - pip.log
         - dist/*.whl
         - mcvqoe/version.py
 
