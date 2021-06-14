@@ -26,6 +26,13 @@ test-math:
   stage: test
   script:
     - python tests/test_math.py
+  artifacts :
+    when: always
+    paths:
+      - mathtest.log
+      - math-tests.xml
+    reports:
+      junit: math-tests.xml
 
 test-log:
   stage: test
