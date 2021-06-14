@@ -9,6 +9,7 @@ Created on Fri Jan 29 11:12:57 2021
 import unittest
 import mcvqoe.math
 import numpy as np
+import xmlrunner
 
 
 class Test_Approx_Perm_Test(unittest.TestCase):
@@ -169,4 +170,8 @@ class Test_Uncertainty(unittest.TestCase):
         self.assertEqual(mcvqoe.math.standard_error(x), 0.10056710785009866)
             
 if __name__ == "__main__":
-    unittest.main()
+    with open('math-tests.xml','wb') as outf:
+        unittest.main(
+            testRunner=xmlrunner.XMLTestRunner(output=outf),
+            failfast=False, buffer=False, catchbreak=False)
+
