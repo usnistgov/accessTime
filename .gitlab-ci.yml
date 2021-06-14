@@ -9,7 +9,7 @@ build:
   needs: []
   script:
     - python --version > py-ver.log
-    - pip install --log wheel
+    - pip install wheel
     - python setup.py sdist bdist_wheel > package.log 
     - pip install --log pip.log --find-links ./dist/ mcvqoe-nist sphinx numpydoc > install.log 
   artifacts:
