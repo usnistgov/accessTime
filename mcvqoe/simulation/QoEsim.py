@@ -516,7 +516,60 @@ PTT signal on channel 1.
         >>>sim.get_channel_techs()
         ["clean"]
         """
-        return list(self._chan_types.keys())
+        return list(self._chan_types.keys())    
+        
+    # =====================[Get Channel Rates]=====================
+    def get_channel_rates(self,tech):
+        """
+        Return possible rates for a given channel tech.
+
+        This queries a channel plugin for the default rate and a list of unique
+        rates that can be used on the channel. 
+
+        Returns
+        -------
+        default_rate : string or number
+            Default rate for channel, if no rate is used, None is returned.
+        rates : list
+            A list of the names of channel technologies. If no rate is used, an
+            empty list is returned.
+
+        See Also
+        --------
+        mcvqoe.simulation.QoEsim.get_channel_techs : List of channel technologies.
+        mcvqoe.simulation.QoEsim.channel_tech : Channel technology to use.
+        mcvqoe.simulation.QoEsim.play_record : Function to simulate a channel.
+
+        Examples
+        --------
+
+        get rates for a clean channel
+
+        >>> sim=QoEsim()
+        >>> sim.get_channel_techs('clean')
+        (None,[])
+        """
+        mod=self._get_chan_mod(tech)
+        return (mod.default_rate,mod.rates)
+        
+    # =====================[get channel module]=====================
+    def _get_chan_mod(self,tech):
+        try:
+            chan_mod=self._chan_mods[tech]
+        except KeyError:
+            try:
+                chan_info=self._chan_types[tech]
+            except KeyError:
+                raise ValueError(f'Unknown channel tech "{tech}" valid channel technologies are {self.get_channel_techs()}')
+
+            #load module for channel
+            chan_mod=chan_info.load()
+            #save module for later
+            #TODO : is this needed? good idea?
+            self._chan_mods[self.channel_tech]=chan_mod
+        
+        return chan_mod
+
 
     # =====================[record audio function]=====================
     def play_record(self,audio,out_name):
@@ -579,24 +632,12 @@ PTT signal on channel 1.
             if(k not in ('rx_voice','PTT_signal')):
                 raise RuntimeError(f'{__class__} can not generate recordings of type \'{k}\'')
             outputs.append(k)
-
-
-        try:
-            chan_mod=self._chan_mods[self.channel_tech]
-        except KeyError:
-            try:
-                chan_info=self._chan_types[self.channel_tech]
-            except KeyError:
-                raise ValueError(f'Unknown channel tech "{self.channel_tech}" valid channel technologies are {self.get_channel_techs()}')
-
-            #load module for channel
-            chan_mod=chan_info.load()
-            #save module for later
-            #TODO : is this needed? good idea?
-            self._chan_mods[self.channel_tech]=chan_mod
+        
+        #get the module for the chosen channel tech
+        chan_mod=self._get_chan_mod(self.channel_tech)
 
         #get delay offset for channel technology
-        m2e_offset=self._chan_mods[self.channel_tech].standard_delay
+        m2e_offset=chan_mod.standard_delay
 
         #calculate values in samples
         overplay_samples=int(self.overplay*self.sample_rate)
