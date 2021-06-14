@@ -1,7 +1,6 @@
 
 stages:
   - build
-  - venv
   - test
   - deploy
 
@@ -10,8 +9,9 @@ build:
   needs: []
   script:
     - python --version > py-ver.log
-    - pip install --log pip.log wheel > install.log 
+    - pip install --log wheel
     - python setup.py sdist bdist_wheel > package.log 
+    - pip install --log pip.log --find-links ./dist/ mcvqoe-nist sphinx numpydoc > install.log 
   artifacts:
       when: always
       paths:
@@ -22,49 +22,34 @@ build:
         - dist/*.whl
         - mcvqoe/version.py
 
-venv:
-  stage: venv
-  needs: [build]
-  script:
-    - python -m venv test-env > env.log
-    - test-env/bin/pip install --log pip.log --find-links ./dist/ mcvqoe-nist sphinx numpydoc > install.log 
-  artifacts:
-      when: always
-      paths:
-        - pip.log
-        - env.log
-        - install.log
-        - test-env/*
-
-
 test-math:
   stage: test
   needs: [venv]
   script:
-    - test-env/bin/python tests/test_math.py
+    - python tests/test_math.py
 
 test-log:
   stage: test
   needs: [venv]
   script:
-    - test-env/bin/python tests/test_log.py
+    - python tests/test_log.py
       
 test-sim:
   stage: test
   needs: [venv]
   script:
-    - test-env/bin/python tests/sim_test.py
+    - python tests/sim_test.py
       
 test-testCpy:
   stage: test
   needs: [venv]
   script:
-    - test-env/bin/python tests/test_testCpy.py
+    - python tests/test_testCpy.py
       
 pages:
   stage: deploy
   script:
-    - test-env/bin/sphinx-build -b html ./docs/source/ public
+    - sphinx-build -b html ./docs/source/ public
   only:
     - develop
     - sphinx
