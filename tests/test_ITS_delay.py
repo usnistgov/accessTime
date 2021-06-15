@@ -132,12 +132,12 @@ class ITSTest(unittest.TestCase):
         for i, name in enumerate(audio_files):
             audio_fs, audio_data = load_audio_file(name)
 
-            self.assertTrue(
+            self.assertLess(
                 abs(
                     active_speech_level(audio_data, fs=audio_fs)
                     - expected_speech_level[i]
-                )
-                < 1e-4,
+                ),
+                1e-4,
                 msg=name,
             )
 
