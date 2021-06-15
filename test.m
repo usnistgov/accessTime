@@ -112,6 +112,9 @@ function test(varargin)
 %
 %   RetryFunc           function_handle     Function to call when STries
 %                                           has been exceeded
+%
+%   PTTnum              numeric             Number of the PTT output to
+%                                           use. Defaults to 1.
 %    
 
 
@@ -165,7 +168,7 @@ addParameter(p,'OutDir','',@(n)validateattributes(n,{'char'},{'scalartext'}));
 %add PTT repetition parameter
 addParameter(p,'PTTrep',30,@(t)validateattributes(t,{'numeric'},{'scalar','integer','positive'}));
 %add stopping condition parameter
-addParameter(p,'autoStop',false ,@(t) validateattributes(t,{'logical','numeric'},{'scalar'}))
+addParameter(p,'autoStop',true ,@(t) validateattributes(t,{'logical','numeric'},{'scalar'}))
 %add stop condition repetitions parameter
 addParameter(p,'StopRep',10,@(t)validateattributes(t,{'numeric'},{'scalar','integer','positive'}));
 %add device latency parameter
@@ -180,6 +183,8 @@ addParameter(p,'SThresh',-50,@(t)validateattributes(t,{'numeric'},{'scalar'}));
 addParameter(p,'STries',3,@(t)validateattributes(t,{'numeric'},{'scalar','integer','positive'}));
 %add error function parameter
 addParameter(p,'RetryFunc',[],@validate_func);
+%add PTT output number parameter
+addParameter(p,'PTTnum',1,@(t)validateattributes(t,{'numeric'},{'scalar','integer','positive'}));
 
 
 
@@ -937,7 +942,7 @@ try
                     %%  ============[Key Radio and Play Audio]============
 
                     %setup the push to talk to trigger
-                    ri.ptt_delay(ptt_st_dly{clip}(k),1,'UseSignal',true);
+                    ri.ptt_delay(ptt_st_dly{clip}(k),p.Results.PTTnum,'UseSignal',true);
 
                     %save end time of prevous clip
                     time_last=time_e;
@@ -956,7 +961,7 @@ try
                     state=ri.WaitState;
 
                     %un-push the push to talk button
-                    ri.ptt(false,1);
+                    ri.ptt(false,p.Results.PTTnum);
 
                     %check wait state to see if PTT was triggered properly
                     switch(state)

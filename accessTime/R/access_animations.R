@@ -22,8 +22,7 @@
 # USE OF, THE SOFTWARE OR SERVICES PROVIDED HEREUNDER.
 
 
-# TODO: Add Roxygen documentation to all functions
-# TODO: Build package and see what happens!
+#TODO: Restore compatability with accessDelay v2.0.0
 
 #----------------Frame Functions ----------------------
 make_access_animation <- function(accFit,
@@ -63,6 +62,8 @@ make_access_animation <- function(accFit,
   #'@param output \emph{Filename} File name of output animation. Defaults to
   #'  \code{output="output.mpg"}.
   #'
+  #'@param frame_rate \emph{numeric.} Frames per second for animation.
+  #'
   #'@param curve_fit_audio {character} Path to audio to play when curve fit
   #'  image is displayed.
   #'
@@ -97,30 +98,31 @@ make_access_animation <- function(accFit,
   #'  generated, but the final video will not be produced and an error will be
   #'  thrown.
   #'
-  #'@export
+  #'
   #'
   #'@examples
-  #' # Path to included raw data
-  #' raw_path <- system.file("extdata", "Measurements", package = "accessTime")
-  #' # Path to P25 Trunked Phase 1 Data
-  #' test_path <- file.path(raw_path, "P25_Trunked_Phase1")
-  #' # All files in test directory
-  #' test_files <- list.files(test_path)
-  #' # Select First file (F1 hook)
-  #' test_file <- test_files[1]
-  #' # Full path to test file
-  #' file_path <- file.path(test_path,test_file)
-  #'
-  #' # Directory to audio clip wav files and cut points
-  #' cutDir <- system.file("extdata", "Audio_Clips", package="accessTime")
-  #'
-  #' # Create access fit object
-  #' accFit <- process_accessData(file_path,cutDir)
-  #'
-  #' make_access_animation(accFit,
-  #'                       frame_dir="Frames-P25_Trunked_Phase1_F1_hook",
-  #'                       output="P25_Trunked_Phase1_F1_hook.mpg")
+  #' #  # Path to included raw data
+  #' #  raw_path <- system.file("extdata", "Measurements", package = "accessTime")
+  #' #  # Path to P25 Trunked Phase 1 Data
+  #' #  test_path <- file.path(raw_path, "P25_Trunked_Phase1")
+  #' #  # All files in test directory
+  #' #  test_files <- list.files(test_path)
+  #' #  # Select First file (F1 hook)
+  #' #  test_file <- test_files[1]
+  #' #  # Full path to test file
+  #' #  file_path <- file.path(test_path,test_file)
+  #' #
+  #' #  # Directory to audio clip wav files and cut points
+  #' #  cutDir <- system.file("extdata", "Audio_Clips", package="accessTime")
+  #' #
+  #' #  # Create access fit object
+  #' #  accFit <- process_accessData(file_path,cutDir)
+  #' #
+  #' #  make_access_animation(accFit,
+  #' #                        frame_dir="Frames-P25_Trunked_Phase1_F1_hook",
+  #' #                        output="P25_Trunked_Phase1_F1_hook.mpg")
 
+  warning("This was deprecated in accessTime v2.0.0 and likely does not work")
   print("----Making Frames----")
   # Make test frames
   make_test_frames(accFit,alpha_lvls=alpha_lvls,frame_dir=frame_dir,Audio_Data=Audio_Data)
@@ -210,7 +212,8 @@ stitch_frames <- function(frame_dir,
   #'
   #'@seealso \code{\link[accessTime]{make_access_animation}}
   #'
-  #'@export
+  #'
+  warning("This was deprecated in accessTime v2.0.0 and likely does not work")
   stitch_path <- system.file("stitch.py",package="accessTime")
 
   # Required programs for stitch.py to function
@@ -293,8 +296,9 @@ make_test_frames <- function(accFit,alpha_lvls = c(0.01,.33,.66,0.99),frame_dir 
   #'@seealso \code{\link[accessTime]{make_access_animation}}
   #'@import ggpubr
   #'@import ggplot2
-  #'@export
+  #'
 
+  warning("This was deprecated in accessTime v2.0.0 and likely does not work")
   # Calculate access times for different intelligibility levels
   access_data <- eval_access(accFit,alpha_lvls)
 
@@ -530,7 +534,7 @@ make_frame <- function(dat_subset,x_axis=round(seq(-.6, 2, by = 0.2),1),example=
   #' @param dat_subset \emph{data.frame} Data frame containing access data to
   #'   plot. Must contain columns named \code{t} and \code{I}, representing PTT
   #'   time and intelligibility respecitively.
-  #'
+  #'i
   #' @param x_axis \emph{numeric vector} Breaks for x-axis (see
   #'   \code{\link[ggplot2]{scale_x_continuous}})
   #'
@@ -541,9 +545,12 @@ make_frame <- function(dat_subset,x_axis=round(seq(-.6, 2, by = 0.2),1),example=
   #'   have columns named \code{t} and \code{I} representing time and
   #'   intelligibility respectively.
   #'
+  #' @param alpha \emph{numeric.} Opacity of plot objects.
+  #'
   #' @import ggplot2
   #'
-  #' @export
+  #'
+  warning("This was deprecated in accessTime v2.0.0 and likely does not work")
   if(!(example==FALSE)){
     dat_subset$Example <- row.names(dat_subset) == example
 
@@ -585,8 +592,9 @@ find_example_rec <- function(session_data,ptt_time,Ival,ptt_step=20e-3){
   #'
   #' @param ptt_step \emph{numeric scalar} PTT time increment for given test.
   #'
-  #' @export
   #'
+  #'
+  warning("This was deprecated in accessTime v2.0.0 and likely does not work")
   ptt_times <- round(session_data$t*1e3)/1e3
   ptt_ix <- abs(ptt_times - ptt_time) < ptt_step/2
   sd_sub <- session_data[ptt_ix,]
@@ -609,10 +617,13 @@ Audio_Plot <- function(rec,cp=NULL,PTT_time=NULL,title="Audio",alpha=1,time_limi
   #'
   #' @param cp \emph{data.frame} Data frame containing cutpoints for rec
   #'
+  #' @param PTT_time \emph{numeric scalar} Value at which vertical, black,
+  #'   dotted line will be plotted to designate PTT being pressed.
+  #'
   #' @param time_limit \emph{numeric vector} Two element vector containing
   #'   limits for x-axis. See \code{\link[ggplot2]{scale_x_continuous}}.
   #'
-  #' @param PTT_Time \emph{numeric scalar} Value at which vertical, black,
+  #' @param PTT_time \emph{numeric scalar} Value at which vertical, black,
   #'   dotted line will be plotted to designate PTT being pressed.
   #'
   #' @param title \emph{character} Title for audio plot

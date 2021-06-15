@@ -39,6 +39,8 @@ stored. Defaults to \code{frame_dir = "frames"}.}
 \item{output}{\emph{Filename} File name of output animation. Defaults to
 \code{output="output.mpg"}.}
 
+\item{frame_rate}{\emph{numeric.} Frames per second for animation.}
+
 \item{curve_fit_audio}{{character} Path to audio to play when curve fit
 image is displayed.}
 
@@ -82,24 +84,24 @@ objects with multiple talkers/words.
 }
 
 \examples{
-# Path to included raw data
-raw_path <- system.file("extdata", "Measurements", package = "accessTime")
-# Path to P25 Trunked Phase 1 Data
-test_path <- file.path(raw_path, "P25_Trunked_Phase1")
-# All files in test directory
-test_files <- list.files(test_path)
-# Select First file (F1 hook)
-test_file <- test_files[1]
-# Full path to test file
-file_path <- file.path(test_path,test_file)
-
-# Directory to audio clip wav files and cut points
-cutDir <- system.file("extdata", "Audio_Clips", package="accessTime")
-
-# Create access fit object
-accFit <- process_accessData(file_path,cutDir)
-
-make_access_animation(accFit,
-                      frame_dir="Frames-P25_Trunked_Phase1_F1_hook",
-                      output="P25_Trunked_Phase1_F1_hook.mpg")
+#  # Path to included raw data
+#  raw_path <- system.file("extdata", "Measurements", package = "accessTime")
+#  # Path to P25 Trunked Phase 1 Data
+#  test_path <- file.path(raw_path, "P25_Trunked_Phase1")
+#  # All files in test directory
+#  test_files <- list.files(test_path)
+#  # Select First file (F1 hook)
+#  test_file <- test_files[1]
+#  # Full path to test file
+#  file_path <- file.path(test_path,test_file)
+#
+#  # Directory to audio clip wav files and cut points
+#  cutDir <- system.file("extdata", "Audio_Clips", package="accessTime")
+#
+#  # Create access fit object
+#  accFit <- process_accessData(file_path,cutDir)
+#
+#  make_access_animation(accFit,
+#                        frame_dir="Frames-P25_Trunked_Phase1_F1_hook",
+#                        output="P25_Trunked_Phase1_F1_hook.mpg")
 }

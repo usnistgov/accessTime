@@ -4,7 +4,7 @@
 \alias{eval_access}
 \title{Evaluate access times of accessFit object}
 \usage{
-eval_access(accFit, alpha, sys_dly_unc = 0)
+eval_access(accFit, alpha, sys_dly_unc = 0.07/1.96 * 0.001)
 }
 \arguments{
 \item{accFit}{\emph{accessFit.}
@@ -15,8 +15,9 @@ Values between 0 and 1 that describe the fractional value of
 the asymptotic intelligibility for an access delay
 measurement.}
 
-\item{sys_dly_unc}{Uncertainty of the measurement system delay.
-Accounts for previous correction of PTT timing.}
+\item{sys_dly_unc}{Uncertainty of the measurement system delay. Accounts
+for previous correction of PTT timing. Defaults to 0.07/2*1e-3.
+This is a lower bound}
 }
 \value{
 \code{Values} \emph{data.frame.}
@@ -33,12 +34,12 @@ Evaluates an access delay function derived from an access fit object,
 # Evaluation of data collected for NISTIR XXXX
 
 # Define alpha vector
-alphas <- seq(from = 0.01, to = 0.99, by = 0.01)
+alphas <- seq(from=0.01, to=0.99, by=0.01)
 
 # Define system delay uncertainty
 sys_dly_unc <- 1e-3*0.07/1.96
 
-access_delays <- eval_access(ptt_gate,alphas,sys_dly_unc)
+access_delays <- eval_access(analog_direct, alphas, sys_dly_unc)
 
 }
 \references{

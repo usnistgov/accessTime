@@ -14,8 +14,9 @@ make_frame(
 }
 \arguments{
 \item{dat_subset}{\emph{data.frame} Data frame containing access data to
-plot. Must contain columns named \code{t} and \code{I}, representing PTT
-time and intelligibility respecitively.}
+  plot. Must contain columns named \code{t} and \code{I}, representing PTT
+  time and intelligibility respecitively.
+i}
 
 \item{x_axis}{\emph{numeric vector} Breaks for x-axis (see
 \code{\link[ggplot2]{scale_x_continuous}})}
@@ -26,6 +27,8 @@ example recording}
 \item{fit}{\emph{data.frame} Data frame containing curve fit data. Must
 have columns named \code{t} and \code{I} representing time and
 intelligibility respectively.}
+
+\item{alpha}{\emph{numeric.} Opacity of plot objects.}
 }
 \description{
 Make single animation frame from data in \code{dat_subset}. If
