@@ -222,6 +222,7 @@ class QoEsim:
         Examples
         --------
         Key a fake radio.
+
         >>> sim_obj=mcvqoe.simulation.QoEsim()
         >>> sim_obj.ptt(True)  #key radio
         >>> sim_obj.ptt(False) #de-key radio
@@ -252,6 +253,7 @@ class QoEsim:
         Examples
         --------
         Turn on some fake LEDs.
+
         >>> sim_obj=mcvqoe.simulation.QoEsim()
         >>> sim_obj.led(1,True)
         >>> sim_obj.led(2,True)
@@ -288,6 +290,7 @@ class QoEsim:
         Examples
         --------
         Query a fake 'RadioInterface'.
+
         >>> sim_obj=mcvqoe.simulation.QoEsim()
         >>> print(sim_obj.devtype())
         """
@@ -314,6 +317,7 @@ class QoEsim:
         Examples
         --------
         Query a fake 'RadioInterface'.
+
         >>> sim_obj=mcvqoe.simulation.QoEsim()
         >>> print(sim_obj.get_id())
         """
@@ -339,6 +343,7 @@ class QoEsim:
         Examples
         --------
         Query a fake 'RadioInterface'.
+
         >>> sim_obj=mcvqoe.simulation.QoEsim()
         >>> print(sim_obj.get_version())
         """
@@ -363,6 +368,7 @@ class QoEsim:
         Examples
         --------
         Query a fake 'RadioInterface'.
+
         >>> sim_obj=mcvqoe.simulation.QoEsim()
         >>> print(sim_obj.pttState())
         >>> sim_obj.ptt(True)
@@ -389,6 +395,7 @@ class QoEsim:
         Examples
         --------
         Query a fake 'RadioInterface'.
+
         >>> sim_obj=mcvqoe.simulation.QoEsim()
         >>> print(sim_obj.waitState())
         """
@@ -426,6 +433,7 @@ class QoEsim:
         Generate a simulated clip where the radio is keyed up 1 second into the
         clip. 'tx_voice' has the 48k Hz voice vector. The result is stored in
         'test.wav'
+
         >>> sim_obj=mcvqoe.simulation.QoEsim(fs=int(48e3))
         >>> sim_obj.playback_chans={'tx_voice':0,'start_signal':1}
         >>> sim_obj.rec_chans={'rx_voice':0,'PTT_signal':1}
@@ -458,6 +466,7 @@ class QoEsim:
         Examples
         --------
         Read some fake temperatures.
+
         >>> sim_obj=mcvqoe.simulation.QoEsim()
         >>> print(sim_obj.temp())
         """
@@ -611,14 +620,16 @@ class QoEsim:
 
         Examples
         --------
-
         Play 48 kHz audio stored in tx_voice and record in a file named
         'test.wav'.
+
         >>> import mcvqoe.simulation.QoEsim
         >>> sim_obj=mcvqoe.simulation.QoEsim(fs=int(48e3))
         >>> sim_obj.play_record(tx_voice,'test.wav')
+
         Now do the same but also output the start signal on channel 1 and record
         the PTT signal on channel 1.
+
         >>> sim_obj.playback_chans={'tx_voice':0,'start_signal':1}
         >>> sim_obj.rec_chans={'rx_voice':0,'PTT_signal':1}
         >>> sim_obj.play_record(tx_voice,'test.wav')

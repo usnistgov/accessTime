@@ -108,8 +108,8 @@ try:
 
         Examples
         --------
-
         Record audio using WinRecStop to stop the recording
+
         >>> import mcvqoe.hardware.AudioPlayer
         >>> ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
         >>> ap.record('test.wav',rec_stop=WinRecStop())
@@ -170,8 +170,8 @@ try:
 
         Examples
         --------
-
         Record audio using TermiosRecStop to stop the recording
+
         >>> import mcvqoe.hardware.AudioPlayer
         >>> ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
         >>> ap.record('test.wav',rec_stop=TermiosRecStop())
@@ -290,11 +290,14 @@ class AudioPlayer:
     --------
 
     play 48 kHz audio stored in tx_voice and record in a file named 'test.wav'.
+
     >>> import mcvqoe.hardware.AudioPlayer
     >>> ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
     >>> ap.play_record(tx_voice,'test.wav')
+
     now do the same but also output the start signal on channel 1 and record the
     PTT signal on channel 1.
+
     >>> ap.playback_chans={'tx_voice':0,'start_signal':1}
     >>> ap.rec_chans={'rx_voice':0,'PTT_signal':1}
     >>> ap.play_record(tx_voice,'test.wav')
@@ -445,11 +448,14 @@ class AudioPlayer:
 
         play 48 kHz audio stored in tx_voice and record in a file named
         'test.wav'.
+
         >>> import mcvqoe.hardware.AudioPlayer
         >>> ap=mcvqoe.hardware.AudioPlayer(fs=int(48e3))
         >>> ap.play_record(tx_voice,'test.wav')
+
         now do the same but also output the start signal on channel 1 and record
         the PTT signal on channel 1.
+
         >>> ap.playback_chans={'tx_voice':0,'start_signal':1}
         >>> ap.rec_chans={'rx_voice':0,'PTT_signal':1}
         >>> ap.play_record(tx_voice,'test.wav')
