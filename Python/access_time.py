@@ -665,10 +665,10 @@ class Access:
                                                              its_dly_frac.numerator, its_dly_frac.denominator)
                             
                             # Calculate delay. Only use data after dly_st_idx
-                            tmp = (1 / fs_its_dly) * mcvqoe.ITS_delay_est(x, y, mode='f', dlyBounds=[0, np.inf])
+                            tmp =  mcvqoe.ITS_delay_est(x, y, mode='f', dlyBounds=[0, np.inf])
                             
                             # Get delay from results
-                            dly_its = tmp[1]
+                            dly_its = (1 / fs_its_dly) * tmp[1]
                             
                             # Interpolate for new time
                             # TODO: do this with an offset once we've confirmed we're equivalent to matlab
