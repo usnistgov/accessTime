@@ -580,7 +580,7 @@ class Access:
                             tg_s = timeit.default_timer()
                             
                             # Play and record audio data
-                            rec_names = self.audio_player.play_record(audiofiles[clip], filename=audioname)
+                            rec_names = self.audio_player.play_record(audiofiles[clip], audioname)
                             
                             # Get start time
                             time_e = datetime.datetime.now().replace(microsecond=0)
