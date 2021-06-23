@@ -10,9 +10,9 @@ build:
   needs: []
   script:
     - python --version > py-ver.log
-    - pip install wheel
+    - python -m pip install wheel
     - python setup.py sdist bdist_wheel > package.log
-    - pip install --log pip.log --find-links ./dist/ mcvqoe-nist sphinx numpydoc unittest-xml-reporting > install.log
+    - python -m pip install --log pip.log --find-links ./dist/ mcvqoe-nist sphinx numpydoc unittest-xml-reporting > install.log
   artifacts:
       when: always
       paths:
@@ -54,6 +54,13 @@ test-ITS-delay:
   stage: test
   script:
     - python tests/test_ITS_delay.py
+  artifacts :
+    when: always
+    paths:
+      - mathtest.log
+      - math-tests.xml
+    reports:
+      junit: math-tests.xml
 
 pages:
   stage: deploy

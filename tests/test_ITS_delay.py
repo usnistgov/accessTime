@@ -5,6 +5,7 @@ import unittest
 import mcvqoe
 import numpy as np
 import scipy
+import xmlrunner
 from mcvqoe.ITS_delay_est import active_speech_level
 
 try:
@@ -303,4 +304,10 @@ class ITSTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main(verbosity=2)
+    with open("math-tests.xml", "wb") as outf:
+        unittest.main(
+            testRunner=xmlrunner.XMLTestRunner(output=outf),
+            failfast=False,
+            buffer=False,
+            catchbreak=False,
+        )
