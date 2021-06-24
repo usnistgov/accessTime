@@ -18,17 +18,6 @@ except ModuleNotFoundError:
 channels = entry_points()["mcvqoe.channel"]
 
 
-class Sim:
-    def __init__(self):
-        self.channel_rate = None
-        self.sample_rate = 16000
-        self.channel_impairment = None
-        self.print_args = False
-
-
-sim = Sim()
-
-
 def audio_channel_with_overplay(audio_fs, audio_data, chan):
     audio_with_overplay = np.concatenate((audio_data, np.zeros([audio_fs], dtype=np.int16)))
     chan_out = chan.simulate_audio_channel(audio_with_overplay, audio_fs)
