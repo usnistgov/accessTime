@@ -649,9 +649,7 @@ class QoEsim:
         # loop through rec_chans and detect keys that we can't produce
         for (k, v) in self.rec_chans.items():
             if k not in ("rx_voice", "PTT_signal"):
-                raise RuntimeError(
-                    f"{__class__} can not generate recordings of type '{k}'"
-                )
+                raise RuntimeError(f"{__class__} can not generate recordings of type '{k}'")
             outputs.append(k)
 
         # get the module for the chosen channel tech
@@ -683,9 +681,7 @@ class QoEsim:
             tx_data_with_overplay_and_noise = tx_data_with_overplay
         else:
             # generate gaussian noise, of unit standard deveation
-            noise = np.random.normal(0, 1, len(tx_data_with_overplay)).astype(
-                np.float32
-            )
+            noise = np.random.normal(0, 1, len(tx_data_with_overplay)).astype(np.float32)
 
             # measure amplitude of signal and noise
             sig_level = active_speech_level(tx_data_with_overplay, self.sample_rate)
@@ -721,7 +717,11 @@ class QoEsim:
 
         # call audio channel function from module
         channel_voice = chan_mod.simulate_audio_channel(
-            self, muted_tx_data_with_overplay
+            muted_tx_data_with_overplay,
+            self.sample_rate,
+            self.channel_rate,
+            self.print_args,
+            self.channel_impairment,
         )
 
         # add post channel impairments
@@ -729,9 +729,7 @@ class QoEsim:
             channel_voice = self.post_impairment(channel_voice, self.sample_rate)
 
         # generate silent noise section comprised of ptt_st_dly, access delay and m2e latency audio snippets
-        silence_length = int(
-            ptt_st_dly_samples + access_delay_samples + m2e_latency_samples
-        )
+        silence_length = int(ptt_st_dly_samples + access_delay_samples + m2e_latency_samples)
 
         # derive mean and standard deviation from real-world noise observed in the audio recordings
         mean = 0

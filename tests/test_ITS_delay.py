@@ -30,10 +30,8 @@ sim = Sim()
 
 
 def audio_channel_with_overplay(audio_fs, audio_data, chan):
-    audio_with_overplay = np.concatenate(
-        (audio_data, np.zeros([audio_fs], dtype=np.int16))
-    )
-    chan_out = chan.simulate_audio_channel(sim, audio_with_overplay)
+    audio_with_overplay = np.concatenate((audio_data, np.zeros([audio_fs], dtype=np.int16)))
+    chan_out = chan.simulate_audio_channel(audio_with_overplay, audio_fs)
     chan_out = chan_out[: len(audio_with_overplay)]
     return chan_out
 
@@ -43,9 +41,7 @@ class ITSTest(unittest.TestCase):
         self.assertGreaterEqual(x, y - tol, msg)
         self.assertLessEqual(x, y + tol, msg)
 
-    def verify_variable_delay(
-        self, res, delay_expected, delay_pos, tol=(2000, 100), msg=None
-    ):
+    def verify_variable_delay(self, res, delay_expected, delay_pos, tol=(2000, 100), msg=None):
         for pos, dly in zip(*res):
             if pos > delay_pos + tol[0]:
                 self.assert_tol(dly, delay_expected[1], tol=tol[1], msg=msg)
@@ -68,7 +64,7 @@ class ITSTest(unittest.TestCase):
             delay_calc = mcvqoe.ITS_delay_est(base_data, chan_out, "f", fs=base_fs)
 
             self.assert_tol(delay_calc[0], expected_length, msg=chan.__name__)
-            self.assert_tol(delay_calc[1], expected_delay, msg=chan.__name__)
+            self.assert_tol(delay_calc[1], expected_delay, tol=14, msg=chan.__name__)
 
     def test_basic_fixed_delay(self):
         base_file = pkgutil.get_data("mcvqoe", "audio_clips/test.wav")
@@ -79,9 +75,7 @@ class ITSTest(unittest.TestCase):
             chan = chan.load()
 
             for dly in [10, 100, 1000]:
-                audio_fixed_delay = np.concatenate(
-                    (np.zeros([dly], dtype=np.int16), base_data)
-                )
+                audio_fixed_delay = np.concatenate((np.zeros([dly], dtype=np.int16), base_data))
                 chan_out = audio_channel_with_overplay(base_fs, audio_fixed_delay, chan)
 
                 expected_length = len(audio_fixed_delay) + base_fs
@@ -99,6 +93,7 @@ class ITSTest(unittest.TestCase):
                 self.assert_tol(
                     delay_calc[1],
                     expected_delay,
+                    tol=14,
                     msg=f"{chan.__name__}, delay: {dly} samples",
                 )
 
@@ -119,6 +114,7 @@ class ITSTest(unittest.TestCase):
                 self.assert_tol(
                     delay_calc[1],
                     expected_delay,
+                    tol=14,
                     msg=f"{chan.__name__}, delay: {dly} samples",
                 )
 
@@ -184,9 +180,7 @@ class ITSTest(unittest.TestCase):
             chan = chan.load()
 
             for dly in [0, 10, 100, 1000]:
-                audio_fixed_delay = np.concatenate(
-                    (np.zeros([dly], dtype=np.int16), base_data)
-                )
+                audio_fixed_delay = np.concatenate((np.zeros([dly], dtype=np.int16), base_data))
                 chan_out = audio_channel_with_overplay(base_fs, audio_fixed_delay, chan)
 
                 expected_length = len(audio_fixed_delay) + base_fs
@@ -304,7 +298,7 @@ class ITSTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    with open("math-tests.xml", "wb") as outf:
+    with open("ITS-tests.xml", "wb") as outf:
         unittest.main(
             testRunner=xmlrunner.XMLTestRunner(output=outf),
             failfast=False,

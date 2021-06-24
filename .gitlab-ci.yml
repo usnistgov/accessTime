@@ -30,7 +30,6 @@ test-math:
   artifacts :
     when: always
     paths:
-      - mathtest.log
       - math-tests.xml
     reports:
       junit: math-tests.xml
@@ -57,10 +56,9 @@ test-ITS-delay:
   artifacts :
     when: always
     paths:
-      - mathtest.log
-      - math-tests.xml
+      - ITS-tests.xml
     reports:
-      junit: math-tests.xml
+      junit: ITS-tests.xml
 
 pages:
   stage: deploy
