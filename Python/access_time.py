@@ -413,7 +413,7 @@ class Access:
             tmp_wav = os.path.join(wav_cap_dir, tmp_wav)
             mcvqoe.write_cp(tmp_csv, cutpoints[num])
             # Write audio file
-            scipy.io.wavfile.write(tmp_wav,self.fs,audiofiles[num])
+            scipy.io.wavfile.write(tmp_wav, self.fs, audiofiles[num])
 
         #-------------------[Generate Filters and Times]----------------------
 
@@ -466,6 +466,28 @@ class Access:
     
             # Running count of the number of completed trials
             trial_count = 0
+
+        #----------------[Pickle important data for restart]------------------
+        
+        # Initialize error file
+        error_file = os.path.join(rec_fold, td+'.pickle')
+         
+        # Error dictionary
+        err_dict = {}
+         
+        for var in save_vars:
+            err_dict[var] = locals()[var]
+         
+        # Add all access_time object parameters to error dictionary
+        for i in self.__dict__:
+            skip = ['info', 'no_log', 'audio_player', 'ri',
+                    'inter_word_diff', 'get_post_notes', 'get_pre_notes']
+            if (i not in skip):
+                err_dict[i] = self.__dict__[i]
+         
+        # Place dictionary into pickle file
+        with open(error_file, 'wb') as pkl:
+            pickle.dump(err_dict, pkl)
 
         #-----------------------[Notify User of Start]------------------------
         
@@ -833,26 +855,6 @@ class Access:
             print(f"Error Class: {e[0]}")
             print(f"Error Message: {e[1]}")
             print(f"Error Traceback: {traceback.format_tb(e[2])}")
-            
-            # Initialize error file
-            error_file = os.path.join(rec_fold, td+'.pickle')
-             
-            # Error dictionary
-            err_dict = {}
-             
-            for var in save_vars:
-                err_dict[var] = locals()[var]
-             
-            # Add all access_time object parameters to error dictionary
-            for i in self.__dict__:
-                skip = ['info', 'no_log', 'audio_player', 'ri',
-                        'inter_word_diff', 'get_post_notes', 'get_pre_notes']
-                if (i not in skip):
-                    err_dict[i] = self.__dict__[i]
-             
-            # Place dictionary into pickle file
-            with open(error_file, 'wb') as pkl:
-                pickle.dump(err_dict, pkl)
             
             post_dict = self.get_post_notes()
             write_log.post(info=post_dict, outdir=self.outdir)
