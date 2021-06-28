@@ -199,7 +199,7 @@ def ITS_delay_est(x_speech,y_speech,mode, fs=8000, dlyBounds = [np.NINF, np.inf]
           #The output [0 0] indicates no delay estimation was possible
         Delay_est=[0, 0] 
     #convert to input sample rate and truncate to integer
-    Delay_est = (np.array(Delay_est)*(fs/8000)).astype(np.int)
+    Delay_est = (np.array(Delay_est,ndmin=2)*(fs/8000)).astype(np.int)
     #return results as a tuple of tuples
     return (tuple(Delay_est[:,0]),tuple(Delay_est[:,1]))
     #==========================================================================
