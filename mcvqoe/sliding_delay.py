@@ -99,8 +99,8 @@ def sliding_delay_estimates(test,ref,fs,winLength=4,winStep=2):
     firstSmp=0
     lastSmp=firstSmp+Nwin-1 
 
-    Delays=[]  #Will hold delay estimates
-    Times=[]   #Will hold time of center of window
+    Delays=np.empty(0)  #Will hold delay estimates
+    Times=np.empty(0)   #Will hold time of center of window
 
     #-----Loop to perform all possible time delay estimates-----
     while lastSmp<N:
