@@ -335,22 +335,20 @@ class Access:
                 else:
                     raise TypeError(f"\n{audio} is not an audio file!")
             
+            # Check proper sample rate and place audio files into array
+            for aud in audiofiles_names:
+                fs_file, audio_dat = scipy.io.wavfile.read(aud)
+                if fs_file != self.fs:
+                    raise ValueError(f"\nImproper sample rate. {aud} is at {fs_file}Hz and {self.fs}Hz is expected")
+                audio = mcvqoe.audio_float(audio_dat)
+                audiofiles.append(audio)
+            
             # If noise file was given, resample to match audio files
             if (self.bgnoise_file):
                 nfs, nf = scipy.io.wavfile.read(self.bgnoise_file)
                 rs = Fraction(self.fs/nfs)
                 nf = mcvqoe.audio_float(nf)
                 nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)    
-            
-            # Resample audio files and place into "audiofiles" array
-            for aud in audiofiles_names:
-                fs_file, audio_dat = scipy.io.wavfile.read(aud)
-                rs_factor = Fraction(self.fs/fs_file)
-                audio_dat = mcvqoe.audio_float(audio_dat)
-                audio = scipy.signal.resample_poly(audio_dat,
-                                                   rs_factor.numerator,
-                                                   rs_factor.denominator)
-                audiofiles.append(audio)
        
         #-----------------[Initialize Folders and Filenames]------------------
 
