@@ -25,6 +25,9 @@ class PBI:
         self.state = self.STATE_G0
 
     def process_audio(self, data, fs):
+        # Numpy arrays pass by reference, and the result of scipy.io.wavfile.read is read-only
+        data = data.copy()
+
         # set to initial state
         self.initial_state()
 
