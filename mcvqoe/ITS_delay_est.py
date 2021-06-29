@@ -89,21 +89,25 @@ def ITS_delay_est(x_speech,y_speech,mode, fs=8000, dlyBounds = [np.NINF, np.inf]
 
     #----------------------------Parse Arguments--------------------------------
     x_speech = np.array(x_speech, dtype=np.float64)
-    if len(x_speech) == 0 or x_speech.ndim != 1:
-        raise ValueError("error with input x_speech")
+    if(len(x_speech) == 0):
+        raise ValueError("x_speech can not have zero length")
+    if(x_speech.ndim != 1):
+        raise ValueError(f'Expected 1 dimension for x_speech but {x_speech.ndim} found')
 
     y_speech = np.array(y_speech, dtype=np.float64)
-    if len(y_speech) == 0 or y_speech.ndim != 1:
-        raise ValueError("error with input x_speech")
+    if(len(y_speech) == 0):
+        raise ValueError("y_speech can not have zero length")
+    if(y_speech.ndim != 1):
+        raise ValueError(f'Expected 1 dimension for y_speech but {t_speech.ndim} found')
 
     if mode not in ("f", "v", "u"):
-        raise ValueError("errpr with input mode")
+        raise ValueError(f'Unknown mode "{mode}", expected mode to be one of "f", "v", or "u"')
 
     dlyBounds = np.array(dlyBounds, dtype=np.float64)
     if len(dlyBounds) != 2:
-        raise ValueError("error with optional input")
+        raise ValueError(f'Expected dlyBounds len to be 2 but got {len(dlyBounds)}')
     elif dlyBounds[1] <= dlyBounds[0]:
-        raise ValueError("error with optional input")
+        raise ValueError(f'dlyBounds must be increasing. got {dlyBounds}')
 
     #----------------------Resample Arguments to 8kHz--------------------------
     if fs != 8000:

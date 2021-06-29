@@ -61,20 +61,20 @@ def sliding_delay_estimates(test,ref,fs,winLength=4,winStep=2):
     #add test signal parameter
     test = np.array(test, dtype=np.float64)
     if np.any(np.isinf(test)):
-        raise ValueError("Error with input test")
+        raise ValueError("Error with in test must be finite")
     #add reference signal parameter
     ref = np.array(ref, dtype=np.float64)
     if np.any(np.isinf(ref)):
-        raise ValueError("Error with input ref")
+        raise ValueError("Error values in ref must be finite")
     #add sample rate parameter
     if np.isinf(fs):
-        raise ValueError("Error with input fs")
+        raise ValueError("Error fs can not be infinite")
     #add window length argument
     if winLength <= 0:
-        raise ValueError("Error with input winLength") 
+        raise ValueError("Error winLength can not be less than zero") 
     #add window separation argument
     if winLength <= 0:
-        raise ValueError("Error with input winStep")
+        raise ValueError("Error winStep can not be less than zero")
 
     #sample rate to resample to
     #this is the rate that ITS_delay_est expects inputs to be in
