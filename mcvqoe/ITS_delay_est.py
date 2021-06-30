@@ -116,6 +116,13 @@ def ITS_delay_est(x_speech,y_speech,mode, fs=8000, dlyBounds = [np.NINF, np.inf]
         x_speech = sig.resample(x_speech, int(xlen * 8000/fs))
         y_speech = sig.resample(y_speech, int(ylen * 8000/fs))
 
+    #---------------------------Check return type------------------------------#
+    
+    if(mode == 'f'):
+        ret_type='single-value'
+    else:
+        ret_type='multiple-values'
+    
     #--------------------------Level Normalization-----------------------------#
     #Measure active speech level
     asl_x=active_speech_level(x_speech)
@@ -203,9 +210,14 @@ def ITS_delay_est(x_speech,y_speech,mode, fs=8000, dlyBounds = [np.NINF, np.inf]
           #The output [0 0] indicates no delay estimation was possible
         Delay_est=[0, 0] 
     #convert to input sample rate and truncate to integer
-    Delay_est = (np.array(Delay_est)*(fs/8000)).astype(np.int)
-    #return results as a tuple of tuples
-    return (tuple(Delay_est[:,0]),tuple(Delay_est[:,1]))
+    Delay_est = (np.array(Delay_est,ndmin=2)*(fs/8000)).astype(np.int)
+    
+    if(ret_type=='single-value'):
+        #return results as a tuple of tuples
+        return (int(Delay_est[:,0]),int(Delay_est[:,1]))
+    else:
+        #return results as a tuple of tuples
+        return (tuple(Delay_est[:,0]),tuple(Delay_est[:,1]))
     #==========================================================================
 
 def active_speech_level(x,fs=8000):

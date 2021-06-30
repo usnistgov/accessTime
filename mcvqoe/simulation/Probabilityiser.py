@@ -2,7 +2,102 @@
 
 import random
 
+def expected_psud(p_a,p_r,interval,message_length):
+    """
+    Evaluate expected probability of successful delivery (PSuD).
+    
+    Parameters
+    ----------
+    p_a : float
+        Probability transitioning into a transmitting state.
+    p_r : float
+        Probability of remaining in a transmitting state.
+    interval : float
+        How often state transitions are evaluated.
+    message_length : float
+        Length of message in seconds.
+    
+    Returns
+    -------
+    float:
+        Probability that the message was successfully delivered.
+    
+    Examples
+    --------
+    Evaluate the PSuD when P_a = P_r = 0.5, with an interval of 1 for a three
+    second long message.
+    
+    >>> mcvqoe.simulation.expected_psud(0.5,0.5,1,3)
+    """
+    exp = (message_length/interval) - 1
+    psud = p_a/(1 + p_a - p_r)*(p_r ** exp)
+    return(psud)
+
 class PBI: 
+    """
+    Probabilityiser for simulating probablistic channel drops.
+    
+    This class allows simple simulations of a channel that has two states: 
+    transmitting and not transmitting. Using the probability of returning to
+    the transmitting state given it is not transmitting, P_a, and the 
+    probability of remaining in the transmitting state given it is 
+    transmitting, P_r, a faulty channel can be simulated.
+    
+    Parameters
+    ----------
+    P_a1 : float, optional
+        Probability of initializing the transmission. The default is 1.
+    P_a2 : float, optional
+        Probability of returning ot a transmitting state once the transmitting 
+        state has been reached and it has returned to a non-transmitting 
+        state. The default is None. In this case P_a2 is set to be equal to 
+        P_a1.
+    P_r : float, optional
+        Probability of remaining in a transmitting state. The default is 1.
+    interval : float, optional
+        How often the channel state is reevaluated, in seconds. The default is 
+        1.
+        
+    Attributes
+    ----------
+    P_a1 : float, optional
+        Probability of initializing the transmission. The default is 1.
+    P_a2 : float, optional
+        Probability of returning ot a transmitting state once the transmitting 
+        state has been reached and it has returned to a non-transmitting 
+        state. The default is None. In this case P_a2 is set to be equal to 
+        P_a1.
+    P_r : float, optional
+        Probability of remaining in a transmitting state. The default is 1.
+    interval : float, optional
+        How often the channel state is reevaluated, in seconds. The default is 
+        1.
+    state : int
+        Current state of PBI, either INVALID, G0, G1, or H (0,1,2,3 
+        respectively).
+    state_history : list
+        List of transmitting states that the PBI has been in at each interval 
+        cycle. Values of 0 represent non-transmitting states, values of 1 
+        represent transmitting states.
+    STATE_INVALID : int
+        Value 0 to represent invalid state reached
+    STATE_G0 : int
+        Value 1 to represent in initial state where transmission has not 
+        started.
+    STATE_G1 : int
+        Value 2 to represent in non-transmitting state where transmission has 
+        occured at least once.
+    STATE_H : int
+        Value 3 to represent in transmitting state.
+        
+    Returns
+    -------
+    None.
+    
+    Examples
+    --------
+    >>> pb = mcvqoe.simulation.PBI(P_a1 = 0.5, P_r = 0.5)
+    """
     STATE_INVALID=0
     STATE_G0=1
     STATE_G1=2
@@ -74,7 +169,10 @@ class PBI:
     def expected_psud(self,t):
         """
         Determine expected PSuD of message of length t given settings
-
+        
+        Convenience function to use expected_psud function given current PBI 
+        settings. 
+        
         Parameters
         ----------
         t : float
@@ -88,4 +186,9 @@ class PBI:
         """
         exp = (t/self.interval) - 1
         psud = self.P_a2/(1 + self.P_a2 - self.P_r) * (self.P_r ** exp)
+        
+        psud = expected_psud(p_a=self.P_a2,p_r=self.P_r,interval=self.interval,message_length=t)
         return(psud)
+
+
+    
