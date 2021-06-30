@@ -295,11 +295,10 @@ class ITSTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    # with open("ITS-tests.xml", "w") as outf:
-    #     unittest.main(
-    #         testRunner=xmlrunner.XMLTestRunner(output=outf),
-    #         failfast=False,
-    #         buffer=False,
-    #         catchbreak=False,
-    #     )
-    unittest.main()
+    with open("ITS-tests.xml", "w") as outf:
+        unittest.main(
+            testRunner=xmlrunner.XMLTestRunner(output=outf),
+            failfast=False,
+            buffer=False,
+            catchbreak=False,
+        )
