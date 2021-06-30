@@ -932,8 +932,10 @@ def main():
     parser.add_argument('-e', '--pttrep', dest="ptt_rep", type=int, default=my_obj.ptt_rep,
                         help="Number of times to repeat a given PTT delay value. If auto_stop is "+
                         "used ptt_rep must be greater than 15.")
-    parser.add_argument('-c', '--autostop', dest="auto_stop", type=bool, default=my_obj.auto_stop,
+    parser.add_argument('-c', '--autostop', dest="auto_stop", action='store_true', default=test_obj.auto_stop,
                         help="Enable checking for access and stopping the test when it is detected.")
+    parser.add_argument('--no-autostop', dest="auto_stop", action='store_false',
+                        help="Disable checking for access and stopping the test when it is detected.")
     parser.add_argument('-f', '--stoprep', dest="stop_rep", type=int, default=my_obj.stop_rep,
                         help="Number of times that access must be detected in a row before the"+
                         " test is completed.")
