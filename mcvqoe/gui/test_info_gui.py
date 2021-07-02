@@ -99,6 +99,8 @@ class TestInfoGui(tk.Tk):
                 self.info_in['rx_dev'] = ""
                 self.info_in['system'] = ""
                 self.info_in['test_loc'] = ""
+            #dummy value for pre test notes, not saved in file
+            self.info_in['Pre Test Notes']=""
             
              
     def show(self):
@@ -159,6 +161,7 @@ class TestInfoGui(tk.Tk):
         l6 = tk.Label(self, text="Please enter notes on pre-test conditions")
         l6.grid(row=10, column=0, padx=10, pady=5, sticky=tk.W)
         self.pre_notes_edit = scrolledtext.ScrolledText(self, bd=2, width=100, height=15)
+        self.pre_notes_edit.insert(tk.INSERT,self.info_in['Pre Test Notes'])
         self.pre_notes_edit.grid(row=11, column=0, padx=10, pady=5, sticky=tk.W)
         
         # 'Submit', 'Test', and 'Cancel' buttons
