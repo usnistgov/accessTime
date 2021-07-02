@@ -81,7 +81,7 @@ def audio_type(dat,dtype = np.dtype('int16')):
         
     #-----------------[Convert to output]------------------------
     if(dtype is np.dtype('float32') or dtype is np.dtype('float64')):
-        return(dat)
+        return(dat.astype(dtype))
     elif(dtype is np.dtype('uint8')):
         out_dat = 64*dat + 64
         return out_dat.astype('uint8')
