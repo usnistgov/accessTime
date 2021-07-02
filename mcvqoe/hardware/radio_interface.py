@@ -288,7 +288,11 @@ class RadioInterface:
     
     def __exit__(self, exc_type, exc_value, exc_traceback):
         
-        self._command('closeout')
+        #check if we had a serial problem
+        if( (not exc_type) or 'serial' not in exc_type.__name__.lower()):
+            self._command('closeout')
+        else:
+            print('Problem with serial port detected, no cleanup performed')
     
     def _openPort(self,port):
     
