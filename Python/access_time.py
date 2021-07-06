@@ -9,60 +9,19 @@ import pickle
 import scipy.interpolate
 import scipy.io.wavfile
 import scipy.signal
-import signal
 import sys
 import time
 import timeit
-import traceback
 
 from fractions import Fraction
 from mcvqoe.hardware import AudioPlayer
 from mcvqoe.math import approx_permutation_test
 from mcvqoe.hardware import RadioInterface
 from warnings import warn
-from shutil import copyfile
 
 import mcvqoe.gui.test_info_gui as test_info_gui
-import mcvqoe.write_log as write_log
 import numpy as np
 import tkinter as tk
-
-def load_dat(fname):
-    """Load data from CSV file and skip header
-    
-    ...
-    
-    Parameters
-    ----------
-    fname : csv file path
-        csv file to be loaded into dictionary list
-        
-    Returns
-    -------
-    dat_list : List
-        List of dictionaries containing row data(header skipped)
-    
-    """
-    
-    # Fieldnames for dictionary reader(keywords for each row)
-    dat_head = ('PTT_time', 'PTT_start', 'ptt_st_dly', 'P1_Int', 'P2_Int',
-                'm2e_latency', 'TimeStart', 'TimeEnd', 'TimeGap(sec)')
-
-    # List to store each csv row(dictionaries)
-    dat_list = []
-    
-    # Read csv file and occupy list, skipping header section
-    with open(fname) as csv_f:
-        reader = csv.DictReader(csv_f, fieldnames=dat_head)
-        for n, row in enumerate(reader):
-            if n < 4:
-                continue
-            dat_list.append(row)
-            
-        # Delete last row to ensure proper restart
-        del dat_list[-1]
-
-        return dat_list
         
 def int_or_inf(input):
     """Check for 'infinite' entry, and change 'trials' to np.inf if found"""
@@ -77,6 +36,14 @@ def int_or_inf(input):
             print(f"\n{input} is an invalid value for '-t/--trials'")
             sys.exit(1)
 
+#TODO : maybe we should put this in abcmrt?    
+#abcmrt only works with 48 kHz audio
+fs_abcmrt=48000
+
+def chans_to_string(chans):
+    #channel string
+    return '('+(';'.join(chans))+')'
+    
 def trial_limit_batt_check(check=False):
     """Trial limit reached gui, and user_pause from retry function"""
     
@@ -104,50 +71,62 @@ def trial_limit_batt_check(check=False):
     button.grid(column=0, row=1)
     root.mainloop()
 
-class Access:
+def mk_format(header):
+    
+    fmt=""
+    
+    for col in header:
+        #split at first space
+        col=col.split()[0]
+        #remove special chars
+        col=''.join(c for c in col if c.isalnum())
+        #need to not use special names
+        #TODO : should this be done better?
+        if(col=='try'):
+            col='rtry'
+        
+        fmt+='{'+col+'},'
+    #replace trailing ',' with newline
+    fmt=fmt[:-1]+'\n'
+    
+    return fmt
+    
+class measure:
+    
+    data_header=['PTT_time','PTT_start','ptt_st_dly','P1_Int','P2_Int',
+                 'm2e_latency','channels','TimeStart','TimeEnd','TimeGap']
+    
+    bad_header=['FileName','trial_count','clip_count','try#','p2A-weight',
+                'm2e_latency','channels','TimeStart','TimeEnd','TimeGap']
     
     def __init__(self):
         
         self.audio_files = []
         self.audio_path = ""
-        self.audio_player = None
+        self.audio_interface = None
         self.auto_stop = False
         self.bgnoise_file = ""
         self.bgnoise_volume = 0.1
-        self.blocksize = 512
-        self.buffersize = 20
         self.data_file = ""
         self.dev_dly = float(31e-3)
-        self.fs = 48000
         self.get_post_notes = None
-        self.get_pre_notes = None
         self.info = {}
         self.inter_word_diff = 0.0 # Used to compare inter word delays
-        self.no_log = ['test', 'ri']
+        self.no_log = ('test', 'ri')
         self.outdir = ""
         self.ptt_delay = [0.0]
         self.ptt_gap = 3.1
         self.ptt_rep = 30
         self.ptt_step = float(20e-3)
-        self.radioport = ""
         self.rec_file = None
         self.ri = None
+        self.user_check= trial_limit_batt_check
         self.s_thresh = -50
         self.s_tries = 3
         self.stop_rep = 10
         # TODO: warn if first time_expand is too small, talk about in class documentation
         self.time_expand = [100e-3 - 0.11e-3, 0.11e-3]
         self.trials = 100.0
-
-    def __enter__(self):
-        """Enables 'with' statement"""
-        
-        return self
-    
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        """Enables 'with' statement"""
-        
-        print(f"\n{exc_traceback}\n")
 
     def _cutpoint_check(self, cutpoint):
         """Check if cutpoint contains what we need and has the proper format"""
@@ -166,7 +145,7 @@ class Access:
                 raise ValueError(f"Loading {cutpoint}: Words 2 and 4 must be the same")
             
             # Check inter word delays
-            inter_delay = (int(sheet[3][2]) - int(sheet[3][1])) / self.fs
+            inter_delay = (int(sheet[3][2]) - int(sheet[3][1])) / self.audio_interface.sample_rate
             if (self.inter_word_diff == 0.0):
                 self.inter_word_diff = inter_delay
             else:
@@ -198,7 +177,7 @@ class Access:
         else:
             return None
 
-    def test(self, recovery=False):
+    def run(self, recovery=False):
         """Run an Access Time test
         
         ...
@@ -210,14 +189,11 @@ class Access:
         
         """
         
-        # Signal handler for graceful shutdown in case of SIGINT(User ctrl^c)
-        signal.signal(signal.SIGINT, self.sig_handler)
-        
         #----------------[List of Vars to Save in Pickle File]----------------
         
-        save_vars = ['audiofiles_names', 'cutpoints', 'clipnames', 'audiofiles',
+        save_vars = ('audiofiles_names', 'cutpoints', 'clipnames', 'audiofiles',
                      'bad_name', 'temp_data_filenames', 'ptt_st_dly',
-                     'wav_cap_dir']
+                     'wav_cap_dir')
         
         # Array of audiofile full path names
         audiofiles_names = []
@@ -231,6 +207,28 @@ class Access:
         # Initialize clip end time for gap time calculation
         time_e = np.nan
         tg_e = np.nan
+        
+        #-----------------------[Check audio sample rate]-----------------------
+        
+        if(self.audio_interface.sample_rate != fs_abcmrt):
+            raise ValueError(f'audio_interface sample rate is {self.audio_interface.sample_rate} Hz but only {fs_abcmrt} Hz is supported')
+        
+        #------------------[Check for correct audio channels]------------------
+        
+        if('tx_voice' not in self.audio_interface.playback_chans.keys()):
+            raise ValueError('self.audio_interface must be set up to play tx_voice')
+        if('start_signal' not in self.audio_interface.playback_chans.keys()):
+            raise ValueError('self.audio_interface must be set up to play start_signal')
+            
+        if('rx_voice' not in self.audio_interface.rec_chans.keys()):
+            raise ValueError('self.audio_interface must be set up to record rx_voice')
+        if('PTT_signal' not in self.audio_interface.rec_chans.keys()):
+            raise ValueError('self.audio_interface must be set up to record PTT_signal')
+                   
+        #---------------------[Generate csv format strings]---------------------
+        
+        dat_format=mk_format(self.data_header)
+        bad_format=mk_format(self.bad_header)
         
         #------------------[Load In Old Data File If Given]-------------------
         
@@ -257,7 +255,7 @@ class Access:
             old_bad_name = self.rec_file['bad_name']
    
             for k in range(len(temp_data_filenames)):
-                save_dat = load_dat(temp_data_filenames[k])
+                save_dat = self.load_dat(temp_data_filenames[k])
                 if not save_dat:
                     print(f"\nNo data file found for {temp_data_filenames[k]}\n")
                 else:
@@ -297,8 +295,8 @@ class Access:
                         kk_start = 0
                     else:
                         kk_start = ((clen-1) % self.ptt_rep) + 1
-               
-        #------[Parse Through Audio Files/Cutpoints and Perform Checks]-------
+        
+        #-------[Parse Through Audio Files/Cutpoints and Perform Checks]--------
         
         # Only read in data if this is the first time
         else:
@@ -331,25 +329,38 @@ class Access:
                         
                         clipnames.append(nm)
                     else:
-                        raise ValueError(f"{audio} has no corresponding .csv file!")
+                        raise ValueError(f"{audio} has no corresponding .csv cutpoints file!")
                 else:
                     raise TypeError(f"\n{audio} is not an audio file!")
             
             # Check proper sample rate and place audio files into array
             for aud in audiofiles_names:
                 fs_file, audio_dat = scipy.io.wavfile.read(aud)
-                if fs_file != self.fs:
-                    raise ValueError(f"\nImproper sample rate. {aud} is at {fs_file}Hz and {self.fs}Hz is expected")
+                if fs_file != fs_abcmrt:
+                    raise ValueError(f"\nImproper sample rate. {aud} is at {fs_file} Hz and {fs_abcmrt} Hz is expected")
                 audio = mcvqoe.audio_float(audio_dat)
                 audiofiles.append(audio)
             
             # If noise file was given, resample to match audio files
             if (self.bgnoise_file):
                 nfs, nf = scipy.io.wavfile.read(self.bgnoise_file)
-                rs = Fraction(self.fs/nfs)
+                rs = Fraction(fs_abcmrt/nfs)
                 nf = mcvqoe.audio_float(nf)
                 nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)    
-       
+
+        
+        #-------------------------[Get Test Start Time]-------------------------
+        self.info['Tstart']=datetime.datetime.now()
+        dtn=self.info['Tstart'].strftime('%d-%b-%Y_%H-%M-%S')
+        
+        #--------------------------[Fill log entries]--------------------------
+        #set test name
+        self.info['test']='Access'
+        #add abcmrt version
+        self.info['abcmrt version']=abcmrt.version
+        #fill in standard stuff
+        self.info.update(mcvqoe.write_log.fill_log(self))
+
         #-----------------[Initialize Folders and Filenames]------------------
 
         # Data folder
@@ -380,14 +391,14 @@ class Access:
         os.makedirs(wav_cap_dir, exist_ok=False)
         
         # Generate csv filenames and add path
-        data_filenames = []
+        self.data_filenames = []
         temp_data_filenames = []
         for name in clipnames:
             file = f"capture_{self.info['Test Type']}_{td}_{name}.csv"
             tmp_f = f"capture_{self.info['Test Type']}_{td}_{name}_TEMP.csv"
             file = os.path.join(csvdir, file)
             tmp_f = os.path.join(csvdir, tmp_f)
-            data_filenames.append(file)
+            self.data_filenames.append(file)
             temp_data_filenames.append(tmp_f)
 
         # Generate filename for bad csv data
@@ -402,7 +413,7 @@ class Access:
                     nf = np.resize(nf, audiofiles[audio].size)
                 audiofiles[audio] = audiofiles[audio] + nf*self.bgnoise_volume
 
-        #-----------[Write Transmit Audio File(s) and CSV File(s)]------------
+        #---------[Write Transmit Audio File(s) and cutpoint File(s)]----------
         
         for num in range(len(audiofiles_names)):
             tmp_csv = "Tx_" + clipnames[num] + ".csv"
@@ -411,12 +422,12 @@ class Access:
             tmp_wav = os.path.join(wav_cap_dir, tmp_wav)
             mcvqoe.write_cp(tmp_csv, cutpoints[num])
             # Write audio file
-            scipy.io.wavfile.write(tmp_wav, self.fs, audiofiles[num])
+            scipy.io.wavfile.write(tmp_wav,self.audio_interface.sample_rate,audiofiles[num])
 
         #-------------------[Generate Filters and Times]----------------------
 
         # Calculate niquest frequency
-        fn = self.fs/2
+        fn = self.audio_interface.sample_rate/2
         
         # Create lowpass filter for PTT signal processing
         ptt_filt = scipy.signal.firwin(400, 200/fn, pass_zero='lowpass')
@@ -424,15 +435,7 @@ class Access:
         # Generate time vector for audiofiles
         t_y = []
         for i in range(len(audiofiles)):
-            t_y.append((np.arange(1, len(audiofiles[i])+1)) / self.fs)
-        
-        #-----------------[Resample Factors for ITS_delay]--------------------
-        
-        # Sample rate for ITS delay
-        fs_its_dly = 8e3
-        
-        # Calculate resample factors for ITS delay
-        its_dly_frac = Fraction(int(fs_its_dly), self.fs)
+            t_y.append((np.arange(1, len(audiofiles[i])+1)) / self.audio_interface.sample_rate)
 
         #-----------------------[Generate PTT Delays]-------------------------
         
@@ -443,9 +446,9 @@ class Access:
             if (len(self.ptt_delay) == 1):
                 for num in range(len(cutpoints)):
                     # Word start time from end of first silence
-                    w_st = (cutpoints[num][0]['End']/self.fs)
+                    w_st = (cutpoints[num][0]['End']/self.audio_interface.sample_rate)
                     # Word end time from end of word
-                    w_end = (cutpoints[num][1]['End']/self.fs)
+                    w_end = (cutpoints[num][1]['End']/self.audio_interface.sample_rate)
                     # Delay during word (.0001 added to w_end ensures w_end's use)
                     w_dly = np.arange(w_st, (w_end+.0001), self.ptt_step)
                     # Delay during silence (.0001 decrement to ensure ptt_delay usage)
@@ -478,14 +481,18 @@ class Access:
          
         # Add all access_time object parameters to error dictionary
         for i in self.__dict__:
-            skip = ['info', 'no_log', 'audio_player', 'ri',
-                    'inter_word_diff', 'get_post_notes', 'get_pre_notes']
+            skip = ['no_log', 'audio_interface', 'ri',
+                    'inter_word_diff', 'get_post_notes']
             if (i not in skip):
                 err_dict[i] = self.__dict__[i]
          
         # Place dictionary into pickle file
         with open(error_file, 'wb') as pkl:
             pickle.dump(err_dict, pkl)
+            
+        #---------------------------[write log entry]---------------------------
+        
+        mcvqoe.write_log.pre(info=self.info, outdir=self.outdir)
 
         #-----------------------[Notify User of Start]------------------------
         
@@ -517,10 +524,9 @@ class Access:
                     with open(temp_data_filenames[clip], 'w', newline='') as csv_file:
                         writer = csv.writer(csv_file)
                         writer.writerow([f'Audiofile = {audiofiles_names[clip]}'])
-                        writer.writerow([f'fs = {self.fs}'])
+                        writer.writerow([f'fs = {self.audio_interface.sample_rate}'])
                         writer.writerow(['----------------'])
-                        writer.writerow(['PTT_time', 'PTT_start', 'ptt_st_dly', 'P1_Int',
-                                         'P2_Int', 'm2e_latency', 'TimeStart', 'TimeEnd', 'TimeGap(sec)'])
+                        writer.writerow(self.data_header)
                     
                     # Print name and location of datafile    
                     print(f"\nStarting {clipnames[clip]}\nStoring data in:\n\t'"+
@@ -577,7 +583,7 @@ class Access:
                                 # Inform user of problem
                                 warn("Audio not detected through the system.")
                                 # TODO Check if we have retry function
-                                self.trial_limit_batt_check(check=True)
+                                self.user_check(check=True)
                                 
                                 # Turn off LED, resuming
                                 self.ri.led(2, False)
@@ -600,7 +606,7 @@ class Access:
                             tg_s = timeit.default_timer()
                             
                             # Play and record audio data
-                            rec_names = self.audio_player.play_record(audiofiles[clip], audioname)
+                            rec_names = self.audio_interface.play_record(audiofiles[clip], audioname)
                             
                             # Get start time
                             time_e = datetime.datetime.now().replace(microsecond=0)
@@ -639,12 +645,21 @@ class Access:
                             
                             #-------------------------[Data Processing]---------------------------
                             
+                            #get index of rx_voice channel
+                            voice_idx=rec_names.index('rx_voice')
+                            #get index of PTT_signal
+                            psig_idx=rec_names.index('PTT_signal')
+                            
                             # Get latest run Rx audio
                             dat_fs, dat = scipy.io.wavfile.read(audioname)
                             dat = mcvqoe.audio_float(dat)
                             
                             # Extract push to talk signal (getting envelope)
-                            ptt_sig = scipy.signal.filtfilt(ptt_filt, 1, np.absolute(dat[:, 1]))
+                            ptt_sig = scipy.signal.filtfilt(
+                                                ptt_filt,
+                                                1,
+                                                np.absolute(dat[:,psig_idx])
+                                            )
 
                             # Get max value
                             ptt_max = np.amax(ptt_sig)
@@ -661,7 +676,7 @@ class Access:
                                 ptt_st_idx = np.nonzero(ptt_sig > 0.5)[0][0]
                                 
                                 # Convert sample index to time
-                                st = ptt_st_idx/self.fs
+                                st = ptt_st_idx/self.audio_interface.sample_rate
                                 
                             except IndexError:
                                 st = np.nan
@@ -675,22 +690,22 @@ class Access:
                             # (can be seen in PTT Gate data)
                             ptt_time = ptt_start - self.dev_dly
                             
-                            # Gather resampled pre/post audio
-                            # Pre
-                            x = scipy.signal.resample_poly(audiofiles[clip][dly_st_idx:],
-                                                           its_dly_frac.numerator, its_dly_frac.denominator)
-                            
-                            # Post
-                            y = scipy.signal.resample_poly(dat[dly_st_idx:, 0],
-                                                             its_dly_frac.numerator, its_dly_frac.denominator)
-                            
                             # Calculate delay. Only use data after dly_st_idx
-                            dly_its = (1 / fs_its_dly) * mcvqoe.ITS_delay_est(x, y, mode='f', dlyBounds=[0, np.inf])[1]
+                            (_,dly_its) = mcvqoe.ITS_delay_est(
+                                audiofiles[clip][dly_st_idx:], 
+                                dat[dly_st_idx:,voice_idx],
+                                mode='f',
+                                dlyBounds=[0, np.inf],
+                                fs=self.audio_interface.sample_rate
+                            )
+                            
+                            #convert to seconds
+                            dly_its=dly_its/self.audio_interface.sample_rate
                             
                             # Interpolate for new time
                             # TODO: do this with an offset once we've confirmed we're equivalent to matlab
-                            inter_arr = (np.arange(len(dat[:, 0]))/self.fs-dly_its)
-                            rec_int = scipy.interpolate.RegularGridInterpolator((inter_arr, ), dat[:, 0])
+                            inter_arr = (np.arange(len(dat[:, voice_idx]))/self.audio_interface.sample_rate-dly_its)
+                            rec_int = scipy.interpolate.RegularGridInterpolator((inter_arr, ), dat[:,voice_idx])
 
                             # New shifted version of signal
                             rec_a = rec_int(t_y[clip])
@@ -700,7 +715,7 @@ class Access:
                             ex_cp_2 = np.array([cutpoints[clip][3]['Start'], cutpoints[clip][3]['End']])
                             # Turn into numpy array for easier use
                             tm_expand = np.array(self.time_expand)
-                            tm_expand = np.round((tm_expand*self.fs) * np.array([1, -1]), 0)
+                            tm_expand = np.round((tm_expand*self.audio_interface.sample_rate) * np.array([1, -1]), 0)
                             tm_expand = tm_expand.astype(int)
                             ex_cp_1 = ex_cp_1 - tm_expand
                             ex_cp_2 = ex_cp_2 - tm_expand
@@ -730,7 +745,7 @@ class Access:
                             else:
                                 tg_str = f"{(time_gap//3600):.0f}:{((time_gap//60)%60):.0f}:{(time_gap%60):.3f}"
                             
-                            a_p2 = mcvqoe.a_weighted_power(dec_sp[1], self.fs)
+                            a_p2 = mcvqoe.a_weighted_power(dec_sp[1], self.audio_interface.sample_rate)
                             
                             if (a_p2 <= self.s_thresh):
                                 warn(f"A-weight power for P2 is {a_p2:.2f}dB\n")
@@ -738,7 +753,8 @@ class Access:
                                 # Save bad audiofile
                                 wav_name = f"Bad{clip_count}_r{retries}_{clipnames[clip]}"
                                 wav_name = os.path.join(wav_cap_dir, wav_name)
-                                copyfile(audioname, wav_name)
+                                #rename file to save it and record again
+                                os.rename(audioname, wav_name)
                                 
                                 print(f"Saving bad data to '{bad_name}'\n")
                                 # Check if file exists for appending, or we need to create it
@@ -746,16 +762,24 @@ class Access:
                                     # File doesn't exist, create and write header
                                     with open(bad_name, 'w', newline='') as csv_file:
                                         writer = csv.writer(csv_file)
-                                        writer.writerow(['FileName', 'trial_count', 'clip_count', 'try#',
-                                                         'p2A-weight', 'm2e_latency', 'TimeStart',
-                                                         'TimeEnd', 'TimeGap(sec)'])
+                                        writer.writerow(self.bad_header)
                                 
                                 # append with bad data
-                                with open(bad_name, 'a', newline='') as csv_file:
-                                    writer = csv.writer(csv_file)
-                                    writer.writerow([wav_name, trial_count, clip_count, retries,
-                                                     a_p2, dly_its, time_s.strftime('%H:%M:%S'),
-                                                     time_e.strftime('%H:%M:%S'), tg_str])
+                                with open(bad_name, 'a') as csv_file:
+                                    csv_file.write(
+                                        bad_format.format(
+                                            FileName=wav_name,
+                                            trialcount=trial_count,
+                                            clipcount=clip_count,
+                                            rtry=retries,
+                                            p2Aweight=a_p2,
+                                            m2elatency=dly_its,
+                                            channels=chans_to_string(rec_names),
+                                            TimeStart=time_s.strftime('%H:%M:%S'),
+                                            TimeEnd=time_e.strftime('%H:%M:%S'),
+                                            TimeGap=tg_str
+                                        )
+                                    )
                                     
                         #--------------------------[End Check Loop]---------------------------
                         
@@ -768,12 +792,21 @@ class Access:
                             
                         #-------------------------[Save Trial Data]---------------------------
                         
-                        with open(temp_data_filenames[clip], 'a', newline='') as csv_file:
-                            writer = csv.writer(csv_file)
-                            writer.writerow([ptt_time, ptt_start, ptt_st_dly[clip][k],
-                                             success[0, clip_count], success[1, clip_count],
-                                             dly_its, time_s.strftime('%H:%M:%S'),
-                                             time_e.strftime('%H:%M:%S'), tg_str])
+                        with open(temp_data_filenames[clip], 'a') as csv_file:
+                            csv_file.write(
+                                dat_format.format(
+                                    PTTtime=ptt_time,
+                                    PTTstart=ptt_start,
+                                    pttstdly=ptt_st_dly[clip][k],
+                                    P1Int=success[0, clip_count],
+                                    P2Int=success[1, clip_count],
+                                    m2elatency=dly_its,
+                                    channels=chans_to_string(rec_names),
+                                    TimeStart=time_s.strftime('%H:%M:%S'),
+                                    TimeEnd=time_e.strftime('%H:%M:%S'),
+                                    TimeGap=tg_str
+                                )
+                            )
                         
                         #------------------------[Check Trial Limit]--------------------------
                         
@@ -789,8 +822,8 @@ class Access:
                             # Turn on LED when waiting for user input
                             self.ri.led(2, True)
                             
-                            # Gui to pause everything and await user entry
-                            trial_limit_batt_check()
+                            # wait for user
+                            self.user_check()
                             
                             # Turn off LED, resuming
                             self.ri.led(2, False)
@@ -829,7 +862,7 @@ class Access:
                      
                     # Check if we should look for stopping condition
                     # Only stop if ptt delay is before the first word
-                    if (self.auto_stop and (cutpoints[clip][1]['End']/self.fs)>ptt_st_dly[clip][k]):
+                    if (self.auto_stop and (cutpoints[clip][1]['End']/self.audio_interface.sample_rate)>ptt_st_dly[clip][k]):
                         if (self.stop_rep<=k and all(stop_flag[(k-self.stop_rep):k])):
                             # If stopping condition met, break from loop
                             break
@@ -843,20 +876,17 @@ class Access:
             #--------------------[Change Name of Data Files]----------------------
             
             for k in range(len(temp_data_filenames)):
-                print(f"\nRenaming '{temp_data_filenames[k]}' to '{data_filenames[k]}'")
-                copyfile(temp_data_filenames[k], data_filenames[k])
-                os.remove(temp_data_filenames[k])
-            
-        except Exception:
-            e = sys.exc_info()
-            print(f"Error Return Type: {type(e)}")
-            print(f"Error Class: {e[0]}")
-            print(f"Error Message: {e[1]}")
-            print(f"Error Traceback: {traceback.format_tb(e[2])}")
-            
-            post_dict = self.get_post_notes()
-            write_log.post(info=post_dict, outdir=self.outdir)
-            sys.exit(1)
+                print(f"\nRenaming '{temp_data_filenames[k]}' to '{self.data_filenames[k]}'")
+                os.rename(temp_data_filenames[k], self.data_filenames[k])
+        finally:
+            if(self.get_post_notes):
+                #get notes
+                info=self.get_post_notes()
+            else:
+                info={}
+            #finish log entry
+            mcvqoe.post(outdir=self.outdir,info=info)
+
             
     def param_check(self):
         """Check all input parameters for value errors"""
@@ -877,92 +907,128 @@ class Access:
             if os.path.isdir(self.audio_path) is False:
                 raise ValueError(f"Audio path ({self.audio_path}) not found."+
                                  " Make sure to use forward slash '/'")
+    def load_dat(self,fname):
+        """Load data from CSV file and skip header
+        
+        ...
+        
+        Parameters
+        ----------
+        fname : csv file path
+            csv file to be loaded into dictionary list
+            
+        Returns
+        -------
+        dat_list : List
+            List of dictionaries containing row data(header skipped)
+        
+        """
 
-    def sig_handler(self, signal, frame):
-        """Catch user's exit (CTRL+C) from program and collect post test notes."""
-        # Gather posttest notes and write everything to log
-        post_dict = test_info_gui.post_test()
-        write_log.post(info=post_dict, outdir=self.outdir)
-        sys.exit(1)
+        # List to store each csv row(dictionaries)
+        dat_list = []
+        
+        # Read csv file and occupy list, skipping header section
+        with open(fname) as csv_f:
+            reader = csv.DictReader(csv_f, fieldnames=self.data_header)
+            for n, row in enumerate(reader):
+                if n < 4:
+                    continue
+                dat_list.append(row)
+                
+            # Delete last row to ensure proper restart
+            del dat_list[-1]
+
+            return dat_list
            
 def main():
     
     # Create Access object
-    my_obj = Access()
-    # Set pre test notes function
-    my_obj.get_pre_notes = lambda : test_info_gui.pretest(outdir=my_obj.outdir)
+    test_obj = measure()
     # Set post test notes function
-    my_obj.get_post_notes = lambda : test_info_gui.post_test()
+    test_obj.get_post_notes = test_info_gui.post_test
+    
+    #--------------------[Create AudioPlayer Object]----------------------
+        
+    ap = AudioPlayer(
+                    playback_chans = {'tx_voice':0, 'start_signal':1},
+                    rec_chans = {'rx_voice':0, 'PTT_signal':1},
+                    )
+                    
+    test_obj.audio_interface = ap
 
     #--------------------[Parse the command line arguments]--------------------
         
     parser = argparse.ArgumentParser(description=__doc__)
     
-    parser.add_argument('-a', '--audiofiles', dest="audio_files", default=my_obj.audio_files,
+    parser.add_argument('-a', '--audiofiles', dest="audio_files", default=test_obj.audio_files,
                         nargs="+", metavar="FILENAME", help="Audio files to use for testing."+
                         " The cutpoints for the file must exist in the same directory with"+
                         " the same name and a .csv extension. If a multiple audio files"+
                         " are given, then the test is run in succession for each file.")
-    parser.add_argument('-k', '--audiopath', dest="audio_path", default=my_obj.audio_path,
+    parser.add_argument('-k', '--audiopath', dest="audio_path", default=test_obj.audio_path,
                         metavar="Path", help="Path to look for audio file in. All audio"+
                         " file paths are relative to this unless they are absolute.")
-    parser.add_argument('-t', '--trials', type=int_or_inf, default=my_obj.trials, metavar="T",
+    parser.add_argument('-t', '--trials', type=int_or_inf, default=test_obj.trials, metavar="T",
                         help="Number of trials to use for test. Defaults to 100.")
     parser.add_argument('-r', '--radioport', default='', metavar="PORT",
                         help="Port to use for radio interface. Defaults to the first"+
                         " port where a radio interface is detected.")
     parser.add_argument('-y', '--pttdelay', nargs="+", dest="ptt_delay", type=float,
-                        default=my_obj.ptt_delay, help="ptt_delay can be a 1 or 2 element double"+
+                        default=test_obj.ptt_delay, help="ptt_delay can be a 1 or 2 element double"+
                         " vector. If it is a 1 element vector then it specifies the minimum"+
                         " ptt_delay that will be used with the maximum being the end of the"+
                         " first word in the clip. If a two element vector then the first"+
                         " element is the smallest delay used and the second is the largest."+
                         " Defaults to 0.0(start of clip).")
-    parser.add_argument('-p', '--pttstep', dest="ptt_step", type=float, default=my_obj.ptt_step,
+    parser.add_argument('-p', '--pttstep', dest="ptt_step", type=float, default=test_obj.ptt_step,
                         help="Time in seconds between successive pttdelays. Default is 20ms.")
     parser.add_argument('-z', '--bgnoisefile', dest="bgnoise_file", default='', help="If this is"+
                         " non empty then it is used to read in a noise file to be mixed with the "+
                         "test audio. Default is no background noise.")
     parser.add_argument('-v', '--bgnoisevolume', dest="bgnoise_volume", type=float,
-                        default=my_obj.bgnoise_volume, help="Scale factor for background"+
+                        default=test_obj.bgnoise_volume, help="Scale factor for background"+
                         " noise. Defaults to 0.1.")
-    parser.add_argument('-s', '--pttgap', dest="ptt_gap", type=float, default=my_obj.ptt_gap,
+    parser.add_argument('-s', '--pttgap', dest="ptt_gap", type=float, default=test_obj.ptt_gap,
                         help="Time to pause after completing one trial and starting the next."+
                         " Defaults to 3.1s.")
-    parser.add_argument('-e', '--pttrep', dest="ptt_rep", type=int, default=my_obj.ptt_rep,
+    parser.add_argument('-e', '--pttrep', dest="ptt_rep", type=int, default=test_obj.ptt_rep,
                         help="Number of times to repeat a given PTT delay value. If auto_stop is "+
                         "used ptt_rep must be greater than 15.")
     parser.add_argument('-c', '--autostop', dest="auto_stop", action='store_true', default=test_obj.auto_stop,
                         help="Enable checking for access and stopping the test when it is detected.")
     parser.add_argument('--no-autostop', dest="auto_stop", action='store_false',
                         help="Disable checking for access and stopping the test when it is detected.")
-    parser.add_argument('-f', '--stoprep', dest="stop_rep", type=int, default=my_obj.stop_rep,
+    parser.add_argument('-f', '--stoprep', dest="stop_rep", type=int, default=test_obj.stop_rep,
                         help="Number of times that access must be detected in a row before the"+
                         " test is completed.")
-    parser.add_argument('-g', '--devdly', dest="dev_dly", type=float, default=my_obj.dev_dly,
+    parser.add_argument('-g', '--devdly', dest="dev_dly", type=float, default=test_obj.dev_dly,
                         help="Delay in seconds of the audio path with no communication device"+
                         " present. Defaults to 21e-3.")
-    parser.add_argument('-m', '--datafile', dest="data_file", default=my_obj.data_file,
+    parser.add_argument('-m', '--datafile', dest="data_file", default=test_obj.data_file,
                         help="Name of a temporary datafile to use to restart a test. If this is"+
                         " given all other parameters are ignored and the settings that the original"+
                         " test was given are used. Needs full path name.")
     parser.add_argument('-x', '--timeexpand', dest="time_expand", nargs="+", type=float, metavar="DUR",
-                        default=my_obj.time_expand, help="Length of time, in seconds, of extra"+
+                        default=test_obj.time_expand, help="Length of time, in seconds, of extra"+
                         " audio to send to ABC_MRT16. Adding time protects against inaccurate M2E"+
                         " latency calculations and misaligned audio. A scalar value sets time"+
                         " expand before and after the keyword. A two element vector sets the"+
                         " time at the beginning and the end separately.")
-    parser.add_argument('-b', '--blocksize', type=int, default=my_obj.blocksize, metavar="SZ",
+    parser.add_argument('-b', '--blocksize', type=int, default=ap.blocksize, metavar="SZ",
                         help="Block size for transmitting audio, must be a power of 2 "+
                         "(default: %(default)s).")
-    parser.add_argument('-q', '--buffersize', type=int, default=my_obj.buffersize, metavar="SZ",
+    parser.add_argument('-q', '--buffersize', type=int, default=ap.buffersize, metavar="SZ",
                         help="Number of blocks used for buffering audio (default: %(default)s)")
-    parser.add_argument('-d', '--outdir', default=my_obj.outdir, metavar="DIR",
+    parser.add_argument('--overplay', type=float, default=ap.overplay,metavar='DUR',
+                        help='The number of seconds to play silence after the audio is complete'+
+                        '. This allows for all of the audio to be recorded when there is delay'+
+                        ' in the system')
+    parser.add_argument('-d', '--outdir', default=test_obj.outdir, metavar="DIR",
                         help="Directory that is added to the output path for all files.")
-    parser.add_argument('-i', '--sthresh', dest="s_thresh", default=my_obj.s_thresh,
+    parser.add_argument('-i', '--sthresh', dest="s_thresh", default=test_obj.s_thresh,
                         help="The threshold of A-weight power for P2, in dB, below which a trial"+
                         " is considered to have no audio. Defaults to -50.")
-    parser.add_argument('-j', '--stries', dest="s_tries", type=int, default=my_obj.s_tries,
+    parser.add_argument('-j', '--stries', dest="s_tries", type=int, default=test_obj.s_tries,
                         help="Number of times to retry the test before giving up. Defaults to 3.")
     
     args = parser.parse_args()
@@ -972,9 +1038,9 @@ def main():
     # If data_file found then place into 'rec_file' dictionary
     if (args.data_file != ""):
         recover = True     # Boolean indicating recover file used
-        my_obj.data_file = args.data_file
-        with open(my_obj.data_file, "rb") as pkl:
-            my_obj.rec_file = pickle.load(pkl)
+        test_obj.data_file = args.data_file
+        with open(test_obj.data_file, "rb") as pkl:
+            test_obj.rec_file = pickle.load(pkl)
 
     else:
         recover = False
@@ -983,55 +1049,59 @@ def main():
     if recover:
         skippy = ['rec_file']
         # Instance variable setting function
-        for k, v in my_obj.rec_file.items():
-            if hasattr(my_obj, k) and (k not in skippy):
-                setattr(my_obj, k, v)
+        for k, v in test_obj.rec_file.items():
+            if hasattr(test_obj, k) and (k not in skippy):
+                setattr(test_obj, k, v)
 
     else:
         # Set Access object variables to terminal arguments
         for k, v in vars(args).items():
-            if hasattr(my_obj, k):
-                setattr(my_obj, k, v)
+            if hasattr(test_obj, k):
+                setattr(test_obj, k, v)
 
     if not recover:
         # Check user's parameters for value errors etc.
-        my_obj.param_check()
-
-    # Get start time and date
-    time_n_date = datetime.datetime.now().replace(microsecond=0)
-    
-    # Add test and date/time to info dictionary
-    my_obj.info['Tstart'] = time_n_date
-    my_obj.info['test'] = "Access Time"
-    
-    #--------------------[Create AudioPlayer Object]----------------------
+        test_obj.param_check()
         
-    my_obj.audio_player = AudioPlayer(fs=my_obj.fs,
-                                      blocksize=my_obj.blocksize,
-                                      buffersize=my_obj.buffersize)
-    # Set playback and record channels
-    my_obj.audio_player.playback_chans = {'tx_voice':0, 'start_signal':1}
-    my_obj.audio_player.rec_chans = {'rx_voice':0, 'PTT_signal':1}
+    #---------------------[Set audio interface properties]---------------------
+    test_obj.audio_interface.blocksize=args.blocksize
+    test_obj.audio_interface.buffersize=args.buffersize
+    test_obj.audio_interface.overplay=args.overplay
     
     #-----------------------[Open RadioInterface]-------------------------
     
-    with RadioInterface(my_obj.radioport) as my_obj.ri:
-    
-        # Fill 'Arguments' in info dictionary
-        my_obj.info.update(write_log.fill_log(my_obj))
-
-        # Gather pretest notes and test parameters
-        placeholder = my_obj.get_pre_notes()
-        my_obj.info.update(placeholder)
+    with RadioInterface(args.radioport) as test_obj.ri:
         
-        # Write pretest notes and info to tests.log
-        write_log.pre(info=my_obj.info)
+        #------------------------------[Get test info]------------------------------
 
-        my_obj.test(recovery=recover)
-    
-    # Gather posttest notes and write to log
-    post_dict = my_obj.get_post_notes()
-    write_log.post(info=post_dict, outdir=my_obj.outdir)
+        gui=mcvqoe.gui.TestInfoGui()
+        
+        gui.chk_audio_function=lambda : mcvqoe.hardware.single_play(
+                                                    test_obj.ri,test_obj.audio_interface,
+                                                    )
+        
+        #if recovering, re-use notes and things
+        if(recover):
+            gui.info_in['test_type'] =test_obj.info['test_type']
+            gui.info_in['tx_dev'] = test_obj.info['tx_dev']
+            gui.info_in['rx_dev'] = test_obj.info['rx_dev']
+            gui.info_in['system'] = test_obj.info['system']
+            gui.info_in['test_loc'] = test_obj.info['test_loc']
+            gui.info_in['Pre Test Notes']=test_obj.info['Pre Test Notes'] + \
+                                          'Test restarted due to error\n'+ \
+                                          f'Data loaded from : {args.data_file}\n'
+                                          #TODO : add restarted trial number?
+        
+        test_obj.info=gui.show()
+
+        #check if the user canceled
+        if(test_obj.info is None):
+            print(f"\n\tExited by user")
+            sys.exit(1)
+        
+
+        #------------------------------[Run Test]------------------------------
+        test_obj.run(recovery=recover)
     
 if __name__ == "__main__":
     
