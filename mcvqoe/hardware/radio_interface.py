@@ -274,25 +274,28 @@ class RadioInterface:
     #delete method
     def __del__(self):
 
-        #check if port is open
-        if(self.sobj):
-            #closeout command, turn off LEDS and ptt
-            self.sobj.write(b'closeout\n')
+        if(self.hasattr('sobj'):
+            #check if port is open
+            if(self.sobj):
+                #closeout command, turn off LEDS and ptt
+                self.sobj.write(b'closeout\n')
+                
+                #wait for all data to write out
+                self.sobj.flush()
             
-            #wait for all data to write out
-            self.sobj.flush()
-        
-        
-        #flush and close text wrapper
-        self.textin.close()
+            
+            #flush and close text wrapper
+            self.textin.close()
     
     def __exit__(self, exc_type, exc_value, exc_traceback):
         
-        #check if we had a serial problem
-        if( (not exc_type) or 'serial' not in exc_type.__name__.lower()):
-            self._command('closeout')
-        else:
-            print('Problem with serial port detected, no cleanup performed')
+        #check if we have a serial object
+        if(self.hasattr('sobj'):
+            #check if we had a serial problem
+            if( (not exc_type) or 'serial' not in exc_type.__name__.lower()):
+                self._command('closeout')
+            else:
+                print('Problem with serial port detected, no cleanup performed')
     
     def _openPort(self,port):
     
