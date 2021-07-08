@@ -3,9 +3,7 @@ import scipy.signal as sig
 from numpy.fft import fft, ifft
 
 
-def ITS_delay_est(
-    x_speech, y_speech, mode, fs=8000, dlyBounds=[np.NINF, np.inf], min_corr=0
-):
+def ITS_delay_est(x_speech, y_speech, mode, fs=8000, dlyBounds=[np.NINF, np.inf], min_corr=0):
     """
     Estimate the delay history for speech wave forms.
 
@@ -160,9 +158,7 @@ def ITS_delay_est(
         # Compensate the activity waveform for tau_0
         _, comp_active_wf = fxd_delay_comp(x_speech, active_wf, tau_0)
         # --------------------------Delay Tracking------------------------------#
-        DCAVS = delay_tracking(
-            comp_x_speech, comp_y_speech, comp_active_wf, 150, 40, 200
-        )
+        DCAVS = delay_tracking(comp_x_speech, comp_y_speech, comp_active_wf, 150, 40, 200)
         # --------------------------Median Filtering----------------------------#
         SDV = median_filter(DCAVS, 500, 40, 0.1, 0.8)
         # ---------------------Combine Results with tau_0-----------------------#
@@ -178,9 +174,7 @@ def ITS_delay_est(
         # If delay and validity do not change from segment n to n+1, then
         # segment n is redundant
         keepers = np.append(
-            np.nonzero(np.logical_or(np.diff(SDV[:, 1]) != 0, np.diff(SDV[:, 2]) != 0))[
-                0
-            ],
+            np.nonzero(np.logical_or(np.diff(SDV[:, 1]) != 0, np.diff(SDV[:, 2]) != 0))[0],
             np.size(SDV, 0) - 1,
         )
         SDV = SDV[keepers, :]
@@ -204,9 +198,7 @@ def ITS_delay_est(
     if mode == "v":
         Delay_est = extend_val_res(SDV)  # Extrapolate variable delay estimate
     elif mode == "f":
-        Delay_est = np.array(
-            [[len(y_speech) - 1, D_fxd]]
-        )  # Reformat fixed delay estimate
+        Delay_est = np.array([[len(y_speech) - 1, D_fxd]])  # Reformat fixed delay estimate
     else:  # Mode is 't' for terminate
         # The output [0 0] indicates no delay estimation was possible
         Delay_est = [0, 0]
@@ -639,9 +631,7 @@ def median_filter(DCAVS, twinlen, winstep, activity_th, cor_th):
     # delay estimate has correlation that meets or exceeds threshold,
     # activity that meets or exceeds threshold, and is mathematically valid.
     # It has a zero elsewhere.
-    good = np.logical_and.reduce(
-        (cor_th <= DCAVS[:, 1], activity_th <= DCAVS[:, 2], DCAVS[:, 3])
-    )
+    good = np.logical_and.reduce((cor_th <= DCAVS[:, 1], activity_th <= DCAVS[:, 2], DCAVS[:, 3]))
     # Loop over all samples
     for i in range(0, nwins):
         # Check number of samples between sample and last sample
@@ -994,9 +984,7 @@ def short_seg_cor(SDVin, x_speech, y_speech, len_t, len_b, len_s):
     SDVout = SDVin[:, 0:3]
     # Identify the segments that reflect a change in delay or validity
     keepers = np.append(
-        np.nonzero(
-            np.logical_or(np.diff(SDVout[:, 1]) != 0, np.diff(SDVout[:, 2]) != 0)
-        ),
+        np.nonzero(np.logical_or(np.diff(SDVout[:, 1]) != 0, np.diff(SDVout[:, 2]) != 0)),
         np.size(SDVout, 0) - 1,
     )
     # Retain only those segments
@@ -1281,9 +1269,7 @@ def LSE(s, d, Df, Dv, maxsp):
         Sf = np.zeros((lsewin, nlocs))
         for i in range(0, nlocs):
             D[:, i] = d[np.int_(np.arange(dlocs[i] - L, dlocs[i] + R))]
-            Sf[:, i] = s[
-                np.int_(my_round(np.arange(slocs_fxd[i] - L, slocs_fxd[i] + R)))
-            ]
+            Sf[:, i] = s[np.int_(my_round(np.arange(slocs_fxd[i] - L, slocs_fxd[i] + R)))]
             Sv[:, i] = s[np.int_(np.arange(slocs_var[i] - L, slocs_var[i] + R))]
         # Generate column vector with periodic Hanning window, length is lsewin
         win = 0.5 * (1 - np.cos(2 * np.pi * np.arange(0, lsewin) / lsewin))

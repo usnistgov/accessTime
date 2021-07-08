@@ -165,9 +165,7 @@ class log_search:
                         parts = line.strip().split(" at ")
 
                         # set date
-                        self.log[idx]["date"] = datetime.strptime(
-                            parts[1], "%d-%b-%Y %H:%M:%S"
-                        )
+                        self.log[idx]["date"] = datetime.strptime(parts[1], "%d-%b-%Y %H:%M:%S")
 
                         # operation is the first bit
                         op = parts[0]
@@ -230,9 +228,7 @@ class log_search:
                                 # drop back to search mode
                                 status = "searching"
                         elif not line:
-                            msgFcn(
-                                f"Empty line in preamble at line {lc} of file {short_name}"
-                            )
+                            msgFcn(f"Empty line in preamble at line {lc} of file {short_name}")
                         else:
                             # split line on colon
                             lp = line.split(":")
@@ -293,11 +289,7 @@ class log_search:
                     elif status == "post-notes":
                         # check that the first character is a tab
                         if line and line[0] == "\t":
-                            field = (
-                                "post_notes"
-                                if (not self.log[idx]["error"])
-                                else "error_notes"
-                            )
+                            field = "post_notes" if (not self.log[idx]["error"]) else "error_notes"
 
                             # set sep based on if we already have notes
                             sep = "" if (self.log[idx][field]) else "\n"
@@ -386,9 +378,7 @@ class log_search:
                             # indicate which file amended this entry
                             self.log[idx]["amendedBy"] = short_name
                         else:
-                            ValueError(
-                                f"log entry already amended at line {lc} of '{short_name}'"
-                            )
+                            ValueError(f"log entry already amended at line {lc} of '{short_name}'")
 
                         # set status to preamble
                         status = "preamble"
@@ -506,10 +496,7 @@ class log_search:
                     # check for strings and handle differently
                     if isinstance(val, str):
                         if isinstance(match[k], list):
-                            str_eq = [
-                                (re.compile(s).search(val)) is not None
-                                for s in match[k]
-                            ]
+                            str_eq = [(re.compile(s).search(val)) is not None for s in match[k]]
                             if self.stringSearchMode == "AND":
                                 eq[i] = all(str_eq)
                             elif self.stringSearchMode == "OR":
@@ -732,9 +719,7 @@ class log_search:
                 filenames = glob.glob(os.path.join(foldPath, p + "*" + ext))
 
                 match = [
-                    f
-                    for f in filenames
-                    if date_str in f and ((not exclude) or exclude not in f)
+                    f for f in filenames if date_str in f and ((not exclude) or exclude not in f)
                 ]
 
                 if not singular and len(match) >= 1:
@@ -753,9 +738,7 @@ class log_search:
                 fn.append(None)
                 fi.append(idx)
                 warnings.warn(
-                    RuntimeWarning(
-                        f"No matching files for '{date_str}' in '{foldPath}'"
-                    ),
+                    RuntimeWarning(f"No matching files for '{date_str}' in '{foldPath}'"),
                     stacklevel=2,
                 )
 
@@ -808,9 +791,7 @@ class log_search:
             for i in range(0, len(net_names))
         ]
         # Toss unwanted sessions from net_names
-        net_names_clean = [
-            net_names[i] for i in range(0, len(net_names)) if (not (net_tossIx[i]))
-        ]
+        net_names_clean = [net_names[i] for i in range(0, len(net_names)) if (not (net_tossIx[i]))]
 
         if os.path.exists(os.path.join(locpath, "post-processed data", ftype)):
             # Check that path to data even exists
@@ -875,12 +856,8 @@ class log_search:
 
         f_errSessions = [name == ":Error" for name in filenames]
         f_incSessions = [name == ":Incomplete" for name in filenames]
-        f_tossIx = [
-            f_errSessions[i] or f_incSessions[i] for i in range(0, len(filenames))
-        ]
-        filenames = [
-            filenames[i] for i in range(0, len(filenames)) if (not (f_tossIx[i]))
-        ]
+        f_tossIx = [f_errSessions[i] or f_incSessions[i] for i in range(0, len(filenames))]
+        filenames = [filenames[i] for i in range(0, len(filenames)) if (not (f_tossIx[i]))]
 
         if filenames == []:
             raise RuntimeError("Could not find any files meeting search criteria")
@@ -928,9 +905,7 @@ class log_search:
                 # set repo path to temp dir
                 repo_path = tmpdir.name
                 # clone repo
-                p = subprocess.run(
-                    [git_path, "clone", repo_url, repo_path], capture_output=True
-                )
+                p = subprocess.run([git_path, "clone", repo_url, repo_path], capture_output=True)
                 # check return code
                 if p.returncode:
                     # TODO: error
@@ -1089,9 +1064,7 @@ class log_search:
         def str_or_float(val):
             if not val:
                 return None
-            m = re.match(
-                r"(?P<str>'(?P<s>[^']*)')|(?P<true>true)|(?P<false>false)", val
-            )
+            m = re.match(r"(?P<str>'(?P<s>[^']*)')|(?P<true>true)|(?P<false>false)", val)
             if m:
                 if m.group("str"):
                     return m.group("s")
@@ -1105,9 +1078,7 @@ class log_search:
                 try:
                     return float(val)
                 except ValueError:
-                    warnings.warn(
-                        RuntimeWarning(f"Could not convert '{val}'"), stacklevel=2
-                    )
+                    warnings.warn(RuntimeWarning(f"Could not convert '{val}'"), stacklevel=2)
                     return val
 
         match_args = re.finditer(

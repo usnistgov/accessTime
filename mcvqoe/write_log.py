@@ -45,17 +45,14 @@ def fill_log(test_obj, git_path=None):
 
     # extract important info from traceback
     tb_info = [
-        (os.path.basename(fs.filename), fs.name if fs.name != "<module>" else None)
-        for fs in tb
+        (os.path.basename(fs.filename), fs.name if fs.name != "<module>" else None) for fs in tb
     ]
 
     # add entry for calling file
     info["filename"] = tb_info[-1][0]
 
     # format string with '->' between files
-    info["traceback"] = "->".join(
-        [f"{f}({n})" if n is not None else f for f, n in tb_info]
-    )
+    info["traceback"] = "->".join([f"{f}({n})" if n is not None else f for f, n in tb_info])
 
     # ------------------------------[Get Git Hash]------------------------------
 
@@ -147,7 +144,7 @@ def fill_log(test_obj, git_path=None):
         if k not in test_obj.no_log and k not in standard_skip:
             arg_list.append(k + " = " + repr(v))
 
-    info["Arguments"] = ",".join(arg_list)
+    info["Arguments"] = ", ".join(arg_list)
 
     # -------------------------------[Return info]-------------------------------
 

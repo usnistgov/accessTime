@@ -1,28 +1,26 @@
 #!/usr/bin/env python
 
-import mcvqoe.simulation
-import unittest
-import tempfile
+import io
+import math
+import os
 import pkgutil
+import random
+import tempfile
+import unittest
+from fractions import Fraction
+
+import mcvqoe
+import mcvqoe.simulation
+import numpy as np
 import scipy.io.wavfile
 import scipy.signal
-import numpy as np
-from fractions import Fraction
-import math
-import io
-import os
-import mcvqoe
 
 
 class AudioTest(unittest.TestCase):
     def assertTol(self, value, expected, tol):
         """Fail if value is equal within tolerance"""
-        self.assertGreaterEqual(
-            value, expected - tol * expected, f"expected value {expected}"
-        )
-        self.assertLessEqual(
-            value, expected + tol * expected, f"expected value {expected}"
-        )
+        self.assertGreaterEqual(value, expected - tol * expected, f"expected value {expected}")
+        self.assertLessEqual(value, expected + tol * expected, f"expected value {expected}")
 
     def test_basic(self):
 
@@ -36,9 +34,7 @@ class AudioTest(unittest.TestCase):
         # Convert to float sound array
         audio_dat = mcvqoe.audio_float(audio_dat)
         # Resample audio
-        audio = scipy.signal.resample_poly(
-            audio_dat, rs_factor.numerator, rs_factor.denominator
-        )
+        audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
 
         with mcvqoe.simulation.QoEsim(
             fs=fs_dev
@@ -70,9 +66,7 @@ class AudioTest(unittest.TestCase):
         # Convert to float sound array
         audio_dat = mcvqoe.audio_float(audio_dat)
         # Resample audio
-        audio = scipy.signal.resample_poly(
-            audio_dat, rs_factor.numerator, rs_factor.denominator
-        )
+        audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
 
         with mcvqoe.simulation.QoEsim(
             fs=fs_dev
@@ -120,9 +114,7 @@ class AudioTest(unittest.TestCase):
         # Convert to float sound array
         audio_dat = mcvqoe.audio_float(audio_dat)
         # Resample audio
-        audio = scipy.signal.resample_poly(
-            audio_dat, rs_factor.numerator, rs_factor.denominator
-        )
+        audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
 
         with mcvqoe.simulation.QoEsim(
             fs=fs_dev
@@ -177,6 +169,58 @@ class AudioTest(unittest.TestCase):
 
                     # check if we are within 1%
                     self.assertTol(st, ptt_dly, 0.01)
+
+
+class ProbabilityiserTest(unittest.TestCase):
+    def test_update_state(self):
+        expected_states = [
+            [1, 1, 1, 3, 3, 2, 3, 2, 3, 3, 2],
+            [1, 3, 2, 2, 3, 3, 3, 2, 2, 3, 3],
+            [1, 1, 1, 3, 3, 2, 2, 2, 3, 2, 2],
+            [1, 3, 2, 3, 2, 2, 3, 3, 2, 3, 3],
+            [1, 3, 3, 3, 3, 3, 3, 2, 2, 2, 3],
+            [1, 1, 1, 1, 1, 1, 1, 3, 3, 2, 2],
+            [1, 1, 1, 3, 3, 3, 2, 3, 2, 3, 2],
+            [1, 3, 3, 2, 3, 2, 3, 3, 2, 3, 3],
+            [1, 3, 2, 3, 2, 3, 3, 2, 3, 2, 3],
+            [1, 3, 3, 3, 2, 3, 2, 2, 3, 2, 2],
+        ]
+
+        for i, expected_seq in enumerate(expected_states):
+            pbi = mcvqoe.simulation.PBI(P_a1=0.5, P_r=0.5)
+            random.seed(i)
+            states = []
+            states.append(pbi.state)
+            for j in range(10):
+                pbi.update_state()
+                states.append(pbi.state)
+
+            self.assertEqual(states, expected_seq, msg=f"Seed: {i}")
+
+    def test_process_audio(self):
+        input_data = np.ones([10], dtype=int)
+
+        expected_audio = [
+            [0, 1, 0, 1, 0, 0, 0, 1, 0, 1],
+            [1, 0, 0, 1, 0, 0, 1, 0, 0, 0],
+            [1, 0, 0, 1, 1, 1, 1, 0, 0, 0],
+            [1, 0, 0, 0, 1, 1, 1, 1, 0, 1],
+            [1, 0, 0, 0, 1, 1, 0, 0, 1, 0],
+            [0, 1, 0, 1, 0, 1, 0, 0, 0, 0],
+            [1, 1, 1, 1, 1, 0, 1, 0, 1, 1],
+            [0, 0, 0, 1, 0, 0, 0, 1, 1, 1],
+            [1, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 1, 0, 1, 1, 1, 1],
+        ]
+        for i, exp_dat in enumerate(expected_audio):
+            pbi = mcvqoe.simulation.PBI(P_a1=0.5, P_r=0.5)
+            random.seed(i + 10)
+            exp_dat = np.asarray(exp_dat)
+            res = pbi.process_audio(input_data, 1)
+            self.assertTrue(
+                (res == exp_dat).all(),
+                msg=f"Seed: {i + 10}, Expected Result: {exp_dat}, Received: {res}",
+            )
 
 
 if __name__ == "__main__":
