@@ -11,8 +11,8 @@ Attributes
 ----------
 standard_delay: float
     The standard_delay attribute gives the delay that is added by the channel.
-    This is used by QoEsim to compensate for the delay added by the channel and 
-    simulate the specified delay. 
+    This is used by QoEsim to compensate for the delay added by the channel and
+    simulate the specified delay.
 rates : list
     List of unique rates that can be used on the channel. This list should
     contain a list of possible rates. If there are multiple values that are
@@ -23,19 +23,22 @@ default_rate : str or number
     `rates`.
 """
 
-#plugin for clean channel
+# plugin for clean channel
 
-#No channel, no delay
-standard_delay=0
+# No channel, no delay
+standard_delay = 0
 
-#no channel, no rate
-default_rate=None
-rates=[]
+# no channel, no rate
+default_rate = None
+rates = []
 
-def simulate_audio_channel(sim,tx_data):
-    if(sim.channel_impairment):
-        warnings.warn('There is no channel for the \'clean\' option. can not use channel_impairment')
-    if(sim.channel_rate):
-        warnings.warn('For \'clean\' there is no rate. \'channel_rate\' option ignored')
+
+def simulate_audio_channel(
+    tx_data, sample_rate, channel_rate=None, print_args=False, channel_impairment=None
+):
+    if channel_impairment:
+        warnings.warn("There is no channel for the 'clean' option. can not use channel_impairment")
+    if channel_rate:
+        warnings.warn("For 'clean' there is no rate. 'channel_rate' option ignored")
 
     return tx_data
