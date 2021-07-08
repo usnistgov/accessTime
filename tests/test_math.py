@@ -167,7 +167,7 @@ class Test_Uncertainty(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    with open("math-tests.xml", "w") as outf:
+    with open("math-tests.xml", "wb") as outf:
         unittest.main(
             testRunner=xmlrunner.XMLTestRunner(output=outf),
             failfast=False,

@@ -295,7 +295,7 @@ class ITSTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    with open("ITS-tests.xml", "w") as outf:
+    with open("ITS-tests.xml", "wb") as outf:
         unittest.main(
             testRunner=xmlrunner.XMLTestRunner(output=outf),
             failfast=False,

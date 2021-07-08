@@ -33,7 +33,7 @@ class LogTest(unittest.TestCase):
         self.assertEqual(info["filename"], os.path.basename(__file__))
         self.assertEqual(info["mcvqoe version"], mcvqoe.version)
         self.assertEqual(
-            info["Arguments"], f"ri = {str(dummy.ri)}, audioInterface = {str(dummy.audioInterface)}"
+            info["Arguments"], f"ri = {str(dummy.ri)},audioInterface = {str(dummy.audioInterface)}"
         )
 
         info["test"] = "unittest"
@@ -82,7 +82,7 @@ class LogTest(unittest.TestCase):
         self.assertEqual(info["filename"], os.path.basename(__file__))
         self.assertEqual(info["mcvqoe version"], mcvqoe.version)
         self.assertEqual(
-            info["Arguments"], f"ri = {str(dummy.ri)}, audioInterface = {str(dummy.audioInterface)}"
+            info["Arguments"], f"ri = {str(dummy.ri)},audioInterface = {str(dummy.audioInterface)}"
         )
 
         info["test"] = "unittest"
