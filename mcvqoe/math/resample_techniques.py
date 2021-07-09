@@ -102,8 +102,28 @@ def approx_permutation_test(
     Return
     ------
     Boolean
-        Rejection or not that data comes from same distribution.
-
+        Rejection or not of the null hypothesis, in this case that data comes 
+        from same distribution. Explicitly if x and y are from distinct 
+        distributions this function will return True as the Null hypothesis 
+        assumes that they are from equivalent distributions. Alternatively if 
+        x and y are from the same distribution this function will return False.
+        
+    Examples
+    --------
+    Compare two extremely distinct data sets, returns True as the null 
+    hypothesis is rejected.
+    
+    >>> x = np.ones(120)
+    >>> y = np.zeros(30)
+    >>> mcvqoe.math.approx_permutation_test(x,y)
+    
+    Compare two similar data sets, returns False as the null hypothesis is not
+    rejected.
+    
+    >>> rng = np.random.default_rng()
+    >>> x = rng.normal(0,1,100)
+    >>> y = rng.normal(0.1,1,100)
+    >>> mcvqoe.math.approx_permutation_test(x,y)
     """
 
     # Force R to be an int
