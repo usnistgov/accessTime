@@ -116,6 +116,7 @@ def approx_permutation_test(
     >>> x = np.ones(120)
     >>> y = np.zeros(30)
     >>> mcvqoe.math.approx_permutation_test(x,y)
+    True
     
     Compare two similar data sets, returns False as the null hypothesis is not
     rejected.
@@ -124,6 +125,7 @@ def approx_permutation_test(
     >>> x = rng.normal(0,1,100)
     >>> y = rng.normal(0.1,1,100)
     >>> mcvqoe.math.approx_permutation_test(x,y)
+    False
     """
 
     # Force R to be an int
