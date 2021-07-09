@@ -1,4 +1,5 @@
 import io
+import os
 import pkgutil
 import unittest
 
@@ -249,8 +250,13 @@ class ITSTest(unittest.TestCase):
                     raise e
 
     def test_low_info(self):
-        base_fs, tx_data = scipy.io.wavfile.read("./data/ITS_low_info/Tx_M3_n10_s1_c21.wav")
-        _, rx_data = scipy.io.wavfile.read("./data/ITS_low_info/Rx1_M3_n10_s1_c22.wav")
+        dir = os.path.dirname(__file__)
+        base_fs, tx_data = scipy.io.wavfile.read(
+            os.path.join(dir, "data/ITS_low_info/Tx_M3_n10_s1_c21.wav")
+        )
+        _, rx_data = scipy.io.wavfile.read(
+            os.path.join(dir, "data/ITS_low_info/Rx1_M3_n10_s1_c22.wav")
+        )
 
         self.assertEqual(
             mcvqoe.delay.ITS_delay_est(tx_data, rx_data, "f", fs=base_fs, min_corr=0.76), ((0,), (0,))
