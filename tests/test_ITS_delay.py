@@ -259,7 +259,7 @@ class ITSTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            mcvqoe.delay.ITS_delay_est(tx_data, rx_data, "f", fs=base_fs, min_corr=0.76), ((0,), (0,))
+            mcvqoe.ITS_delay_est(tx_data, rx_data, "f", fs=base_fs, min_corr=0.76), (0, 0)
         )
 
     def test_active_speech_level(self):
