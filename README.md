@@ -54,12 +54,6 @@ The code to calculate access time values and their associated uncertainties is i
 
 Detailed documentation, with examples, is built into the R package. An index containing all documentation files as well as the description file can be found via the following command in the R console, after the package has been installed: `help(package="accessTime")`
 
-The wrapper function `process_accessData(sessionFiles, cutDir)` reads in access delay data from a list of csv files given by `sessionFiles` for measurements using audio files contained in the path of `cutDir`, along with the cut points files. It reads in the data, treats it, and fits a logistic function to the treated data. It returns an accessFit object.
-
-The functions `eval_intell(accFit, t)` and `eval_access(accFit,alpha)` evaluate accessFit objects at times and fractions of asymptotic intelligibilities respectfully. They return intelligibilities as a function of time or access delays as a function of achieved fractional asymptotic intelligibility.
-
-A series of plotting functions are included to visualize the results from `eval_intell(...)` and `eval_access(...)`. These functions are: `plot_accessCurve(...)`, `plot_compareAccessCurves(...)`,`plot_techIntCurves(...)`,`plot_wordIntCurves(...)`. Each have their own documentation and examples.
-
 # Microcontroller Code
 The code, as well as additional instructions, for the radio interface microcontroller is located:  <https://doi.org/10.18434/M32086>. 
 
