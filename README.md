@@ -6,12 +6,19 @@ of channels upon user request to speak and has been identified as a key componen
 quality of experience (QoE) in communications. NIST’s PSCR division developed a method
 to measure and quantify the access time of any push to talk (PTT) communication system.
 
-# OBTAINING SOFTWARE, DATA, AND PAPER
+# OBTAINING SOFTWARE
 - Code available at:  https://github.com/usnistgov/accessTime
 - Code available at:  https://github.com/usnistgov/MCV-QoE-firmware
-- Data available at:  https://doi.org/10.18434/M32083
-- Paper available at: https://doi.org/10.6028/NIST.IR.8275
+
+# OBTAINING PAPERS
+- Start-of-word correction paper available at: https://doi.org/10.6028/NIST.TN.2166
 - Addendum Paper available at: https://doi.org/10.6028/NIST.IR.8328
+- Orignal measurement system paper available at: https://doi.org/10.6028/NIST.IR.8275
+
+# OBTAINING DATA
+- Start-of-word correction data available at: https://doi.org/10.18434/mds2-2411
+- Addendum measurement data available at: https://doi.org/10.18434/mds2-2356
+- Original measurement system data available at:  https://doi.org/10.18434/M32083
 
 # HARDWARE REQUIREMENTS
 - 1 computer able to run MATLAB and R
