@@ -26,6 +26,7 @@ def audio_float(dat):
     See Also
     --------
     scipi.io.wavefile : Functions for reading and writing .wav files.
+    mcvqoe.audio_type : General function for converting audio to any valid type
 
     Examples
     --------
@@ -34,19 +35,67 @@ def audio_float(dat):
     >>> fs, dat = scipy.io.wavfile('audio.wav')
     >>> float_dat=audio_float(dat)
     """
-    if dat.dtype is np.dtype("uint8"):
-        return (dat.astype("float") - 128) / 128
-    if dat.dtype is np.dtype("int16"):
-        return dat.astype("float") / (2 ** 15)
-    if dat.dtype is np.dtype("int32"):
-        return dat.astype("float") / (2 ** 31)
-    if dat.dtype is np.dtype("float32"):
-        return dat
-    if dat.dtype is np.dtype("float64"):
-        return dat
-    else:
-        raise RuntimeError(f"unknown audio type '{dat.dtype}'")
+    return audio_type(dat,dtype=np.dtype('float'))
 
+def audio_type(dat,dtype = np.dtype('int16')):
+    """
+    Convert audio data to different data type with standard scale.
+
+    Data read and written with scipi.io.wavefile can be in a variety of 
+    different formats. `audio_type` returns audio data in different data types
+    to ensure the proper format data is used for reading and writing.
+    
+
+    Parameters
+    ----------
+    dat : numpy array
+        Audio data to convert.
+    dtype : np.dtype, optional
+        Output data type. The default is np.dtype('int16').
+
+    Returns
+    -------
+    numpy array
+        Array with audio scaled to appropriate values for new data type.
+        
+    See Also
+    --------
+    scipy.io.wavfile : Functions for reading and writing .wav files
+    mcvqoe.audio_float : Convenience function for converting audio to float
+
+    """
+    
+    # Return audio if it's already the right type
+    if(dat.dtype == dtype):
+        return(dat)
+        
+    #---------------------[Convert to float]------------------
+    if(dat.dtype is np.dtype('float32') or dat.dtype is np.dtype('float64')):
+        dat = dat
+    elif(dat.dtype is np.dtype('uint8')):
+        dat = (dat.astype('float')-64)/64
+    elif(dat.dtype is np.dtype('int16')):
+        dat = dat.astype('float')/(2**15)
+    elif(dat.dtype is np.dtype('int32')):
+        dat = dat.astype('float')/(2**31)
+    else:
+        raise RuntimeError(f'unknown audio type \'{dat.dtype}\'')
+        
+    #-----------------[Convert to output]------------------------
+    if(dtype is np.dtype('float32') or dtype is np.dtype('float64')):
+        return(dat.astype(dtype))
+    elif(dtype is np.dtype('uint8')):
+        out_dat = 64*dat + 64
+        return out_dat.astype('uint8')
+    elif(dtype is np.dtype('int16')):
+        out_dat = 2**15 * dat
+        return out_dat.astype('int16')
+    elif(dtype is np.dtype('int32')):
+        out_dat = 2**31 * dat
+        return out_dat.astype('int32')
+    else:
+        raise RuntimeError(f'unknown audio type \'{dat.dtype}\'')
+    
 
 def svp56_fast(x, fs=8000):
     """
