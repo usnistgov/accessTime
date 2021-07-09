@@ -69,12 +69,12 @@ Example input specifications: `volume_adjust('AudioFile','Filepath\Example.wav',
 # TECHNICAL SUPPORT
 For more information or assistance on access delay measurements please contact:
 
-Tim Thompson\
+Jaden Pieper\
 Public Safety Communications Research Division\
 National Institute of Standards and Technology\
 325 Broadway\
 Boulder, CO 80305\
-(303) 497-6613; tim.thompson@nist.gov
+jaden.pieper@nist.gov
 
 # DISCLAIMER
 **Much of the included software was developed by NIST employees, for that software the following disclaimer applies:**
