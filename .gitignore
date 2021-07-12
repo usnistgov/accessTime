@@ -1,3 +1,5 @@
+#python things
+__pycache__
 
 #matlab temporary files
 *.asv
