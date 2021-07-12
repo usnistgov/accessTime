@@ -534,7 +534,7 @@ class measure:
                     
                     #-----------------------------[Stop Flag]-----------------------------
                     
-                    success = np.zeros((2, (len(ptt_st_dly[clip])*self.ptt_rep)+1))
+                    success = np.zeros((2, (len(ptt_st_dly[clip])*self.ptt_rep)))
 
                     # Stop flag is computed every delay step
                     stop_flag = np.empty(len(ptt_st_dly[clip]))
@@ -735,7 +735,7 @@ class measure:
 
                             # Compute MRT scores for clips
                             cutpoint_MRT = [cutpoints[clip][1]['Clip'], cutpoints[clip][3]['Clip']]
-                            _, success[:, clip_count] = abcmrt.process(dec_sp, cutpoint_MRT)
+                            _, success[:, clip_count-1] = abcmrt.process(dec_sp, cutpoint_MRT)
                             
                             #----------------------[Calculate A-weight of P2]---------------------
                             
@@ -844,7 +844,7 @@ class measure:
                     # P1 intelligibility for last time step
                     p1_intell = success[0, ts_ix]
                     # All observed P2 intelligibility
-                    p2_intell = success[1, :]
+                    p2_intell = success[1, :clip_count]
                      
                     # Perform approx permutation test to see if p1 intell is equivalent to p2 intell
                     # Null hypothesis is that they are the same
