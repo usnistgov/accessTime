@@ -905,8 +905,8 @@ class measure:
         # Check if given audio path exists
         if (self.audio_path != ""):
             if os.path.isdir(self.audio_path) is False:
-                raise ValueError(f"Audio path ({self.audio_path}) not found."+
-                                 " Make sure to use forward slash '/'")
+                raise ValueError(f"Audio path ({self.audio_path}) not found.")
+                
     def load_dat(self,fname):
         """Load data from CSV file and skip header
         
