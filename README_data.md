@@ -1,11 +1,11 @@
 Background
 ===============================================================================
-Access time generally describes the time associated with the establishment of a talk pathupon user request to speak and has been identified as a key component of Quality of Experience (QoE) in communications. NIST’s Public Safety Communications Research (PSCR) division developed a method to measure and quantify the access time of any Push To Talk (PTT) communication system. PSCR presents a broad definition of access time that is applicable across multiple PTT technologies. The measurement system builds off of the following definitions: 
+Access time generally describes the time associated with the establishment of a talk path upon user request to speak and has been identified as a key component of Quality of Experience (QoE) in communications. NIST’s Public Safety Communications Research (PSCR) division developed a method to measure and quantify the access time of any Push To Talk (PTT) communication system. PSCR presents a broad definition of access time that is applicable across multiple PTT technologies. The measurement system builds off of the following definitions: 
 * **End-to-end access time** is the total amount of time from when a transmitting user first presses PTT until a receiving user hears intelligible audio. It consists of two components: mouth-to-ear latency and access delay.
 * **Mouth-to-ear latency** characterizes the time between speech being input into one device and its output through another.
 * **Access delay** is minimum length of time a user must wait between pressing a PTT button and starting to speak to ensure that the start of the message is not lost.
 
-A speech intelligibility-based access delay measurement system is introduced.  This system measures the intelligibility of a target word based on when PTT was pushed within a pre-defined message.  It relies only on speech going into and coming out of a voice communications system and PTT timing, so it functions as a fair platform to compare different technologies.  Example measurements have been performed across a variety of PTT communication systems, including analog direct and conventional modes,and digital Project 25 (P25) direct and trunked (both phase 1 and phase 2) modes, and LTE communications.
+A speech intelligibility-based access delay measurement system is introduced. This system measures the intelligibility of a target word based on when PTT was pushed within a pre-defined message. It relies only on speech going into and coming out of a voice communications system and PTT timing, so it functions as a fair platform to compare different technologies.  Example measurements have been performed across a variety of PTT communication systems, including analog direct and conventional modes,and digital Project 25 (P25) direct and trunked (both phase 1 and phase 2) modes, and LTE communications.
 
 # OBTAINING SOFTWARE
 - Code available at:  https://github.com/usnistgov/accessTime
@@ -61,7 +61,7 @@ The data is stored with the following structure:
 System Requirements and Support
 ===============================================================================
 - Software to view csv files
- - Software to process/listen to audio files
+- Software to process/listen to audio files
  
 For more information or assistance on access time measurements please 
 contact:
