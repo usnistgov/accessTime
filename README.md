@@ -7,8 +7,8 @@ quality of experience (QoE) in communications. NIST’s PSCR division developed 
 to measure and quantify the access time of any push to talk (PTT) communication system.
 
 # OBTAINING SOFTWARE
-- Code available at:  https://github.com/usnistgov/accessTime
-- Code available at:  https://github.com/usnistgov/MCV-QoE-firmware
+- Access Time measurement software available at:  https://github.com/usnistgov/accessTime
+- Microcontroller firmware available at:  https://github.com/usnistgov/MCV-QoE-firmware
 
 # OBTAINING PAPERS
 - Start-of-word correction paper available at: https://doi.org/10.6028/NIST.TN.2166
