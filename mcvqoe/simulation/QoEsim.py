@@ -269,7 +269,7 @@ class QoEsim:
                 print("RadioInterface LED {%num} state is off")
 
         # set state in simulation object
-        self.LED_state[num] = bool(state)
+        self.LED_state[num-1] = bool(state)
 
     def devtype(self):
         """
