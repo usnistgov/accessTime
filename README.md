@@ -6,12 +6,19 @@ of channels upon user request to speak and has been identified as a key componen
 quality of experience (QoE) in communications. NIST’s PSCR division developed a method
 to measure and quantify the access time of any push to talk (PTT) communication system.
 
-# OBTAINING SOFTWARE, DATA, AND PAPER
+# OBTAINING SOFTWARE
 - Code available at:  https://github.com/usnistgov/accessTime
 - Code available at:  https://github.com/usnistgov/MCV-QoE-firmware
-- Data available at:  https://doi.org/10.18434/M32083
-- Paper available at: https://doi.org/10.6028/NIST.IR.8275
+
+# OBTAINING PAPERS
+- Start-of-word correction paper available at: https://doi.org/10.6028/NIST.TN.2166
 - Addendum Paper available at: https://doi.org/10.6028/NIST.IR.8328
+- Orignal measurement system paper available at: https://doi.org/10.6028/NIST.IR.8275
+
+# OBTAINING DATA
+- Start-of-word correction data available at: https://doi.org/10.18434/mds2-2411
+- Addendum measurement data available at: https://doi.org/10.18434/mds2-2356
+- Original measurement system data available at:  https://doi.org/10.18434/M32083
 
 # HARDWARE REQUIREMENTS
 - 1 computer able to run MATLAB and R
@@ -47,12 +54,6 @@ The code to calculate access time values and their associated uncertainties is i
 
 Detailed documentation, with examples, is built into the R package. An index containing all documentation files as well as the description file can be found via the following command in the R console, after the package has been installed: `help(package="accessTime")`
 
-The wrapper function `process_accessData(sessionFiles, cutDir)` reads in access delay data from a list of csv files given by `sessionFiles` for measurements using audio files contained in the path of `cutDir`, along with the cut points files. It reads in the data, treats it, and fits a logistic function to the treated data. It returns an accessFit object.
-
-The functions `eval_intell(accFit, t)` and `eval_access(accFit,alpha)` evaluate accessFit objects at times and fractions of asymptotic intelligibilities respectfully. They return intelligibilities as a function of time or access delays as a function of achieved fractional asymptotic intelligibility.
-
-A series of plotting functions are included to visualize the results from `eval_intell(...)` and `eval_access(...)`. These functions are: `plot_accessCurve(...)`, `plot_compareAccessCurves(...)`,`plot_techIntCurves(...)`,`plot_wordIntCurves(...)`. Each have their own documentation and examples.
-
 # Microcontroller Code
 The code, as well as additional instructions, for the radio interface microcontroller is located:  <https://doi.org/10.18434/M32086>. 
 
@@ -68,12 +69,12 @@ Example input specifications: `volume_adjust('AudioFile','Filepath\Example.wav',
 # TECHNICAL SUPPORT
 For more information or assistance on access delay measurements please contact:
 
-Tim Thompson\
+Jaden Pieper\
 Public Safety Communications Research Division\
 National Institute of Standards and Technology\
 325 Broadway\
 Boulder, CO 80305\
-(303) 497-6613; tim.thompson@nist.gov
+jaden.pieper@nist.gov
 
 # DISCLAIMER
 **Much of the included software was developed by NIST employees, for that software the following disclaimer applies:**
