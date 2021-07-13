@@ -38,7 +38,7 @@ def int_or_inf(input):
 
 #TODO : maybe we should put this in abcmrt?    
 #abcmrt only works with 48 kHz audio
-fs_abcmrt=48000
+fs_abcmrt = 48000
 
 def chans_to_string(chans):
     #channel string
@@ -73,31 +73,31 @@ def trial_limit_batt_check(check=False):
 
 def mk_format(header):
     
-    fmt=""
+    fmt = ""
     
     for col in header:
         #split at first space
-        col=col.split()[0]
+        col = col.split()[0]
         #remove special chars
-        col=''.join(c for c in col if c.isalnum())
+        col = ''.join(c for c in col if c.isalnum())
         #need to not use special names
         #TODO : should this be done better?
-        if(col=='try'):
-            col='rtry'
+        if col == 'try':
+            col = 'rtry'
         
-        fmt+='{'+col+'},'
+        fmt += '{' + col + '},'
     #replace trailing ',' with newline
-    fmt=fmt[:-1]+'\n'
+    fmt = fmt[:-1] + '\n'
     
     return fmt
     
 class measure:
     
-    data_header=['PTT_time','PTT_start','ptt_st_dly','P1_Int','P2_Int',
-                 'm2e_latency','channels','TimeStart','TimeEnd','TimeGap']
+    data_header = ['PTT_time', 'PTT_start', 'ptt_st_dly', 'P1_Int', 'P2_Int',
+                   'm2e_latency', 'channels', 'TimeStart', 'TimeEnd', 'TimeGap']
     
-    bad_header=['FileName','trial_count','clip_count','try#','p2A-weight',
-                'm2e_latency','channels','TimeStart','TimeEnd','TimeGap']
+    bad_header = ['FileName', 'trial_count', 'clip_count', 'try#', 'p2A-weight',
+                  'm2e_latency', 'channels', 'TimeStart', 'TimeEnd', 'TimeGap']
     
     def __init__(self):
         
@@ -120,7 +120,7 @@ class measure:
         self.ptt_step = float(20e-3)
         self.rec_file = None
         self.ri = None
-        self.user_check= trial_limit_batt_check
+        self.user_check = trial_limit_batt_check
         self.s_thresh = -50
         self.s_tries = 3
         self.stop_rep = 10
@@ -211,7 +211,8 @@ class measure:
         #-----------------------[Check audio sample rate]-----------------------
         
         if(self.audio_interface.sample_rate != fs_abcmrt):
-            raise ValueError(f'audio_interface sample rate is {self.audio_interface.sample_rate} Hz but only {fs_abcmrt} Hz is supported')
+            raise ValueError(f'audio_interface sample rate is {self.audio_interface.sample_rate} Hz' 
+                            f'but only {fs_abcmrt} Hz is supported')
         
         #------------------[Check for correct audio channels]------------------
         
@@ -227,8 +228,8 @@ class measure:
                    
         #---------------------[Generate csv format strings]---------------------
         
-        dat_format=mk_format(self.data_header)
-        bad_format=mk_format(self.bad_header)
+        dat_format = mk_format(self.data_header)
+        bad_format = mk_format(self.bad_header)
         
         #------------------[Load In Old Data File If Given]-------------------
         
@@ -291,7 +292,7 @@ class measure:
                         k_start = k_start + 1
                     
                     # Assign kk_start point for inner loop    
-                    if (clen==0):
+                    if clen == 0:
                         kk_start = 0
                     else:
                         kk_start = ((clen-1) % self.ptt_rep) + 1
@@ -342,7 +343,7 @@ class measure:
                 audiofiles.append(audio)
             
             # If noise file was given, resample to match audio files
-            if (self.bgnoise_file):
+            if self.bgnoise_file:
                 nfs, nf = scipy.io.wavfile.read(self.bgnoise_file)
                 rs = Fraction(fs_abcmrt/nfs)
                 nf = mcvqoe.audio_float(nf)
@@ -350,14 +351,16 @@ class measure:
 
         
         #-------------------------[Get Test Start Time]-------------------------
-        self.info['Tstart']=datetime.datetime.now()
-        dtn=self.info['Tstart'].strftime('%d-%b-%Y_%H-%M-%S')
+
+        self.info['Tstart'] = datetime.datetime.now()
+        dtn = self.info['Tstart'].strftime('%d-%b-%Y_%H-%M-%S')
         
         #--------------------------[Fill log entries]--------------------------
+
         #set test name
-        self.info['test']='Access'
+        self.info['test'] = 'Access'
         #add abcmrt version
-        self.info['abcmrt version']=abcmrt.version
+        self.info['abcmrt version'] = abcmrt.version
         #fill in standard stuff
         self.info.update(mcvqoe.write_log.fill_log(self))
 
@@ -443,7 +446,7 @@ class measure:
         
             ptt_st_dly = []
     
-            if (len(self.ptt_delay) == 1):
+            if len(self.ptt_delay) == 1:
                 for num in range(len(cutpoints)):
                     # Word start time from end of first silence
                     w_st = (cutpoints[num][0]['End']/self.audio_interface.sample_rate)
@@ -619,14 +622,14 @@ class measure:
                             self.ri.ptt(False, num=1)
                             
                             # Check wait state to see if PTT was triggered properly
-                            if (state == 'Idle'):
+                            if state == 'Idle':
                                 # Everything is good, do nothing
                                 pass
-                            elif (state == 'Signal Wait'):
+                            elif state == 'Signal Wait':
                                 # Still waiting for start signal, give error
                                 raise RuntimeError(f"Radio interface did not receive the start signal."+
                                                    " Check connections and output levels.")
-                            elif (state == 'Delay'):
+                            elif state == 'Delay':
                                 # Still waiting for delay time to expire, give warning
                                 warn(f"PTT Delay longer than clip")
                             else:
@@ -646,9 +649,9 @@ class measure:
                             #-------------------------[Data Processing]---------------------------
                             
                             #get index of rx_voice channel
-                            voice_idx=rec_names.index('rx_voice')
+                            voice_idx = rec_names.index('rx_voice')
                             #get index of PTT_signal
-                            psig_idx=rec_names.index('PTT_signal')
+                            psig_idx = rec_names.index('PTT_signal')
                             
                             # Get latest run Rx audio
                             dat_fs, dat = scipy.io.wavfile.read(audioname)
@@ -658,14 +661,14 @@ class measure:
                             ptt_sig = scipy.signal.filtfilt(
                                                 ptt_filt,
                                                 1,
-                                                np.absolute(dat[:,psig_idx])
+                                                np.absolute(dat[:, psig_idx])
                                             )
 
                             # Get max value
                             ptt_max = np.amax(ptt_sig)
                             
                             # Check levels
-                            if(ptt_max < 0.25):
+                            if ptt_max < 0.25:
                                 warn('Low PTT signal values. Check levels')
                                 
                             # Normalize levels
@@ -693,14 +696,14 @@ class measure:
                             # Calculate delay. Only use data after dly_st_idx
                             (_,dly_its) = mcvqoe.ITS_delay_est(
                                 audiofiles[clip][dly_st_idx:], 
-                                dat[dly_st_idx:,voice_idx],
+                                dat[dly_st_idx:, voice_idx],
                                 mode='f',
                                 dlyBounds=[0, np.inf],
                                 fs=self.audio_interface.sample_rate
                             )
                             
                             #convert to seconds
-                            dly_its=dly_its/self.audio_interface.sample_rate
+                            dly_its = dly_its/self.audio_interface.sample_rate
                             
                             # Interpolate for new time
                             # TODO: do this with an offset once we've confirmed we're equivalent to matlab
@@ -810,7 +813,7 @@ class measure:
                         
                         #------------------------[Check Trial Limit]--------------------------
                         
-                        if ((trial_count % self.trials) == 0):
+                        if (trial_count % self.trials) == 0:
                             
                             # Calculate set time
                             time_diff = datetime.datetime.now().replace(microsecond=0)
@@ -862,8 +865,8 @@ class measure:
                      
                     # Check if we should look for stopping condition
                     # Only stop if ptt delay is before the first word
-                    if (self.auto_stop and (cutpoints[clip][1]['End']/self.audio_interface.sample_rate)>ptt_st_dly[clip][k]):
-                        if (self.stop_rep<=k and all(stop_flag[(k-self.stop_rep):k])):
+                    if ((self.auto_stop) and (cutpoints[clip][1]['End']/self.audio_interface.sample_rate) > ptt_st_dly[clip][k]):
+                        if ((self.stop_rep <= k) and all(stop_flag[(k-self.stop_rep):k])):
                             # If stopping condition met, break from loop
                             break
                 #-----------------------[End Delay Step Loop]-------------------------
@@ -879,13 +882,14 @@ class measure:
                 print(f"\nRenaming '{temp_data_filenames[k]}' to '{self.data_filenames[k]}'")
                 os.rename(temp_data_filenames[k], self.data_filenames[k])
         finally:
-            if(self.get_post_notes):
+            if self.get_post_notes:
                 #get notes
-                info=self.get_post_notes()
+                info = self.get_post_notes()
             else:
-                info={}
+                info = {}
+
             #finish log entry
-            mcvqoe.post(outdir=self.outdir,info=info)
+            mcvqoe.post(outdir=self.outdir, info=info)
 
             
     def param_check(self):
@@ -1064,9 +1068,10 @@ def main():
         test_obj.param_check()
         
     #---------------------[Set audio interface properties]---------------------
-    test_obj.audio_interface.blocksize=args.blocksize
-    test_obj.audio_interface.buffersize=args.buffersize
-    test_obj.audio_interface.overplay=args.overplay
+
+    test_obj.audio_interface.blocksize = args.blocksize
+    test_obj.audio_interface.buffersize = args.buffersize
+    test_obj.audio_interface.overplay = args.overplay
     
     #-----------------------[Open RadioInterface]-------------------------
     
@@ -1074,7 +1079,7 @@ def main():
         
         #------------------------------[Get test info]------------------------------
 
-        gui=mcvqoe.gui.TestInfoGui()
+        gui = mcvqoe.gui.TestInfoGui()
         
         gui.chk_audio_function=lambda : mcvqoe.hardware.single_play(
                                                     test_obj.ri,test_obj.audio_interface,
@@ -1082,17 +1087,17 @@ def main():
         
         #if recovering, re-use notes and things
         if(recover):
-            gui.info_in['test_type'] =test_obj.info['test_type']
+            gui.info_in['test_type'] = test_obj.info['test_type']
             gui.info_in['tx_dev'] = test_obj.info['tx_dev']
             gui.info_in['rx_dev'] = test_obj.info['rx_dev']
             gui.info_in['system'] = test_obj.info['system']
             gui.info_in['test_loc'] = test_obj.info['test_loc']
-            gui.info_in['Pre Test Notes']=test_obj.info['Pre Test Notes'] + \
+            gui.info_in['Pre Test Notes'] = test_obj.info['Pre Test Notes'] + \
                                           'Test restarted due to error\n'+ \
                                           f'Data loaded from : {args.data_file}\n'
                                           #TODO : add restarted trial number?
         
-        test_obj.info=gui.show()
+        test_obj.info = gui.show()
 
         #check if the user canceled
         if(test_obj.info is None):
