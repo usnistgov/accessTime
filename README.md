@@ -38,8 +38,9 @@ to measure and quantify the access time of any push to talk (PTT) communication 
     - RStudio (recommended)
 	- ggplot2, minpack.lm packages (will install on accessTime package install)
     - devtool package (must be installed via `install.packages("devtools")` )
+	- Rtools, required to build package. Download here: https://cran.r-project.org/bin/windows/Rtools/
 
-**Additional requirement information can be found in the paper.**	
+**Additional requirement information can be found in the papers.**	
 
 # RUNNING MEASUREMENT SOFTWARE
 To run the access delay test, run the test.m script. Speech will be played and recorded using the connected audio device. The raw and processed audio data is stored in a subfolder named data/. Test.m takes in a variety of optional input parameters, descriptions of these are available by typing `help test` in MATLAB when in the Access Time directory. 
