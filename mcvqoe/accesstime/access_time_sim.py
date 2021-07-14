@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import access_time
 import argparse
 import mcvqoe.gui
 import mcvqoe.hardware
@@ -8,6 +7,8 @@ import os.path
 import sys
 
 import numpy as np
+
+from .access_time import measure as access_time_meas
         
 def int_or_inf(input):
     """Check for 'infinite' entry, and change 'trials' to np.inf if found"""
@@ -33,7 +34,7 @@ def main():
                     )
 
     # Create Access object
-    test_obj = access_time.measure()
+    test_obj = access_time_meas()
     #set wait times to zero for simulation
     test_obj.ptt_gap=0
     #default trials to inf because we don't need to stop

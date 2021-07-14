@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import access_time
 import argparse
 import datetime
 import mcvqoe
@@ -10,6 +9,8 @@ from fractions import Fraction
 from mcvqoe.hardware import AudioPlayer
 from mcvqoe.hardware import RadioInterface
 from warnings import warn
+
+from .access_time import measure as access_time_meas
 
         
 def int_or_inf(input):
@@ -30,7 +31,7 @@ import mcvqoe.gui.test_info_gui as test_info_gui
 def main():
     
     # Create Access object
-    test_obj = access_time.measure()
+    test_obj = access_time_meas()
     # Set post test notes function
     test_obj.get_post_notes = test_info_gui.post_test
     

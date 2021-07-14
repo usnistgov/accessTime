@@ -18,10 +18,6 @@ from warnings import warn
 
 import numpy as np
 
-#TODO : maybe we should put this in abcmrt?    
-#abcmrt only works with 48 kHz audio
-fs_abcmrt=48000
-
 def chans_to_string(chans):
     #channel string
     return '('+(';'.join(chans))+')'
@@ -221,8 +217,8 @@ class measure:
         
         #-----------------------[Check audio sample rate]-----------------------
         
-        if(self.audio_interface.sample_rate != fs_abcmrt):
-            raise ValueError(f'audio_interface sample rate is {self.audio_interface.sample_rate} Hz but only {fs_abcmrt} Hz is supported')
+        if(self.audio_interface.sample_rate != abcmrt.fs):
+            raise ValueError(f'audio_interface sample rate is {self.audio_interface.sample_rate} Hz but only {abcmrt.fs} Hz is supported')
         
         #------------------[Check for correct audio channels]------------------
         
@@ -347,15 +343,15 @@ class measure:
             # Check proper sample rate and place audio files into array
             for aud in audiofiles_names:
                 fs_file, audio_dat = scipy.io.wavfile.read(aud)
-                if fs_file != fs_abcmrt:
-                    raise ValueError(f"\nImproper sample rate. {aud} is at {fs_file} Hz and {fs_abcmrt} Hz is expected")
+                if fs_file != abcmrt.fs:
+                    raise ValueError(f"\nImproper sample rate. {aud} is at {fs_file} Hz and {abcmrt.fs} Hz is expected")
                 audio = mcvqoe.audio_float(audio_dat)
                 audiofiles.append(audio)
             
             # If noise file was given, resample to match audio files
             if (self.bgnoise_file):
                 nfs, nf = scipy.io.wavfile.read(self.bgnoise_file)
-                rs = Fraction(fs_abcmrt/nfs)
+                rs = Fraction(abcmrt.fs/nfs)
                 nf = mcvqoe.audio_float(nf)
                 nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)    
 

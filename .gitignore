@@ -1,17 +1,8 @@
 #python things
 __pycache__
 
-#matlab temporary files
-*.asv
-
-#matlab data files
-*.mat
-
 #data directory
 data/
-
-#plots directory
-plots/
 
 #test type file
 test-type.txt
@@ -22,15 +13,6 @@ tests.log
 #computer name file
 ComputerName.txt
 
-#MRT templates
-!ABC_MRT_FB_templates.mat
-
-#ignore pesq executable because it's not ours
-pesq.exe
-
-#ignore pesq results file
-pesq_results.txt
-
 #ignore log files
 *.log
 
@@ -39,11 +21,6 @@ pesq_results.txt
 
 # Output data files
 *.csv
-
-# Matlab figs
-*.fig
-*.png
-*.db
 
 # R files
 *.Rhistory
@@ -72,3 +49,13 @@ pesq_results.txt
 
 # Un-ignore R data directory for package
 !/accessTime/data/
+
+# ignore python packing stuff
+.eggs/
+build/
+dist/
+mcvqoe_accesstime.egg-info/
+
+#ignore version file
+mcvqoe/accesstime/version.py
+
