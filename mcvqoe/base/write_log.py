@@ -91,7 +91,7 @@ def fill_log(test_obj, git_path=None):
 
     # ---------------------------[Add MCV QoE version]---------------------------
 
-    info["mcvqoe version"] = mcvqoe.version
+    info["mcvqoe version"] = mcvqoe.base.version
 
     # ----------------------[Add Measurement class version]----------------------
 

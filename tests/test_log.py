@@ -26,12 +26,12 @@ class LogTest(unittest.TestCase):
         # make a fake test class
         dummy = FakeTest()
 
-        info = mcvqoe.write_log.fill_log(dummy)
+        info = mcvqoe.base.write_log.fill_log(dummy)
 
-        self.assertEqual(info["RI version"], mcvqoe.version)
+        self.assertEqual(info["RI version"], mcvqoe.base.version)
         self.assertEqual(info["RI id"], "QoEsim.py")
         self.assertEqual(info["filename"], os.path.basename(__file__))
-        self.assertEqual(info["mcvqoe version"], mcvqoe.version)
+        self.assertEqual(info["mcvqoe version"], mcvqoe.base.version)
         self.assertEqual(
             info["Arguments"], f"ri = {str(dummy.ri)},audioInterface = {str(dummy.audioInterface)}"
         )
@@ -44,14 +44,14 @@ class LogTest(unittest.TestCase):
         # make a temp dir to store logs in
         with tempfile.TemporaryDirectory() as tmp_dir:
 
-            mcvqoe.write_log.pre(info, outdir=tmp_dir)
+            mcvqoe.base.write_log.pre(info, outdir=tmp_dir)
             self.assertTrue(os.path.exists(os.path.join(tmp_dir, "tests.log")))
             pre_size = os.stat((os.path.join(tmp_dir, "tests.log"))).st_size
 
             # add post notes
             info["Error Notes"] = "Things went horribly wrong\n"
 
-            mcvqoe.write_log.post(info, outdir=tmp_dir)
+            mcvqoe.base.write_log.post(info, outdir=tmp_dir)
             self.assertGreater(os.stat(os.path.join(tmp_dir, "tests.log")).st_size, pre_size)
 
             ls = mcvqoe.utilities.log_search(
@@ -75,12 +75,12 @@ class LogTest(unittest.TestCase):
         # make a fake test class
         dummy = FakeTest()
 
-        info = mcvqoe.write_log.fill_log(dummy)
+        info = mcvqoe.base.write_log.fill_log(dummy)
 
-        self.assertEqual(info["RI version"], mcvqoe.version)
+        self.assertEqual(info["RI version"], mcvqoe.base.version)
         self.assertEqual(info["RI id"], "QoEsim.py")
         self.assertEqual(info["filename"], os.path.basename(__file__))
-        self.assertEqual(info["mcvqoe version"], mcvqoe.version)
+        self.assertEqual(info["mcvqoe version"], mcvqoe.base.version)
         self.assertEqual(
             info["Arguments"], f"ri = {str(dummy.ri)},audioInterface = {str(dummy.audioInterface)}"
         )
@@ -93,12 +93,12 @@ class LogTest(unittest.TestCase):
         # make a temp dir to store logs in
         with tempfile.TemporaryDirectory() as tmp_dir:
 
-            mcvqoe.write_log.pre(info, outdir=tmp_dir)
+            mcvqoe.base.write_log.pre(info, outdir=tmp_dir)
             self.assertTrue(os.path.exists(os.path.join(tmp_dir, "tests.log")))
             pre_size = os.stat((os.path.join(tmp_dir, "tests.log"))).st_size
 
             info["Post Test Notes"] = "Everything is as it should be\n"
-            mcvqoe.write_log.post(info, outdir=tmp_dir)
+            mcvqoe.base.write_log.post(info, outdir=tmp_dir)
             self.assertGreater(os.stat(os.path.join(tmp_dir, "tests.log")).st_size, pre_size)
 
             ls = mcvqoe.utilities.log_search(

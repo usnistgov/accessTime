@@ -4,9 +4,9 @@ import unittest
 
 import mcvqoe
 import numpy as np
-import scipy
+import scipy.io.wavfile
 import xmlrunner
-from mcvqoe.ITS_delay_est import active_speech_level
+from mcvqoe.delay.ITS_delay_est import active_speech_level
 
 try:
     # try to import importlib.metadata
@@ -38,7 +38,7 @@ class ITSTest(unittest.TestCase):
                 self.assert_tol(dly, delay_expected[0], tol=tol[1], msg=msg)
 
     def test_basic_no_delay(self):
-        base_file = pkgutil.get_data("mcvqoe", "audio_clips/test.wav")
+        base_file = pkgutil.get_data("mcvqoe.audio_clips", "test.wav")
         base_file = io.BytesIO(base_file)
         base_fs, base_data = scipy.io.wavfile.read(base_file)
 
@@ -50,13 +50,13 @@ class ITSTest(unittest.TestCase):
             expected_length = expected_length - (expected_length % 2) - 2
             expected_delay = int(chan.standard_delay * base_fs)
 
-            delay_calc = mcvqoe.ITS_delay_est(base_data, chan_out, "f", fs=base_fs)
+            delay_calc = mcvqoe.delay.ITS_delay_est(base_data, chan_out, "f", fs=base_fs)
 
             self.assert_tol(delay_calc[0], expected_length, msg=chan.__name__)
             self.assert_tol(delay_calc[1], expected_delay, tol=14, msg=chan.__name__)
 
     def test_basic_fixed_delay(self):
-        base_file = pkgutil.get_data("mcvqoe", "audio_clips/test.wav")
+        base_file = pkgutil.get_data("mcvqoe.audio_clips", "test.wav")
         base_file = io.BytesIO(base_file)
         base_fs, base_data = scipy.io.wavfile.read(base_file)
 
@@ -72,7 +72,7 @@ class ITSTest(unittest.TestCase):
 
                 expected_delay = int(chan.standard_delay * base_fs) + dly
 
-                delay_calc = mcvqoe.ITS_delay_est(base_data, chan_out, "f", fs=base_fs)
+                delay_calc = mcvqoe.delay.ITS_delay_est(base_data, chan_out, "f", fs=base_fs)
 
                 self.assert_tol(
                     delay_calc[0],
@@ -94,7 +94,7 @@ class ITSTest(unittest.TestCase):
                 expected_length = expected_length - (expected_length % 2) - 2
                 expected_delay = int(chan.standard_delay * base_fs) - dly
 
-                delay_calc = mcvqoe.ITS_delay_est(base_data, chan_out, "f", fs=base_fs)
+                delay_calc = mcvqoe.delay.ITS_delay_est(base_data, chan_out, "f", fs=base_fs)
                 self.assert_tol(
                     delay_calc[0],
                     expected_length,
@@ -108,7 +108,7 @@ class ITSTest(unittest.TestCase):
                 )
 
     def test_basic_variable_delay(self):
-        base_file = pkgutil.get_data("mcvqoe", "audio_clips/test.wav")
+        base_file = pkgutil.get_data("mcvqoe.audio_clips", "test.wav")
         base_file = io.BytesIO(base_file)
         base_fs, base_data = scipy.io.wavfile.read(base_file)
 
@@ -124,7 +124,7 @@ class ITSTest(unittest.TestCase):
                     )
                 )
                 chan_out = audio_channel_with_overplay(base_fs, audio_var_delay, chan)
-                delay_calc = mcvqoe.ITS_delay_est(base_data, chan_out, "v", fs=base_fs)
+                delay_calc = mcvqoe.delay.ITS_delay_est(base_data, chan_out, "v", fs=base_fs)
 
                 try:
                     self.verify_variable_delay(
@@ -144,7 +144,7 @@ class ITSTest(unittest.TestCase):
                     (base_data[: dly[0]], base_data[dly[0] + dly[1] :])
                 )
                 chan_out = audio_channel_with_overplay(base_fs, audio_var_delay, chan)
-                delay_calc = mcvqoe.ITS_delay_est(base_data, chan_out, "v", fs=base_fs)
+                delay_calc = mcvqoe.delay.ITS_delay_est(base_data, chan_out, "v", fs=base_fs)
 
                 try:
                     self.verify_variable_delay(
@@ -161,7 +161,7 @@ class ITSTest(unittest.TestCase):
                     raise e
 
     def test_basic_unknown_delay(self):
-        base_file = pkgutil.get_data("mcvqoe", "audio_clips/test.wav")
+        base_file = pkgutil.get_data("mcvqoe.audio_clips", "test.wav")
         base_file = io.BytesIO(base_file)
         base_fs, base_data = scipy.io.wavfile.read(base_file)
 
@@ -177,7 +177,7 @@ class ITSTest(unittest.TestCase):
 
                 expected_delay = int(chan.standard_delay * base_fs) + dly
 
-                delay_calc = mcvqoe.ITS_delay_est(base_data, chan_out, "u", fs=base_fs)
+                delay_calc = mcvqoe.delay.ITS_delay_est(base_data, chan_out, "u", fs=base_fs)
 
                 self.verify_variable_delay(
                     delay_calc,
@@ -194,7 +194,7 @@ class ITSTest(unittest.TestCase):
                 expected_length = expected_length - (expected_length % 2) - 2
                 expected_delay = int(chan.standard_delay * base_fs) - dly
 
-                delay_calc = mcvqoe.ITS_delay_est(base_data, chan_out, "u", fs=base_fs)
+                delay_calc = mcvqoe.delay.ITS_delay_est(base_data, chan_out, "u", fs=base_fs)
 
                 self.verify_variable_delay(
                     delay_calc,
@@ -212,7 +212,7 @@ class ITSTest(unittest.TestCase):
                     )
                 )
                 chan_out = audio_channel_with_overplay(base_fs, audio_var_delay, chan)
-                delay_calc = mcvqoe.ITS_delay_est(base_data, chan_out, "u", fs=base_fs)
+                delay_calc = mcvqoe.delay.ITS_delay_est(base_data, chan_out, "u", fs=base_fs)
 
                 try:
                     self.verify_variable_delay(
@@ -232,7 +232,7 @@ class ITSTest(unittest.TestCase):
                     (base_data[: dly[0]], base_data[dly[0] + dly[1] :])
                 )
                 chan_out = audio_channel_with_overplay(base_fs, audio_var_delay, chan)
-                delay_calc = mcvqoe.ITS_delay_est(base_data, chan_out, "u", fs=base_fs)
+                delay_calc = mcvqoe.delay.ITS_delay_est(base_data, chan_out, "u", fs=base_fs)
 
                 try:
                     self.verify_variable_delay(
@@ -253,11 +253,11 @@ class ITSTest(unittest.TestCase):
         _, rx_data = scipy.io.wavfile.read("./data/ITS_low_info/Rx1_M3_n10_s1_c22.wav")
 
         self.assertEqual(
-            mcvqoe.ITS_delay_est(tx_data, rx_data, "f", fs=base_fs, min_corr=0.76), ((0,), (0,))
+            mcvqoe.delay.ITS_delay_est(tx_data, rx_data, "f", fs=base_fs, min_corr=0.76), ((0,), (0,))
         )
 
     def test_active_speech_level(self):
-        base_file = pkgutil.get_data("mcvqoe", "audio_clips/test.wav")
+        base_file = pkgutil.get_data("mcvqoe.audio_clips", "test.wav")
         base_file = io.BytesIO(base_file)
         base_fs, base_data = scipy.io.wavfile.read(base_file)
 

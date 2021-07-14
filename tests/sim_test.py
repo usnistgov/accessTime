@@ -26,13 +26,13 @@ class AudioTest(unittest.TestCase):
 
         fs_dev = int(48e3)
 
-        audio_file = io.BytesIO(pkgutil.get_data("mcvqoe", "audio_clips/test.wav"))
+        audio_file = io.BytesIO(pkgutil.get_data("mcvqoe.audio_clips", "test.wav"))
         fs_file, audio_dat = scipy.io.wavfile.read(audio_file)
 
         # Calculate resample factors
         rs_factor = Fraction(fs_dev / fs_file)
         # Convert to float sound array
-        audio_dat = mcvqoe.audio_float(audio_dat)
+        audio_dat = mcvqoe.base.audio_float(audio_dat)
         # Resample audio
         audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
 
@@ -58,13 +58,13 @@ class AudioTest(unittest.TestCase):
 
         min_corr = 0.76
 
-        audio_file = io.BytesIO(pkgutil.get_data("mcvqoe", "audio_clips/test.wav"))
+        audio_file = io.BytesIO(pkgutil.get_data("mcvqoe.audio_clips", "test.wav"))
         fs_file, audio_dat = scipy.io.wavfile.read(audio_file)
 
         # Calculate resample factors
         rs_factor = Fraction(fs_dev / fs_file)
         # Convert to float sound array
-        audio_dat = mcvqoe.audio_float(audio_dat)
+        audio_dat = mcvqoe.base.audio_float(audio_dat)
         # Resample audio
         audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
 
@@ -90,7 +90,7 @@ class AudioTest(unittest.TestCase):
 
                     fs_file, rec_dat = scipy.io.wavfile.read(test_name)
 
-                    pos, dly = mcvqoe.ITS_delay_est(
+                    pos, dly = mcvqoe.delay.ITS_delay_est(
                         audio, rec_dat, "f", fs=fs_file, min_corr=min_corr
                     )
 
@@ -106,13 +106,13 @@ class AudioTest(unittest.TestCase):
 
         fs_dev = int(48e3)
 
-        audio_file = io.BytesIO(pkgutil.get_data("mcvqoe", "audio_clips/test.wav"))
+        audio_file = io.BytesIO(pkgutil.get_data("mcvqoe.audio_clips", "test.wav"))
         fs_file, audio_dat = scipy.io.wavfile.read(audio_file)
 
         # Calculate resample factors
         rs_factor = Fraction(fs_dev / fs_file)
         # Convert to float sound array
-        audio_dat = mcvqoe.audio_float(audio_dat)
+        audio_dat = mcvqoe.base.audio_float(audio_dat)
         # Resample audio
         audio = scipy.signal.resample_poly(audio_dat, rs_factor.numerator, rs_factor.denominator)
 
