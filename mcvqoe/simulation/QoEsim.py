@@ -5,12 +5,12 @@ import sys
 import tempfile
 import warnings
 
-import mcvqoe
+import mcvqoe.base
 import numpy as np
 import scipy.io.wavfile
 import scipy.signal
-from mcvqoe import audio_float
-from mcvqoe.ITS_delay_est import active_speech_level
+from mcvqoe.base import audio_float
+from mcvqoe.delay.ITS_delay_est import active_speech_level
 
 try:
     # try to import importlib.metadata
@@ -348,7 +348,7 @@ class QoEsim:
         >>> print(sim_obj.get_version())
         """
 
-        return mcvqoe.version
+        return mcvqoe.base.version
 
     def pttState(self):
         """
@@ -670,7 +670,7 @@ class QoEsim:
             )
 
         # convert audio values to floats to work on them
-        float_audio = mcvqoe.audio_float(audio)
+        float_audio = mcvqoe.base.audio_float(audio)
 
         # append overplay to audio
         overplay_audio = np.zeros(int(overplay_samples), dtype=np.float32)

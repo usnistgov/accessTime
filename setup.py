@@ -17,7 +17,7 @@ setuptools.setup(
         "mcvqoe": ["audio_clips", "test.wav"],
         "mcvqoe": ["gui", "MCV-sm.png"],
     },
-    use_scm_version={"write_to": "mcvqoe/version.py"},
+    use_scm_version={"write_to": "mcvqoe/base/version.py"},
     setup_requires=["setuptools_scm"],
     classifiers=[
         "Programming Language :: Python :: 3",

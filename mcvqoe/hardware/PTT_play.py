@@ -2,7 +2,7 @@ import scipy.io.wavfile
 import scipy.signal
 import sounddevice as sd
 from fractions import Fraction
-from mcvqoe import audio_float
+from mcvqoe.base import audio_float
 import tempfile
 import pkgutil
 import io
