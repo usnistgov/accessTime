@@ -103,7 +103,7 @@ def fill_log(test_obj, git_path=None):
 
     if module:
         # import base level module
-        mod = importlib.import_module(module.split(".")[0])
+        mod = importlib.import_module(module)
         try:
             info["version"] = mod.version
         except AttributeError as e:
