@@ -21,7 +21,7 @@ build:
         - install.log
         - pip.log
         - dist/*.whl
-        - mcvqoe/version.py
+        - mcvqoe/base/version.py
 
 test-math:
   stage: test
@@ -47,7 +47,12 @@ test-sim:
 test-testCpy:
   stage: test
   script:
+    - python -m pip log > packages.txt
     - python tests/test_testCpy.py
+  artifacts:
+    when: always
+    paths:
+      - packages.txt
 
 test-ITS-delay:
   stage: test
