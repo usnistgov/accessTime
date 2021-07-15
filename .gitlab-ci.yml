@@ -1,27 +1,12 @@
 image: python:3.8
 
 stages:
-  - build
   - test
   - deploy
 
-build:
-  stage: build
-  needs: []
-  script:
-    - python --version > py-ver.log
-    - python -m pip install wheel
-    - python setup.py sdist bdist_wheel > package.log
-    - python -m pip install --log pip.log --find-links ./dist/ mcvqoe-nist sphinx numpydoc unittest-xml-reporting > install.log
-  artifacts:
-      when: always
-      paths:
-        - package.log
-        - py-ver.log
-        - install.log
-        - pip.log
-        - dist/*.whl
-        - mcvqoe/version.py
+before_script:
+  stage: test
+  - pip install .
 
 test-math:
   stage: test
