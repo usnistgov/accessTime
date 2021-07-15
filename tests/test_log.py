@@ -6,7 +6,7 @@ import os.path
 import tempfile
 import unittest
 
-import mcvqoe
+import mcvqoe.base
 import mcvqoe.simulation
 import mcvqoe.utilities
 

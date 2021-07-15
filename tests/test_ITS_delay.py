@@ -2,7 +2,7 @@ import io
 import pkgutil
 import unittest
 
-import mcvqoe
+import mcvqoe.base
 import numpy as np
 import scipy.io.wavfile
 import xmlrunner

@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from fractions import Fraction
 
-import mcvqoe
+import mcvqoe.base
 import mcvqoe.simulation
 import numpy as np
 import scipy.io.wavfile
