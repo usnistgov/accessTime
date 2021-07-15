@@ -187,7 +187,12 @@ def main():
     if(test_obj.info is None):
         print(f"\n\tExited by user")
         sys.exit(1)
-
+    
+    #-----------------------[Add simulation info to log]-----------------------
+    
+    test_obj.info['sim m2e']=sim_obj.m2e_latency
+    test_obj.info['sim acc']=sim_obj.access_delay
+    
     #--------------------------------[Run Test]--------------------------------
     test_obj.run(recovery=False)
     
