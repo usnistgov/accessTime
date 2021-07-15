@@ -12,6 +12,7 @@ import scipy.signal
 import time
 import timeit
 
+from .version import version
 from fractions import Fraction
 from mcvqoe.math import approx_permutation_test
 from warnings import warn
