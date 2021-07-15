@@ -11,7 +11,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://gitlab.nist.gov/gitlab/PSCR/MCV/mcv-qoe-library",
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_namespace_packages(include=['mcvqoe.*']),
     include_package_data=True,
     package_data={
         "mcvqoe": ["audio_clips", "test.wav"],
