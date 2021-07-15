@@ -130,7 +130,7 @@ def main():
     parser.add_argument('--channel-m2e', type=float, default=sim_obj.m2e_latency, metavar='L',dest='m2e_latency',
                         help='Channel mouth to ear latency, in seconds, to simulate. (default: %(default)s)')
     parser.add_argument('--channel-access', type=float, metavar='D', 
-                        default=sim_obj.access_delay,dest='m2e_latency',
+                        default=sim_obj.access_delay,dest='access_delay',
                         help='Channel access time, in seconds, to simulate. '+
                         '(default: %(default)s)')
     
@@ -161,6 +161,7 @@ def main():
         sim_obj.channel_rate=args.channel_rate
         
     sim_obj.m2e_latency=args.m2e_latency
+    sim_obj.access_delay=args.access_delay
     
     #------------------------------[Get test info]------------------------------
     
