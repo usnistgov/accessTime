@@ -47,7 +47,7 @@ test-sim:
 test-testCpy:
   stage: test
   script:
-    - python -m pip log > packages.txt
+    - python -m pip list > packages.txt
     - python tests/test_testCpy.py
   artifacts:
     when: always
