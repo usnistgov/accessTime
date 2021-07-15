@@ -6,6 +6,7 @@ stages:
 
 before_script:
   - pip install .
+  - pip install xmlrunner
 
 test-math:
   stage: test
