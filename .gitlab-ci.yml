@@ -20,7 +20,7 @@ before_script:
 build:
   stage: build
   before_script:
-    -
+    - python -V
   script:
     - pip install virtualenv
     - virtualenv venv
