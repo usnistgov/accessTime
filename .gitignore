@@ -5,7 +5,7 @@ build/
 dist/
 
 #ignore version file
-mcvqoe/version.py
+mcvqoe/base/version.py
 
 #ignore eggs
 .eggs/
