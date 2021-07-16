@@ -14,6 +14,7 @@ import mcvqoe.simulation
 import numpy as np
 import scipy.io.wavfile
 import scipy.signal
+import xmlrunner
 
 
 class AudioTest(unittest.TestCase):
@@ -224,4 +225,10 @@ class ProbabilityiserTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    with open("sim-tests.xml", "wb") as outf:
+        unittest.main(
+            testRunner=xmlrunner.XMLTestRunner(output=outf),
+            failfast=False,
+            buffer=False,
+            catchbreak=False,
+        )

@@ -32,7 +32,7 @@ test-math:
   stage: test
   script:
     - python tests/test_math.py
-  artifacts :
+  artifacts:
     when: always
     paths:
       - math-tests.xml
@@ -48,6 +48,12 @@ test-sim:
   stage: test
   script:
     - python tests/sim_test.py
+  artifacts:
+    when: always
+    paths:
+      - sim-tests.xml
+    reports:
+      junit: sim-tests.xml
 
 test-testCpy:
   stage: test
