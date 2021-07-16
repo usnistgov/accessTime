@@ -79,7 +79,7 @@ class TestInfoGui(tk.Tk):
         self.write_test_info = write_test_info
 
         # Show MCV logo
-        img_file = pkg_resources.resource_filename("mcvqoe", "gui/MCV-sm.png")
+        img_file = pkg_resources.resource_filename("mcvqoe.gui", "MCV-sm.png")
         self.tk.call("wm", "iconphoto", self._w, tk.PhotoImage(file=img_file))
 
     def load_settings(self, fname):
@@ -281,7 +281,7 @@ class PostTestGui(tk.Tk):
         self.err = err
 
         # Show MCV logo
-        img_file = pkg_resources.resource_filename("mcvqoe", "gui/MCV-sm.png")
+        img_file = pkg_resources.resource_filename("mcvqoe.gui", "MCV-sm.png")
         self.tk.call("wm", "iconphoto", self._w, tk.PhotoImage(file=img_file))
 
     def show(self):

@@ -2,7 +2,7 @@ import scipy.io.wavfile
 import scipy.signal
 import sounddevice as sd
 from fractions import Fraction
-from mcvqoe import audio_float
+from mcvqoe.base import audio_float
 import tempfile
 import pkgutil
 import io
@@ -33,7 +33,7 @@ def single_play(ri, ap, audio_file=None, playback=False, ptt_wait=0.68, save_nam
     """
 
     if audio_file is None:
-        audio_file = io.BytesIO(pkgutil.get_data("mcvqoe", "audio_clips/test.wav"))
+        audio_file = io.BytesIO(pkgutil.get_data("mcvqoe.audio_clips", "test.wav"))
 
     # get fs from audio player
     fs = ap.sample_rate
