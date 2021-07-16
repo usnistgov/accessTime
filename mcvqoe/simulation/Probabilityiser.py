@@ -6,6 +6,10 @@ import random
 def expected_psud(p_a, p_r, interval, message_length):
     """
     Evaluate expected probability of successful delivery (PSuD).
+    
+    Evaluates the every word critical (EWC) PSuD, which requires an 
+    uninterrupted chain of keywords above the intelligibility threshold. Here
+    the threshold is fixed at 0.5.
 
     Parameters
     ----------
@@ -30,8 +34,7 @@ def expected_psud(p_a, p_r, interval, message_length):
 
     >>> mcvqoe.simulation.expected_psud(0.5,0.5,1,3)
     """
-    exp = (message_length / interval) - 1
-    psud = p_a / (1 + p_a - p_r) * (p_r ** exp)
+    psud = p_a * p_r ** (message_length/interval - 1)
     return psud
 
 
@@ -95,7 +98,7 @@ class PBI:
     Returns
     -------
     None.
-
+    
     Examples
     --------
     >>> pb = mcvqoe.simulation.PBI(P_a1 = 0.5, P_r = 0.5)
@@ -174,7 +177,7 @@ class PBI:
 
     def expected_psud(self, t):
         """
-        Determine expected PSuD of message of length t given settings
+        Determine expected Every Word Critical PSuD of message of length t given settings
 
         Convenience function to use expected_psud function given current PBI
         settings.
@@ -188,8 +191,12 @@ class PBI:
         -------
         psud : float
               PSuD of message of length t given current settings
+              
+        See Also
+        --------
+        expected_psud : function used by this convenience function.
 
         """
 
-        psud = expected_psud(p_a=self.P_a2, p_r=self.P_r, interval=self.interval, message_length=t)
+        psud = expected_psud(p_a=self.P_a1, p_r=self.P_r, interval=self.interval, message_length=t)
         return psud
