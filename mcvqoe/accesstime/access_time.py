@@ -3,7 +3,7 @@ import abcmrt
 import argparse
 import csv
 import datetime
-import mcvqoe
+import mcvqoe.base
 import os
 import pickle
 import scipy.interpolate
@@ -328,7 +328,7 @@ class measure:
                         
                         self._cutpoint_check(cutpoint)
                         # Turn cutpoint file path into useable tuple
-                        cut = mcvqoe.load_cp(cutpoint)
+                        cut = mcvqoe.base.load_cp(cutpoint)
                         cutpoints.append(cut)
                         
                         # Add to clipnames
@@ -346,14 +346,14 @@ class measure:
                 fs_file, audio_dat = scipy.io.wavfile.read(aud)
                 if fs_file != abcmrt.fs:
                     raise ValueError(f"\nImproper sample rate. {aud} is at {fs_file} Hz and {abcmrt.fs} Hz is expected")
-                audio = mcvqoe.audio_float(audio_dat)
+                audio = mcvqoe.base.audio_float(audio_dat)
                 audiofiles.append(audio)
             
             # If noise file was given, resample to match audio files
             if (self.bgnoise_file):
                 nfs, nf = scipy.io.wavfile.read(self.bgnoise_file)
                 rs = Fraction(abcmrt.fs/nfs)
-                nf = mcvqoe.audio_float(nf)
+                nf = mcvqoe.base.audio_float(nf)
                 nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)    
 
         
@@ -367,7 +367,7 @@ class measure:
         #add abcmrt version
         self.info['abcmrt version']=abcmrt.version
         #fill in standard stuff
-        self.info.update(mcvqoe.write_log.fill_log(self))
+        self.info.update(mcvqoe.base.write_log.fill_log(self))
 
         #-----------------[Initialize Folders and Filenames]------------------
 
@@ -428,7 +428,7 @@ class measure:
             tmp_wav = "Tx_" + clipnames[num] + ".wav"
             tmp_csv = os.path.join(wav_cap_dir, tmp_csv)
             tmp_wav = os.path.join(wav_cap_dir, tmp_wav)
-            mcvqoe.write_cp(tmp_csv, cutpoints[num])
+            mcvqoe.base.write_cp(tmp_csv, cutpoints[num])
             # Write audio file
             scipy.io.wavfile.write(tmp_wav,self.audio_interface.sample_rate,audiofiles[num])
 
@@ -502,7 +502,7 @@ class measure:
         
         #---------------------------[write log entry]---------------------------
         
-        mcvqoe.write_log.pre(info=self.info, outdir=self.outdir)
+        mcvqoe.base.pre(info=self.info, outdir=self.outdir)
 
         #-----------------------[Notify User of Start]------------------------
         
@@ -699,7 +699,7 @@ class measure:
                             
                             # Get latest run Rx audio
                             dat_fs, dat = scipy.io.wavfile.read(audioname)
-                            dat = mcvqoe.audio_float(dat)
+                            dat = mcvqoe.base.audio_float(dat)
                             
                             # Extract push to talk signal (getting envelope)
                             ptt_sig = scipy.signal.filtfilt(
@@ -745,7 +745,7 @@ class measure:
                             ptt_time = ptt_start - self.dev_dly
                             
                             # Calculate delay. Only use data after dly_st_idx
-                            (_,dly_its) = mcvqoe.ITS_delay_est(
+                            (_,dly_its) = mcvqoe.delay.ITS_delay_est(
                                 audiofiles[clip][dly_st_idx:], 
                                 dat[dly_st_idx:,voice_idx],
                                 mode='f',
@@ -799,7 +799,7 @@ class measure:
                             else:
                                 tg_str = f"{(time_gap//3600):.0f}:{((time_gap//60)%60):.0f}:{(time_gap%60):.3f}"
                             
-                            a_p2 = mcvqoe.a_weighted_power(dec_sp[1], self.audio_interface.sample_rate)
+                            a_p2 = mcvqoe.base.a_weighted_power(dec_sp[1], self.audio_interface.sample_rate)
                             
                             if (a_p2 <= self.s_thresh):
                                 if(not self.progress_update(
@@ -965,7 +965,7 @@ class measure:
             else:
                 info={}
             #finish log entry
-            mcvqoe.post(outdir=self.outdir,info=info)
+            mcvqoe.base.post(outdir=self.outdir,info=info)
 
             
     def param_check(self):
