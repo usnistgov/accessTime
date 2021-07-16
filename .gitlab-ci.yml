@@ -1,12 +1,27 @@
 image: python:3.8
 
 stages:
+  - build
   - test
   - deploy
 
-before_script:
-  - pip install .
-  - pip install xmlrunner
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  VIRTUAL_ENV: "$CI_PROJECT_DIR/venv/"
+  PATH: "$VIRTUAL_ENV/bin:$PATH"
+
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+
+build:
+  stage: build
+  script:
+    - pip install virtualenv
+    - virtualenv venv
+    - pip install .
+    - pip install xmlrunner
 
 test-math:
   stage: test
