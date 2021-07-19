@@ -152,9 +152,10 @@ def main():
         test_obj.param_check()
         
     #---------------------[Set audio interface properties]---------------------
-    test_obj.audio_interface.blocksize=args.blocksize
-    test_obj.audio_interface.buffersize=args.buffersize
-    test_obj.audio_interface.overplay=args.overplay
+
+    test_obj.audio_interface.blocksize = args.blocksize
+    test_obj.audio_interface.buffersize = args.buffersize
+    test_obj.audio_interface.overplay = args.overplay
     
     #-----------------------[Open RadioInterface]-------------------------
     
@@ -162,33 +163,33 @@ def main():
         
         #------------------------------[Get test info]------------------------------
 
-        gui=mcvqoe.gui.TestInfoGui()
+        gui = mcvqoe.gui.TestInfoGui()
         
-        gui.chk_audio_function=lambda : mcvqoe.hardware.single_play(
+        gui.chk_audio_function = lambda : mcvqoe.hardware.single_play(
                                                     test_obj.ri,test_obj.audio_interface,
                                                     )
         
         #if recovering, re-use notes and things
-        if(recover):
-            gui.info_in['test_type'] =test_obj.info['test_type']
+        if (recover):
+            gui.info_in['test_type'] = test_obj.info['test_type']
             gui.info_in['tx_dev'] = test_obj.info['tx_dev']
             gui.info_in['rx_dev'] = test_obj.info['rx_dev']
             gui.info_in['system'] = test_obj.info['system']
             gui.info_in['test_loc'] = test_obj.info['test_loc']
-            gui.info_in['Pre Test Notes']=test_obj.info['Pre Test Notes'] + \
+            gui.info_in['Pre Test Notes'] = test_obj.info['Pre Test Notes'] + \
                                           'Test restarted due to error\n'+ \
                                           f'Data loaded from : {args.data_file}\n'
                                           #TODO : add restarted trial number?
         
-        test_obj.info=gui.show()
+        test_obj.info = gui.show()
 
         #check if the user canceled
-        if(test_obj.info is None):
+        if (test_obj.info is None):
             print(f"\n\tExited by user")
             sys.exit(1)
         
-
         #------------------------------[Run Test]------------------------------
+        
         test_obj.run(recovery=recover)
     
 if __name__ == "__main__":
