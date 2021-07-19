@@ -28,7 +28,7 @@ import mcvqoe.gui.test_info_gui as test_info_gui
 def main():
 
     #create sim object
-    sim_obj=mcvqoe.simulation.QoEsim(
+    sim_obj = mcvqoe.simulation.QoEsim(
                     playback_chans = {'tx_voice':0, 'start_signal':1},
                     rec_chans = {'rx_voice':0, 'PTT_signal':1},
                     )
@@ -36,16 +36,16 @@ def main():
     # Create Access object
     test_obj = access_time_meas()
     #set wait times to zero for simulation
-    test_obj.ptt_gap=0
+    test_obj.ptt_gap = 0
     #default trials to inf because we don't need to stop
-    test_obj.trials=np.inf
+    test_obj.trials = np.inf
     #only get test notes on error
-    test_obj.get_post_notes=lambda : mcvqoe.gui.post_test(error_only=True)
+    test_obj.get_post_notes = lambda : mcvqoe.gui.post_test(error_only=True)
 
     #set audioInterface to sim object
-    test_obj.audio_interface=sim_obj
+    test_obj.audio_interface = sim_obj
     #set radio interface object to sim object
-    test_obj.ri=sim_obj
+    test_obj.ri = sim_obj
 
     #--------------------[Parse the command line arguments]--------------------
         
@@ -100,7 +100,7 @@ def main():
                         " latency calculations and misaligned audio. A scalar value sets time"+
                         " expand before and after the keyword. A two element vector sets the"+
                         " time at the beginning and the end separately.")
-    parser.add_argument('--overplay', type=float, default=sim_obj.overplay,metavar='DUR',
+    parser.add_argument('--overplay', type=float, default=sim_obj.overplay, metavar='DUR',
                         help='The number of seconds to play silence after the audio is complete'+
                         '. This allows for all of the audio to be recorded when there is delay'+
                         ' in the system')
@@ -111,26 +111,26 @@ def main():
                         " is considered to have no audio. Defaults to -50.")
     parser.add_argument('-j', '--stries', dest="s_tries", type=int, default=test_obj.s_tries,
                         help="Number of times to retry the test before giving up. Defaults to 3.")    
-    parser.add_argument('-P','--use-probabilityiser', default=False,dest='use_probabilityiser',action='store_true',
+    parser.add_argument('-P','--use-probabilityiser', default=False, dest='use_probabilityiser', action='store_true',
                         help='Use probabilityiesr to make channel "flaky"')
-    parser.add_argument('--no-use-probabilityiser',dest='use_probabilityiser',action='store_false',
+    parser.add_argument('--no-use-probabilityiser', dest='use_probabilityiser', action='store_false',
                         help='don\'t use probabilityiesr')
-    parser.add_argument('--P-a1',dest='P_a1',type=float,default=1,
+    parser.add_argument('--P-a1', dest='P_a1', type=float, default=1,
                         help='P_a1 for probabilityiesr')
-    parser.add_argument('--P-a2',dest='P_a2',type=float,default=1,
+    parser.add_argument('--P-a2', dest='P_a2', type=float, default=1,
                         help='P_a2 for probabilityiesr')
-    parser.add_argument('--P-r',dest='P_r',type=float,default=1,
+    parser.add_argument('--P-r', dest='P_r', type=float, default=1,
                         help='P_r for probabilityiesr')
-    parser.add_argument('--P-interval',dest='pInterval',type=float,default=1,
+    parser.add_argument('--P-interval', dest='pInterval', type=float, default=1,
                         help='Time interval for probabilityiesr in seconds')
-    parser.add_argument('--channel-tech', default=sim_obj.channel_tech, metavar='TECH',dest='channel_tech',
+    parser.add_argument('--channel-tech', default=sim_obj.channel_tech, metavar='TECH', dest='channel_tech',
                         help='Channel technology to simulate (default: %(default)s)')
-    parser.add_argument('--channel-rate', default=sim_obj.channel_rate, metavar='RATE',dest='channel_rate',
+    parser.add_argument('--channel-rate', default=sim_obj.channel_rate, metavar='RATE', dest='channel_rate',
                         help='Channel technology rate to simulate. Passing \'None\' will use the technology default. (default: %(default)s)')
-    parser.add_argument('--channel-m2e', type=float, default=sim_obj.m2e_latency, metavar='L',dest='m2e_latency',
+    parser.add_argument('--channel-m2e', type=float, default=sim_obj.m2e_latency, metavar='L', dest='m2e_latency',
                         help='Channel mouth to ear latency, in seconds, to simulate. (default: %(default)s)')
     parser.add_argument('--channel-access', type=float, metavar='D', 
-                        default=sim_obj.access_delay,dest='access_delay',
+                        default=sim_obj.access_delay, dest='access_delay',
                         help='Channel access time, in seconds, to simulate. '+
                         '(default: %(default)s)')
     
@@ -138,8 +138,6 @@ def main():
     
     #-------------------[Recovery Data File Detection]--------------------
  
-        
-    
     # Set Access object variables to terminal arguments
     for k, v in vars(args).items():
         if hasattr(test_obj, k):
@@ -150,50 +148,51 @@ def main():
         
     #-------------------------[Set simulation settings]-------------------------
 
-    sim_obj.channel_tech=args.channel_tech
+    sim_obj.channel_tech = args.channel_tech
     
-    sim_obj.overplay=args.overplay
+    sim_obj.overplay = args.overplay
     
     #set channel rate, check for None
-    if(args.channel_rate=='None'):
-        sim_obj.channel_rate=None
+    if (args.channel_rate == 'None'):
+        sim_obj.channel_rate = None
     else:
-        sim_obj.channel_rate=args.channel_rate
+        sim_obj.channel_rate = args.channel_rate
         
-    sim_obj.m2e_latency=args.m2e_latency
-    sim_obj.access_delay=args.access_delay
+    sim_obj.m2e_latency = args.m2e_latency
+    sim_obj.access_delay = args.access_delay
     
     #------------------------------[Get test info]------------------------------
     
-    gui=mcvqoe.gui.TestInfoGui(write_test_info=False)
+    gui = mcvqoe.gui.TestInfoGui(write_test_info=False)
     
-    gui.chk_audio_function=lambda : mcvqoe.hardware.single_play(sim_obj,sim_obj,
+    gui.chk_audio_function = lambda : mcvqoe.hardware.single_play(sim_obj,sim_obj,
                                                     playback=True,
                                                     ptt_wait=0)
 
     #construct string for system name
-    system=sim_obj.channel_tech
-    if(sim_obj.channel_rate is not None):
-        system+=' at '+str(sim_obj.channel_rate)
+    system = sim_obj.channel_tech
+    if (sim_obj.channel_rate is not None):
+        system += ' at ' + str(sim_obj.channel_rate)
 
     gui.info_in['test_type'] = "simulation"
     gui.info_in['tx_dev'] = "none"
     gui.info_in['rx_dev'] = "none"
     gui.info_in['system'] = system
     gui.info_in['test_loc'] = "N/A"
-    test_obj.info=gui.show()
+    test_obj.info = gui.show()
 
     #check if the user canceled
-    if(test_obj.info is None):
+    if (test_obj.info is None):
         print(f"\n\tExited by user")
         sys.exit(1)
     
     #-----------------------[Add simulation info to log]-----------------------
     
-    test_obj.info['sim m2e']=sim_obj.m2e_latency
-    test_obj.info['sim acc']=sim_obj.access_delay
+    test_obj.info['sim m2e'] = sim_obj.m2e_latency
+    test_obj.info['sim acc'] = sim_obj.access_delay
     
     #--------------------------------[Run Test]--------------------------------
+    
     test_obj.run(recovery=False)
     
 if __name__ == "__main__":
