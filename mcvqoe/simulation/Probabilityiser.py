@@ -2,8 +2,9 @@
 
 import random
 
+import numpy as np
 
-def expected_psud(p_a, p_r, interval, message_length):
+def expected_psud(p_a, p_r, interval, message_length,method="EWC"):
     """
     Evaluate expected probability of successful delivery (PSuD).
     
@@ -34,7 +35,47 @@ def expected_psud(p_a, p_r, interval, message_length):
 
     >>> mcvqoe.simulation.expected_psud(0.5,0.5,1,3)
     """
-    psud = p_a * p_r ** (message_length/interval - 1)
+    if(method == "EWC"):
+        psud = p_a * p_r ** (message_length/interval - 1)
+    elif(method == "AMI"):
+        
+        # This can likely become a parameter later
+        intell_threshold = 0.5
+        # Number of markov trials
+        N = int(message_length/interval)
+        
+        # Initialize array to store probability of success at markov trial k
+        p = [p_a]
+        for k in range(2,N+1):
+            # Add probability according to recursion derived from:
+            # http://dx.doi.org/10.4236/am.2013.412236
+            pk = (1-(p_r - p_a) ** (k))*(p_a/(1+p_a-p_r))
+            p.append(pk)
+        
+        psud = 0
+        for k in range(2**N):
+            # For each possible state of length N
+            # String representation as 1s and 0s
+            state = f'{k:0{N}b}'
+            
+            # Initialize state probability to 1
+            state_prob = 1
+            state_sum = 0
+            for ix,x in enumerate(state):
+                if(x=='1'):
+                    # If success multiply state_probability by prob of success for markov trial ix
+                    state_prob *= p[ix]
+                    state_sum += 1
+                else:
+                    # Otherwise multiply state_probability by prob of failure for markov trial ix
+                    state_prob *= (1-p[ix])
+            if(state_sum/N >= intell_threshold):
+                # Update psud with probability of success 
+                psud += state_prob
+                    
+            
+    else:
+        raise ValueError(f"Unknown method passed: {method}.")
     return psud
 
 
