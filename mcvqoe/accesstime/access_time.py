@@ -1,4 +1,3 @@
-
 import abcmrt
 import argparse
 import csv
@@ -23,39 +22,39 @@ def chans_to_string(chans):
     #channel string
     return '('+(';'.join(chans))+')'
 
-def terminal_user_check(reason,message,trials=None,time=None):
-    abort_test=False
+def terminal_user_check(reason,message, trials=None, time=None):
+    abort_test = False
     #check if we have time and trials
-    if(trials and time):
+    if (trials and time):
         # Print set time
         print(f"Time for {trials} trials : {time}")
     #ask the user to press enter to continue
     #ring bell ('\a') to get their attention
-    resp=input('\a'+
+    resp = input('\a'+
                message+' Press enter to continue\n'+
                'you may type "exit" to stop the test\n')
-    if(resp.lower().strip() == 'exit'):
-        abort_test=True
+    if (resp.lower().strip() == 'exit'):
+        abort_test = True
     
     return abort_test
     
 def mk_format(header):
     
-    fmt=""
+    fmt = ""
     
     for col in header:
         #split at first space
-        col=col.split()[0]
+        col = col.split()[0]
         #remove special chars
-        col=''.join(c for c in col if c.isalnum())
+        col = ''.join(c for c in col if c.isalnum())
         #need to not use special names
         #TODO : should this be done better?
-        if(col=='try'):
-            col='rtry'
+        if (col == 'try'):
+            col = 'rtry'
         
-        fmt+='{'+col+'},'
+        fmt += '{'+col+'},'
     #replace trailing ',' with newline
-    fmt=fmt[:-1]+'\n'
+    fmt = fmt[:-1]+'\n'
     
     return fmt
 
@@ -69,31 +68,31 @@ def terminal_progress_update(
             file="",
             new_file="",
         ):
-    if(prog_type=='proc'):
-        if(current_trial==0):
+    if (prog_type == 'proc'):
+        if (current_trial == 0):
             #we are post processing
             print('Processing test data')
-        if(current_trial % 10 == 0):
+        if (current_trial % 10 == 0):
             print(f'Processing trial {current_trial+1} of {num_trials}')   
-    elif(prog_type=='test'):
-        if(current_trial==0):
+    elif (prog_type == 'test'):
+        if (current_trial == 0):
             print(f'Starting Test of {num_trials} trials')
-        if(current_trial % 10 == 0):
+        if (current_trial % 10 == 0):
             print(f'-----Trial {current_trial} of {num_trials}')
-    elif(prog_type=='warning'):
+    elif (prog_type == 'warning'):
         warn(err_msg, stacklevel=2)
-    elif(prog_type=='check-fail'):
+    elif (prog_type == 'check-fail'):
         print(f'On trial {current_trial+1} of {num_trials} : {err_msg}')
-    elif(prog_type=='check-resume'):
+    elif (prog_type == 'check-resume'):
         print(f'Resuming test : {err_msg}')
-    elif(prog_type=='acc-clip-update'):
+    elif (prog_type == 'acc-clip-update'):
         print(f'---Delay : {delay:.3f}s\n'+
               f'---Clip  : {clip_name}')
-    elif(prog_type=='csv-update'):
+    elif (prog_type == 'csv-update'):
         # Print name and location of datafile    
         print(f'--Starting {clip_name}\n'+
               f'--Storing data in: \'{file}\'')
-    elif(prog_type=='csv-rename'):
+    elif (prog_type == 'csv-rename'):
         print(f"Renaming '{file}' to '{new_file}'")
         
     #continue test
@@ -101,11 +100,11 @@ def terminal_progress_update(
     
 class measure:
     
-    data_header=['PTT_time','PTT_start','ptt_st_dly','P1_Int','P2_Int',
-                 'm2e_latency','channels','TimeStart','TimeEnd','TimeGap']
+    data_header = ['PTT_time', 'PTT_start', 'ptt_st_dly', 'P1_Int', 'P2_Int',
+                 'm2e_latency', 'channels', 'TimeStart', 'TimeEnd', 'TimeGap']
     
-    bad_header=['FileName','trial_count','clip_count','try#','p2A-weight',
-                'm2e_latency','channels','TimeStart','TimeEnd','TimeGap']
+    bad_header = ['FileName', 'trial_count', 'clip_count', 'try#', 'p2A-weight',
+                'm2e_latency', 'channels', 'TimeStart', 'TimeEnd', 'TimeGap']
     
     def __init__(self):
         
@@ -128,13 +127,13 @@ class measure:
         self.ptt_step = float(20e-3)
         self.rec_file = None
         self.ri = None
-        self.user_check= terminal_user_check
+        self.user_check = terminal_user_check
         self.s_thresh = -50
         self.s_tries = 3
         self.stop_rep = 10
         self.time_expand = [100e-3 - 0.11e-3, 0.11e-3]
         self.trials = 100.0
-        self.progress_update=terminal_progress_update
+        self.progress_update = terminal_progress_update
 
     def _cutpoint_check(self, cutpoint):
         """Check if cutpoint contains what we need and has the proper format"""
@@ -218,7 +217,7 @@ class measure:
         
         #-----------------------[Check audio sample rate]-----------------------
         
-        if(self.audio_interface.sample_rate != abcmrt.fs):
+        if (self.audio_interface.sample_rate != abcmrt.fs):
             raise ValueError(f'audio_interface sample rate is {self.audio_interface.sample_rate} Hz but only {abcmrt.fs} Hz is supported')
         
         #------------------[Check for correct audio channels]------------------
@@ -235,8 +234,8 @@ class measure:
                    
         #---------------------[Generate csv format strings]---------------------
         
-        dat_format=mk_format(self.data_header)
-        bad_format=mk_format(self.bad_header)
+        dat_format = mk_format(self.data_header)
+        bad_format = mk_format(self.bad_header)
         
         #------------------[Load In Old Data File If Given]-------------------
         
@@ -299,7 +298,7 @@ class measure:
                         k_start = k_start + 1
                     
                     # Assign kk_start point for inner loop    
-                    if (clen==0):
+                    if (clen == 0):
                         kk_start = 0
                     else:
                         kk_start = ((clen-1) % self.ptt_rep) + 1
@@ -358,14 +357,16 @@ class measure:
 
         
         #-------------------------[Get Test Start Time]-------------------------
-        self.info['Tstart']=datetime.datetime.now()
-        dtn=self.info['Tstart'].strftime('%d-%b-%Y_%H-%M-%S')
+
+        self.info['Tstart'] = datetime.datetime.now()
+        dtn = self.info['Tstart'].strftime('%d-%b-%Y_%H-%M-%S')
         
         #--------------------------[Fill log entries]--------------------------
+        
         #set test name
-        self.info['test']='Access'
+        self.info['test'] = 'Access'
         #add abcmrt version
-        self.info['abcmrt version']=abcmrt.version
+        self.info['abcmrt version'] = abcmrt.version
         #fill in standard stuff
         self.info.update(mcvqoe.base.write_log.fill_log(self))
 
@@ -529,7 +530,7 @@ class measure:
                 
                 #---------------------[Update Total Trials]---------------------
                 
-                total_trials=sum(ptt_step_counts)*self.ptt_rep                
+                total_trials = sum(ptt_step_counts)*self.ptt_rep                
                 
                 # Check if file is not present (not a restart)
                 if (True):
@@ -544,7 +545,7 @@ class measure:
                         writer.writerow(self.data_header)
                     
                     #Update with name and location of datafile    
-                    if(not self.progress_update(
+                    if (not self.progress_update(
                                 'csv-update',
                                 total_trials,
                                 trial_count,
@@ -553,7 +554,6 @@ class measure:
                             )):
                         raise SystemExit()
                         
-                    
                     #-----------------------------[Stop Flag]-----------------------------
                     
                     success = np.zeros((2, (len(ptt_st_dly[clip])*self.ptt_rep)))
@@ -564,11 +564,13 @@ class measure:
                     
                     # Initialize clip count
                     clip_count = 0
+
                 #-----------------------[Delay Step Loop]-----------------------
                 
                 for k in range(k_start, len(ptt_st_dly[clip])):
 
                     #-------------[Update Current Clip and Delay]---------------
+
                     if(not self.progress_update(
                                 'acc-clip-update',
                                 total_trials,
@@ -592,13 +594,13 @@ class measure:
                         
                         
                         #---------------[Update User Progress]-----------------
+
                         if(not self.progress_update(
                                     'test',
                                     total_trials,
                                     trial_count,
                                 )):
                             raise SystemExit()
-                        
                         
                         #-----------------------------[Check Loop]----------------------------
                         
@@ -618,7 +620,7 @@ class measure:
                                 # Turn on LED when waiting for user input
                                 self.ri.led(2, True)
                                 # TODO Check if we have retry function
-                                user_exit=self.user_check(
+                                user_exit = self.user_check(
                                         'problem-stop',
                                         msg="Audio not detected through the system."
                                     )
@@ -693,9 +695,9 @@ class measure:
                             #-------------------------[Data Processing]---------------------------
                             
                             #get index of rx_voice channel
-                            voice_idx=rec_names.index('rx_voice')
+                            voice_idx = rec_names.index('rx_voice')
                             #get index of PTT_signal
-                            psig_idx=rec_names.index('PTT_signal')
+                            psig_idx = rec_names.index('PTT_signal')
                             
                             # Get latest run Rx audio
                             dat_fs, dat = scipy.io.wavfile.read(audioname)
@@ -754,7 +756,7 @@ class measure:
                             )
                             
                             #convert to seconds
-                            dly_its=dly_its/self.audio_interface.sample_rate
+                            dly_its = dly_its/self.audio_interface.sample_rate
                             
                             # Interpolate for new time
                             # TODO: do this with an offset once we've confirmed we're equivalent to matlab
@@ -846,8 +848,8 @@ class measure:
                         #----------------------[Inform User of Restart]-----------------------
                         
                         # Check if it took more than one try
-                        if(retries > 1):
-                            if(not self.progress_update(
+                        if (retries > 1):
+                            if (not self.progress_update(
                                         'check-resume',
                                         total_trials,
                                         trial_count,
@@ -885,7 +887,7 @@ class measure:
                             self.ri.led(2, True)
                             
                             # wait for user
-                            user_exit=self.user_check(
+                            user_exit = self.user_check(
                                     'normal-stop',
                                     'check batteries.',
                                     trials=self.trials,
@@ -935,9 +937,10 @@ class measure:
                     if (self.auto_stop and (cutpoints[clip][1]['End']/self.audio_interface.sample_rate)>ptt_st_dly[clip][k]):
                         if (self.stop_rep<=k and all(stop_flag[(k-self.stop_rep):k])):
                             #stopped early, update step counts
-                            ptt_step_counts[clip]=k
+                            ptt_step_counts[clip] = k
                             # If stopping condition met, break from loop
                             break
+
                 #-----------------------[End Delay Step Loop]-------------------------
                 
                 # Reset start index so we start at the beginning
@@ -958,14 +961,15 @@ class measure:
                                 new_file=self.data_filenames[k],
                             )
                 os.rename(temp_data_filenames[k], self.data_filenames[k])
+
         finally:
-            if(self.get_post_notes):
+            if (self.get_post_notes):
                 #get notes
-                info=self.get_post_notes()
+                info = self.get_post_notes()
             else:
-                info={}
+                info = {}
             #finish log entry
-            mcvqoe.base.post(outdir=self.outdir,info=info)
+            mcvqoe.base.post(outdir=self.outdir, info=info)
 
             
     def param_check(self):
