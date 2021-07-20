@@ -150,7 +150,26 @@ def fill_log(test_obj, git_path=None):
 
     return info
 
-
+def format_text_block(text):
+    """
+    format text block for log.
+    
+    This writes out a, possibly, multi line text block to the log. It is used to
+    write out both pre and post test notes.
+    
+    Parameters
+    ----------
+    text : str
+        String containing the block of text to format.
+    """
+    
+    if(text is None):
+        return ''
+    
+    return ''.join(['\t'+line+'\n' for line in text.splitlines(keepends=False)])
+    
+    
+    
 def pre(info={}, outdir=""):
     """
     Take in M2E class info dictionary and write pre-test to tests.log.
@@ -183,15 +202,8 @@ def pre(info={}, outdir=""):
             if key not in skip_keys:
                 file.write(f"\t{key:<{pad_len}} : {info[key]}\n")
 
-        # Add pre test notes to tests.log
-        if info["Pre Test Notes"] is not None:
-            # Add tabs for each newline in pretest string
-            file.write(
-                "===Pre-Test Notes===%s"
-                % "\t".join(("\n" + info["Pre Test Notes"].lstrip()).splitlines(True))
-            )
-        else:
-            file.write("\n===Pre-Test Notes===\n")
+        file.write("===Pre-Test Notes===\n")
+        file.write(format_text_block(info["Pre Test Notes"]))
 
 
 def post(info={}, outdir=""):
@@ -220,9 +232,9 @@ def post(info={}, outdir=""):
             header = "===Post-Test Notes==="
             notes = info.get("Post Test Notes", "")
 
-        # indent notes
-        notes = "\t".join(("\n" + notes.strip()).splitlines(True))
+        #write header
+        file.write(header+'\n')
         # write notes
-        file.write(header + notes + "\n")
+        file.write(format_text_block(notes))
         # write end
         file.write("===End Test===\n\n")
