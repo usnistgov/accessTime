@@ -3,7 +3,7 @@ import os
 import pkgutil
 import unittest
 
-import mcvqoe.base
+import mcvqoe.delay
 import numpy as np
 import scipy.io.wavfile
 import xmlrunner
@@ -259,7 +259,7 @@ class ITSTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            mcvqoe.ITS_delay_est(tx_data, rx_data, "f", fs=base_fs, min_corr=0.76), (0, 0)
+            mcvqoe.delay.ITS_delay_est(tx_data, rx_data, "f", fs=base_fs, min_corr=0.76), (0, 0)
         )
 
     def test_active_speech_level(self):
