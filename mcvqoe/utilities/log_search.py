@@ -609,6 +609,9 @@ class log_search:
             what type of files to look for
         """
 
+        #name of test opperations
+        test_opps=('Test','Intelligibility','PSuD','Access','M2E')
+
         types = re.compile(
             r"\.?(?P<csv>csv)|(?P<mat>mat)|(?P<wav>wav)|(?P<sm_mat>sm(?:all)?_mat)|(?P<bad_csv>bad_csv)",
             re.IGNORECASE,
@@ -665,7 +668,7 @@ class log_search:
         # file indexes
         fi = []
         for idx in self.found:
-            if self.log[idx]["operation"] == "Test":
+            if self.log[idx]["operation"] in test_opps:
                 prefix = ["Rcapture_", "capture_"]
                 folder = [tstFiles["path"]] * len(prefix)
                 ext = tstFiles["ext"]
