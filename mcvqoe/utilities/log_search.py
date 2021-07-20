@@ -599,7 +599,7 @@ class log_search:
         self.found = set()
         self.foundCleared = True
 
-    def datafilenames(self, ftype="csv"):
+    def datafilenames(self, ftype="csv",ignore_incomplete=False):
         """
         find data files matching a log entry
 
@@ -702,7 +702,7 @@ class log_search:
             else:
                 raise ValueError(f"Unknown operation '{self.log[idx]['operation']}'")
 
-            if not self.log[idx]["complete"]:
+            if (not ignore_incomplete) and (not self.log[idx]["complete"]):
                 fn.append(":Incomplete")
                 fi.append(idx)
                 continue
