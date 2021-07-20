@@ -585,6 +585,14 @@ class measure:
                     
                     for kk in range(kk_start, self.ptt_rep):
                         
+                        #---------------[Update User Progress]-----------------
+
+                        if(not self.progress_update(
+                                    'test',
+                                    total_trials,
+                                    trial_count,
+                                )):
+                            raise SystemExit()
                         #-----------------------[Increment Trial Count]-----------------------
                         
                         trial_count = trial_count + 1
@@ -594,14 +602,7 @@ class measure:
                         clip_count = clip_count + 1
                         
                         
-                        #---------------[Update User Progress]-----------------
 
-                        if(not self.progress_update(
-                                    'test',
-                                    total_trials,
-                                    trial_count,
-                                )):
-                            raise SystemExit()
                         
                         #-----------------------------[Check Loop]----------------------------
                         
@@ -957,7 +958,7 @@ class measure:
                 self.progress_update(
                                 'csv-rename',
                                 trial_count,
-                                trial_count,
+                                k,
                                 file=temp_data_filenames[k],
                                 new_file=self.data_filenames[k],
                             )
