@@ -44,6 +44,8 @@ def expected_psud(p_a, p_r, interval, message_length,method="EWC"):
         # Number of markov trials
         N = int(message_length/interval)
         
+        #TODO: Add a check that if N > threshold use steady state distriubtions rather than fancy brute forced probabilities
+        
         # Initialize array to store probability of success at markov trial k
         p = [p_a]
         for k in range(2,N+1):
