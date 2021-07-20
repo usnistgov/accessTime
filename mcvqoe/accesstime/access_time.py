@@ -493,7 +493,8 @@ class measure:
         # Add all access_time object parameters to error dictionary
         for i in self.__dict__:
             skip = ['no_log', 'audio_interface', 'ri',
-                    'inter_word_diff', 'get_post_notes']
+                    'inter_word_diff', 'get_post_notes',
+                    'progress_update', 'user_check']
             if (i not in skip):
                 err_dict[i] = self.__dict__[i]
          
