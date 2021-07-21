@@ -581,7 +581,7 @@ class QoEsim:
             except KeyError:
                 raise ValueError(
                     f'Unknown channel tech "{tech}" valid channel technologies are {self.get_channel_techs()}'
-                )
+                ) from None
 
             # load module for channel
             chan_mod = chan_info.load()
