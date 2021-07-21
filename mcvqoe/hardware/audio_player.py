@@ -336,6 +336,8 @@ class AudioPlayer:
                 and "UMC" in d["name"]
             ):
                 return d["name"]
+        else:
+            raise RuntimeError('No suitable audio interfaces found')
 
     def record(self, filename):
         """
