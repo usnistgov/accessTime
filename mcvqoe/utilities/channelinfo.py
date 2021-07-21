@@ -30,12 +30,12 @@ def main():
 
         (def_rate,rates)=sim_obj.get_channel_rates(args.chan)
         print(f'Default rate : {def_rate}')
-        print(f'Possible rates : {rates}')
+        print(f'Possible rates : {", ".join(rates)}')
 
         #everything is fine
         exit(0)
     else:
-        print(f'Channel technologies : {techs}')
+        print(f'Channel technologies : {", ".join(techs)}')
 
         #everything is fine
         exit(0)
