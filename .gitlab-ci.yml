@@ -1,6 +1,7 @@
 stages:
   - build
   - test
+  - test-downstream
   - deploy
 
 variables:
@@ -73,6 +74,10 @@ test-ITS-delay:
       - ITS-tests.xml
     reports:
       junit: ITS-tests.xml
+
+test-mouth2ear:
+  stage: test-downstream
+  trigger: PSCR/MCV/mouth2ear
 
 pages:
   stage: deploy
