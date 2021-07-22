@@ -77,7 +77,7 @@ test-ITS-delay:
 
 test-mouth2ear:
   stage: test-downstream
-  trigger: PSCR/MCV/mouth2ear
+  trigger: PSCR/MCV/device-tst
 
 pages:
   stage: deploy
