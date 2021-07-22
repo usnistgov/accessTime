@@ -9,7 +9,6 @@ variables:
 image: python:3.8
 
 cache:
-  key: $CI_PIPELINE_IID
   paths:
     - .cache/pip
     - venv/
@@ -23,7 +22,7 @@ build:
     - python -V
   script:
     - pip install virtualenv
-    - virtualenv venv
+    - virtualenv --clear venv
     - source venv/bin/activate
     - pip install .
     - pip install unittest-xml-reporting
