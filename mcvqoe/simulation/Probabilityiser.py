@@ -4,6 +4,8 @@ import random
 
 import numpy as np
 
+import pdb
+
 
 def expected_psud(p_a, p_r, interval, message_length, method="EWC"):
     """
@@ -47,14 +49,6 @@ def expected_psud(p_a, p_r, interval, message_length, method="EWC"):
         # TODO: Add a check that if N > threshold use steady state
         # distriubtions rather than fancy brute forced probabilities
 
-        # Initialize array to store probability of success at markov trial k
-        p = [p_a]
-        for k in range(2, N+1):
-            # Add probability according to recursion derived from:
-            # http://dx.doi.org/10.4236/am.2013.412236
-            pk = (1-(p_r - p_a) ** (k))*(p_a/(1+p_a-p_r))
-            p.append(pk)
-
         psud = 0
         for k in range(2**N):
             # For each possible state of length N
@@ -65,15 +59,32 @@ def expected_psud(p_a, p_r, interval, message_length, method="EWC"):
             state_prob = 1
             state_sum = 0
             for ix, x in enumerate(state):
-                if(x == '1'):
+                if(ix == 0 and x == '1'):
+                    state_prob *= p_a
+                    state_sum += 1
+                elif(ix == 0 and x == '0'):
+                    state_prob *= (1-p_a)
+                elif(x == '1'):
+
+                    if(state[ix-1] == '1'):
+                        state_prob *= p_r
+                    else:
+                        state_prob *= p_a
+
                     # If success multiply state_probability by prob of success
                     # for markov trial ix
-                    state_prob *= p[ix]
+                    # state_prob *= p[ix]
                     state_sum += 1
+
                 else:
+                    if(state[ix-1] == '0'):
+                        state_prob *= (1-p_a)
+                    else:
+                        state_prob *= (1-p_r)
                     # Otherwise multiply state_probability by prob of failure
                     # for markov trial ix
-                    state_prob *= (1-p[ix])
+                    # state_prob *= (1-p[ix])
+
             if(state_sum/N >= intell_threshold):
                 # Update psud with probability of success
                 psud += state_prob
