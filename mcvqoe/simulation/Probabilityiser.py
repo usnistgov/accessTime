@@ -4,11 +4,12 @@ import random
 
 import numpy as np
 
-def expected_psud(p_a, p_r, interval, message_length,method="EWC"):
+
+def expected_psud(p_a, p_r, interval, message_length, method="EWC"):
     """
     Evaluate expected probability of successful delivery (PSuD).
-    
-    Evaluates the every word critical (EWC) PSuD, which requires an 
+
+    Evaluates the every word critical (EWC) PSuD, which requires an
     uninterrupted chain of keywords above the intelligibility threshold. Here
     the threshold is fixed at 0.5.
 
@@ -38,44 +39,45 @@ def expected_psud(p_a, p_r, interval, message_length,method="EWC"):
     if(method == "EWC"):
         psud = p_a * p_r ** (message_length/interval - 1)
     elif(method == "AMI"):
-        
         # This can likely become a parameter later
         intell_threshold = 0.5
         # Number of markov trials
         N = int(message_length/interval)
-        
-        #TODO: Add a check that if N > threshold use steady state distriubtions rather than fancy brute forced probabilities
-        
+
+        # TODO: Add a check that if N > threshold use steady state
+        # distriubtions rather than fancy brute forced probabilities
+
         # Initialize array to store probability of success at markov trial k
         p = [p_a]
-        for k in range(2,N+1):
+        for k in range(2, N+1):
             # Add probability according to recursion derived from:
             # http://dx.doi.org/10.4236/am.2013.412236
             pk = (1-(p_r - p_a) ** (k))*(p_a/(1+p_a-p_r))
             p.append(pk)
-        
+
         psud = 0
         for k in range(2**N):
             # For each possible state of length N
             # String representation as 1s and 0s
             state = f'{k:0{N}b}'
-            
+
             # Initialize state probability to 1
             state_prob = 1
             state_sum = 0
-            for ix,x in enumerate(state):
-                if(x=='1'):
-                    # If success multiply state_probability by prob of success for markov trial ix
+            for ix, x in enumerate(state):
+                if(x == '1'):
+                    # If success multiply state_probability by prob of success
+                    # for markov trial ix
                     state_prob *= p[ix]
                     state_sum += 1
                 else:
-                    # Otherwise multiply state_probability by prob of failure for markov trial ix
+                    # Otherwise multiply state_probability by prob of failure
+                    # for markov trial ix
                     state_prob *= (1-p[ix])
             if(state_sum/N >= intell_threshold):
-                # Update psud with probability of success 
+                # Update psud with probability of success
                 psud += state_prob
-                    
-            
+
     else:
         raise ValueError(f"Unknown method passed: {method}.")
     return psud
@@ -141,7 +143,7 @@ class PBI:
     Returns
     -------
     None.
-    
+
     Examples
     --------
     >>> pb = mcvqoe.simulation.PBI(P_a1 = 0.5, P_r = 0.5)
@@ -168,7 +170,8 @@ class PBI:
         self.state = self.STATE_G0
 
     def process_audio(self, data, fs):
-        # Numpy arrays pass by reference, and the result of scipy.io.wavfile.read is read-only
+        # Numpy arrays pass by reference, and the result of
+        # scipy.io.wavfile.read is read-only
         data = data.copy()
 
         # set to initial state
@@ -220,7 +223,7 @@ class PBI:
 
     def expected_psud(self, t):
         """
-        Determine expected Every Word Critical PSuD of message of length t given settings
+        Determine expected PSuD of message of length t given settings
 
         Convenience function to use expected_psud function given current PBI
         settings.
@@ -234,12 +237,15 @@ class PBI:
         -------
         psud : float
               PSuD of message of length t given current settings
-              
+
         See Also
         --------
         expected_psud : function used by this convenience function.
 
         """
 
-        psud = expected_psud(p_a=self.P_a1, p_r=self.P_r, interval=self.interval, message_length=t)
+        psud = expected_psud(p_a=self.P_a1,
+                             p_r=self.P_r,
+                             interval=self.interval,
+                             message_length=t)
         return psud
