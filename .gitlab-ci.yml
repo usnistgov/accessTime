@@ -10,7 +10,6 @@ image: python:3.8
 
 cache:
   paths:
-    - .cache/pip
     - venv/
 
 before_script:
@@ -24,7 +23,7 @@ build:
     - pip install virtualenv
     - virtualenv --clear venv
     - source venv/bin/activate
-    - pip install .
+    - pip install --upgrade .
     - pip install unittest-xml-reporting
 
 test-math:
