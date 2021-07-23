@@ -13,6 +13,13 @@ class CommandError(Exception):
 
 
 class RadioInterface:
+    
+    #USB PID/VID to use in search. Devices matching this PID/VID will be checked
+    #This is a generic TI PID/VID that could get used by other things
+    #TODO : do we want our own?
+    _USB_VID = 0x2047 # RadioInterface Vendor ID (VID)
+    _USB_PID = 0x0300 # RadioInterface Product ID (PID)
+
     def __init__(self, port=None, debug=False):
 
         self.debug = debug
@@ -20,6 +27,12 @@ class RadioInterface:
         if not port:
             ports = serial.tools.list_ports.comports()
             for p in ports:
+                #check for matching PID/VID
+                if(not (p.vid==self._USB_VID and p.pid==self._USB_PID)):
+                    if self.debug:
+                        print(f"Skipping {p.device}, PID/VID does not match")
+                    #skip this device
+                    continue
                 try:
                     self._openPort(p.device)
                     # send device type command
