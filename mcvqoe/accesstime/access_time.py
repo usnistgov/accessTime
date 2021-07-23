@@ -106,7 +106,7 @@ class measure:
     bad_header = ['FileName', 'trial_count', 'clip_count', 'try#', 'p2A-weight',
                 'm2e_latency', 'channels', 'TimeStart', 'TimeEnd', 'TimeGap']
     
-    def __init__(self):
+    def __init__(self, **kwargs):
         
         self.audio_files = []
         self.audio_path = ""
@@ -134,6 +134,13 @@ class measure:
         self.time_expand = [100e-3 - 0.11e-3, 0.11e-3]
         self.trials = 100.0
         self.progress_update = terminal_progress_update
+
+        for k, v in kwargs.items():
+            if hasattr(self, k):
+                setattr(k, v)
+            else:
+                raise TypeError(f"{k} is not a valid keyword argument")
+
 
     def _cutpoint_check(self, cutpoint):
         """Check if cutpoint contains what we need and has the proper format"""
