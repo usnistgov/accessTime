@@ -7,7 +7,8 @@ import numpy as np
 import pdb
 
 
-def expected_psud(p_a, p_r, interval, message_length, method="EWC"):
+def expected_psud(p_a, p_r, interval, message_length, method="EWC",
+                  threshold=0.5):
     """
     Evaluate expected probability of successful delivery (PSuD).
 
@@ -39,10 +40,11 @@ def expected_psud(p_a, p_r, interval, message_length, method="EWC"):
     >>> mcvqoe.simulation.expected_psud(0.5,0.5,1,3)
     """
     if(method == "EWC"):
+        # TODO: Use threshold here...if it makes sense?
         psud = p_a * p_r ** (message_length/interval - 1)
     elif(method == "AMI"):
         # This can likely become a parameter later
-        intell_threshold = 0.5
+        intell_threshold = threshold
         # Number of markov trials
         N = int(message_length/interval)
 
