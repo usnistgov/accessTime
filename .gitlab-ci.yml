@@ -1,6 +1,7 @@
 stages:
   - build
   - test
+  - test-downstream
   - deploy
 
 variables:
@@ -9,9 +10,7 @@ variables:
 image: python:3.8
 
 cache:
-  key: $CI_PIPELINE_IID
   paths:
-    - .cache/pip
     - venv/
 
 before_script:
@@ -23,16 +22,16 @@ build:
     - python -V
   script:
     - pip install virtualenv
-    - virtualenv venv
+    - virtualenv --clear venv
     - source venv/bin/activate
-    - pip install .
-    - pip install xmlrunner
+    - pip install --upgrade .
+    - pip install unittest-xml-reporting
 
 test-math:
   stage: test
   script:
     - python tests/test_math.py
-  artifacts :
+  artifacts:
     when: always
     paths:
       - math-tests.xml
@@ -48,6 +47,12 @@ test-sim:
   stage: test
   script:
     - python tests/sim_test.py
+  artifacts:
+    when: always
+    paths:
+      - sim-tests.xml
+    reports:
+      junit: sim-tests.xml
 
 test-testCpy:
   stage: test
@@ -69,6 +74,12 @@ test-ITS-delay:
       - ITS-tests.xml
     reports:
       junit: ITS-tests.xml
+
+test-mouth2ear:
+  stage: test-downstream
+  trigger:
+    project: PSCR/MCV/device-tst
+    strategy: depend
 
 pages:
   stage: deploy

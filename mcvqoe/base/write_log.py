@@ -144,7 +144,7 @@ def fill_log(test_obj, git_path=None):
         if k not in test_obj.no_log and k not in standard_skip:
             arg_list.append(k + " = " + repr(v))
 
-    info["Arguments"] = ", ".join(arg_list)
+    info["Arguments"] = ",".join(arg_list)
 
     # -------------------------------[Return info]-------------------------------
 
