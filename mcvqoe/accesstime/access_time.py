@@ -62,7 +62,7 @@ def terminal_progress_update(
             prog_type,
             num_trials,
             current_trial,
-            err_msg="",
+            msg="",
             clip_name="",
             delay="",
             file="",
@@ -80,11 +80,11 @@ def terminal_progress_update(
         if (current_trial % 10 == 0):
             print(f'-----Trial {current_trial} of {num_trials}')
     elif (prog_type == 'warning'):
-        warn(err_msg, stacklevel=2)
+        warn(msg, stacklevel=2)
     elif (prog_type == 'check-fail'):
-        print(f'On trial {current_trial+1} of {num_trials} : {err_msg}')
+        print(f'On trial {current_trial+1} of {num_trials} : {msg}')
     elif (prog_type == 'check-resume'):
-        print(f'Resuming test : {err_msg}')
+        print(f'Resuming test : {msg}')
     elif (prog_type == 'acc-clip-update'):
         print(f'---Delay : {delay:.3f}s\n'+
               f'---Clip  : {clip_name}')
@@ -684,7 +684,7 @@ class measure:
                                             'warning',
                                             total_trials,
                                             trial_count,
-                                            err_msg='PTT Delay longer than clip',
+                                            msg='PTT Delay longer than clip',
                                         )):
                                     raise SystemExit()
                             else:
@@ -728,7 +728,7 @@ class measure:
                                             'warning',
                                             total_trials,
                                             trial_count,
-                                            err_msg='Low PTT signal values. Check levels',
+                                            msg='Low PTT signal values. Check levels',
                                         )):
                                     raise SystemExit()
 
@@ -817,7 +817,7 @@ class measure:
                                         'check-fail',
                                         total_trials,
                                         trial_count,
-                                        err_msg=f'A-weight power for P2 is {a_p2:.2f}dB',
+                                        msg=f'A-weight power for P2 is {a_p2:.2f}dB',
                                     )):
                                     raise SystemExit()
                                 
@@ -862,7 +862,7 @@ class measure:
                                         'check-resume',
                                         total_trials,
                                         trial_count,
-                                        err_msg=f'A-weight power of {a_p2:.2f} dB for P2',
+                                        msg=f'A-weight power of {a_p2:.2f} dB for P2',
                                     )):
                                 raise SystemExit()
                             
