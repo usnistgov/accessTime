@@ -49,7 +49,7 @@ try:
         """
 
         def _input(self):
-            print("Recording, Press enter to stop")
+            print("Press enter to stop")
             # wait for input
             input()
             # user pressed enter, done
@@ -117,7 +117,7 @@ try:
         """
 
         def __enter__(self):
-            print("Recording running, press any key to stop")
+            print("press any key to stop")
             return self
 
         def __exit__(self, exc_type, exc_value, exc_traceback):
@@ -179,7 +179,7 @@ try:
         """
 
         def __enter__(self):
-            print("Recording running, press any key to stop")
+            print("press any key to stop")
             # get stdin file descriptor
             self.fd = sys.stdin.fileno()
             # save old settings to restore later
