@@ -576,7 +576,7 @@ class measure:
                                 # TODO Check if we have retry function
                                 user_exit = self.user_check(
                                         'problem-stop',
-                                        msg="Audio not detected through the system."
+                                        "Audio not detected through the system."
                                     )
                                 
                                 # Turn off LED, resuming
