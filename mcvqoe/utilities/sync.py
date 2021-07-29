@@ -400,6 +400,19 @@ if __name__ == "__main__":
         dest="config",
         help="Path to configuration file (defaults to %(default)s)",
     )
+    parser.add_argument(
+        "--bidirectional",
+        action='store_true',
+        dest="bd",
+        help="sync in both directions",
+    )
+    parser.add_argument(
+        "--one-direction",
+        action='store_false',
+        dest="bd",
+        help="sync only in one direction",
+    )
+    
 
     args = parser.parse_args()
 
@@ -450,7 +463,7 @@ if __name__ == "__main__":
                 # copy metadata
                 shutil.copystat(l, dest)
 
-            sync_files(src_dir, config[section]["dest"], thorough=args.thorough)
+            sync_files(src_dir, config[section]["dest"], bd=args.bd, thorough=args.thorough)
     else:
         # get source and destination folders from argument
         src = args.imp[0]
@@ -458,4 +471,4 @@ if __name__ == "__main__":
         # print message
         print("Copying data from '" + src + "' to '" + dest + "'")
         # call sync function, don't copy data in the revers direction
-        sync_files(src, dest, bd=False, cull=args.cull, sunset=args.sunset)
+        sync_files(src, dest, bd=args.bd, cull=args.cull, sunset=args.sunset)
