@@ -84,6 +84,7 @@ test-mouth2ear:
 pages:
   stage: deploy
   script:
+    - pip install sphinx numpydoc
     - sphinx-build -b html ./docs/source/ public
   only:
     - develop
