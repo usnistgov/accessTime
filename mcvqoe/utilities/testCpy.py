@@ -377,7 +377,7 @@ def main():
             os.makedirs(syncDir, exist_ok=True)
             # copy sync script
             with open(SyncScript, "wb") as f:
-                f.write(pkgutil.get_data("mcvqoe", "utilities/sync.py"))
+                f.write(pkgutil.get_data("mcvqoe.utilities", "sync.py"))
 
             with open(sync_ver_path, "w") as f:
                 f.write(mcvqoe.version)
