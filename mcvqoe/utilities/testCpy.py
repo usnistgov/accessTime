@@ -12,6 +12,7 @@ import pkgutil
 # used for version checking
 import pkg_resources
 import mcvqoe
+import mcvqoe.base
 
 
 if platform.system() == "Windows":
@@ -359,7 +360,7 @@ def main():
                     sync_ver = pkg_resources.parse_version(f.read())
 
                 # get version from package
-                qoe_ver = pkg_resources.parse_version(mcvqoe.version)
+                qoe_ver = pkg_resources.parse_version(mcvqoe.base.version)
 
                 # we need to update if sync version is older than mcvqoe version
                 sync_update = qoe_ver > sync_ver
@@ -380,7 +381,7 @@ def main():
                 f.write(pkgutil.get_data("mcvqoe.utilities", "sync.py"))
 
             with open(sync_ver_path, "w") as f:
-                f.write(mcvqoe.version)
+                f.write(mcvqoe.base.version)
 
         # try to get path to python
         py_path = sys.executable
