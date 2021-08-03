@@ -4,6 +4,7 @@ import csv
 import datetime
 import mcvqoe.base
 import os
+import pkg_resources
 import pickle
 import scipy.interpolate
 import scipy.io.wavfile
@@ -52,8 +53,21 @@ class measure:
                 'm2e_latency', 'channels', 'TimeStart', 'TimeEnd', 'TimeGap']
     
     def __init__(self, **kwargs):
-        
-        self.audio_files = []
+
+        self.audio_files = [
+            pkg_resources.resource_filename(
+                "mcvqoe.accesstime", "audio_clips/F1_b9_w1_bed.wav"
+                ),
+            pkg_resources.resource_filename(
+                "mcvqoe.accesstime", "audio_clips/F3_b31_w2_law.wav"
+                ),
+            pkg_resources.resource_filename(
+                "mcvqoe.accesstime", "audio_clips/M3_b38_w1_hang.wav"
+                ),
+            pkg_resources.resource_filename(
+                "mcvqoe.accesstime", "audio_clips/M4_b14_w1_not.wav"
+                )
+            ]
         self.audio_path = ""
         self.audio_interface = None
         self.auto_stop = False

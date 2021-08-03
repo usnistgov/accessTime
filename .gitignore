@@ -50,6 +50,10 @@ ComputerName.txt
 # Un-ignore R data directory for package
 !/accessTime/data/
 
+# Un-ignore python default audio and cutpoints
+!/mcvqoe/accesstime/audio_clips/*.wav
+!/mcvqoe/accesstime/audio_clips/*.csv
+
 # ignore python packing stuff
 .eggs/
 build/

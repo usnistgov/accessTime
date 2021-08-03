@@ -1,1 +1,2 @@
+recursive-include mcvqoe/accesstime/audio_clips *.wav *.csv
 recursive-exclude tests *
