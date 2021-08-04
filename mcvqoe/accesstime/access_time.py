@@ -20,37 +20,149 @@ from warnings import warn
 
 import numpy as np
 
+
 def chans_to_string(chans):
-    #channel string
+    # channel string
     return '('+(';'.join(chans))+')'
-    
+
+
 def mk_format(header):
-    
+
     fmt = ""
-    
+
     for col in header:
-        #split at first space
+        # split at first space
         col = col.split()[0]
-        #remove special chars
+        # remove special chars
         col = ''.join(c for c in col if c.isalnum())
-        #need to not use special names
-        #TODO : should this be done better?
+        # need to not use special names
+        # TODO : should this be done better?
         if (col == 'try'):
             col = 'rtry'
-        
+
         fmt += '{'+col+'},'
-    #replace trailing ',' with newline
+    # replace trailing ',' with newline
     fmt = fmt[:-1]+'\n'
-    
+
     return fmt
 
+
 class measure:
-    
+    """
+    Class to run access time measurements.
+
+    The accesstime measure class is used to run access time measurements.
+    These can either be measurements with real communications devices or 
+    simulated Push-to-talk (PTT) systems.
+
+    Attributes
+    ----------
+    audio_files : list
+        Lis of names of audio files. Relative paths are relative to audio_path.
+    audio_path : string
+        Path were audio is stored
+    audio_interface : TODO
+        TODO
+    auto_stop : bool
+        Determines if tests are automatically stopped when the intelligibility
+        of P1 is determined to be equivalent to P2.
+    bgnoise_file : string
+        Name of audio file to use as background noise during measurement.
+    bgnoise_volume : TODO
+        TODO
+    data_file : TODO
+        TODO
+    dev_dly : float
+        Mouth-to-ear latency inherent to the measurement system. Determined by
+        running a mouth-to-ear latency characterization measurement. This
+        delay must be accounted for in access time measurements for accurate
+        results.
+    get_post_notes : TODO
+        TODO
+    info : TODO
+        TODO
+    inter_word_diff : TODO
+        TODO
+    no_log : TODO
+        TODO
+    outdir : string
+        Base directory where data is stored
+    ptt_delay : list
+        ptt_delay can be a 1 or 2 element list of floats. If it is a 1 element
+        list, then it specifies the minimum PTT delay that will be used with
+        the maximum being the end of the first word in the clip. If it is a
+        two element list then the first element is the smallest PTT delay used
+        and the second is the largest. Defaults to 0 (start of clip).
+    ptt_gap : float
+        Time to pause, in seconds, between one trial and the next.
+    ptt_rep : int
+        Number of times to repeat a given PTT delay value. If auto_stop is
+        used, ptt_rep must be at least 15.
+    ptt_step : float
+        Time, in seconds, between successive PTT delays. Default is 20 ms.
+    rec_file : TODO
+        TODO
+    ri : mcvqoe.RadioInterface or mcvqoe.QoEsim
+        Object to use to key the audio channel.
+    user_check : TODO
+        TODO
+    s_thresh : double
+        The threshold of A-weight power for P2, in dB, below which a trial is
+        considered to have no audio. Defaults to -50.
+    s_tries : int
+        Number of times to retry a trial before giving up and ended up the
+        measurement. Defaults to 3.
+    stop_rep : int
+        Number of times that access must be detected in a row before the test
+        is complete. In particular, checks for intelligibility equivalency
+        between P1 and P2 at consecutive time steps.
+    time_expand : list
+        Length of time in seconds of extra audio to send to ABC-MRT16. Adding
+        time aids in ABC-MRT16 returning accurate intelligibility estimates.
+        A single element list sets time expand before and after the keyword. A
+        two element list sets the time at the beginning and the end of the
+        keyword respectively.
+    trials : int
+        Number of trials to run at a time. Test will run the number of trials
+        before pausing for user input. This allows for battery changes or
+        radio cooling if needed. If pausing is not desired set trials to
+        np.inf.
+    progress_update : TODO
+        TODO
+
+    Methods
+    -------
+
+    run()
+        run a measurement with the properties of the instance.
+    param_check()
+        TODO
+    load_dat()
+        TODO
+
+    Examples
+    --------
+    Example of running a test with simulated devices
+
+    >>> import mcvqoe.simulation
+    >>> import numpy as np
+    >>> sim_obj = mcvqoe.simulation.QoEsim(
+                    playback_chans = {'tx_voice':0, 'start_signal':1},
+                    rec_chans = {'rx_voice':0, 'PTT_signal':1},
+                    )
+
+    >>> test_obj = mcvqoe.accesstime.measure(ri=sim_obj,
+                                             audio_interface=sim_obj,
+                                             trials = np.Inf)
+    >>> test_obj.run()
+    """
     data_header = ['PTT_time', 'PTT_start', 'ptt_st_dly', 'P1_Int', 'P2_Int',
-                 'm2e_latency', 'channels', 'TimeStart', 'TimeEnd', 'TimeGap']
-    
-    bad_header = ['FileName', 'trial_count', 'clip_count', 'try#', 'p2A-weight',
-                'm2e_latency', 'channels', 'TimeStart', 'TimeEnd', 'TimeGap']
+                   'm2e_latency', 'channels', 'TimeStart', 'TimeEnd',
+                   'TimeGap']
+
+    bad_header = ['FileName', 'trial_count', 'clip_count', 'try#', 
+                  'p2A-weight', 'm2e_latency', 'channels', 'TimeStart', 
+                  'TimeEnd', 'TimeGap']
     
     def __init__(self, **kwargs):
 
@@ -76,7 +188,7 @@ class measure:
         self.data_file = ""
         self.dev_dly = float(31e-3)
         self.get_post_notes = None
-        self.info = {}
+        self.info = {'Test Type': 'default', 'Pre Test Notes': ''}
         self.inter_word_diff = 0.0 # Used to compare inter word delays
         self.no_log = ('test', 'ri')
         self.outdir = ""
