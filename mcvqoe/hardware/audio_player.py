@@ -242,8 +242,10 @@ class AudioPlayer:
         The number of seconds of extra audio to play/record at the end of a clip.
     rec_chans : dict
         Dictionary describing the recording. Dictionary keys should be one of
-        {'rx_voice','PTT_signal','timecode','tx_beep'}. The value for each entry
-        is the, zero based, channel number that should be recorded for each signal.
+        {'rx_voice','PTT_signal','IRIGB_timecode','tx_beep','soft_timecode'}. The
+        value for each entry is the, zero based, channel number that should be
+        recorded for each signal. For the special 'soft_timecode' channel, no
+        audio recording channel is used and the channel number should be 0.
     playback_chans : dict
         Dictionary describing the playback channels. Dictionary keys must be one
         of {'tx_voice','start_signal'}. The value for each entry is the, zero
@@ -268,7 +270,7 @@ class AudioPlayer:
         Audio device to use. can be found with find_device().
     rec_chans : dict
         Dictionary describing the recording. Dictionary keys should be one of
-        {'rx_voice','PTT_signal','timecode','tx_beep','soft_timecode'}. The
+        {'rx_voice','PTT_signal','IRIGB_timecode','tx_beep','soft_timecode'}. The
         value for each entry is the, zero based, channel number that should be
         recorded for each signal. For the special 'soft_timecode' channel, no
         audio recording channel is used and the channel number should be 0.
