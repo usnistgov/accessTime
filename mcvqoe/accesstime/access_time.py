@@ -70,7 +70,7 @@ class measure:
             ]
         self.audio_path = ""
         self.audio_interface = None
-        self.auto_stop = False
+        self.auto_stop = True
         self.bgnoise_file = ""
         self.bgnoise_volume = 0.1
         self.data_file = ""
