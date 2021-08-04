@@ -60,32 +60,37 @@ class measure:
     audio_files : list
         Lis of names of audio files. Relative paths are relative to audio_path.
     audio_path : string
-        Path were audio is stored
-    audio_interface : TODO
-        TODO
-    auto_stop : bool
+        Path were audio is stored. 
+    audio_interface : mcvqoe.AudioPlayer or mcvqoe.simulation.QoEsim
+        interface to use to play and record audio on the communication channel
+    auto_stop : bool, default=True
         Determines if tests are automatically stopped when the intelligibility
         of P1 is determined to be equivalent to P2.
     bgnoise_file : string
         Name of audio file to use as background noise during measurement.
-    bgnoise_volume : TODO
-        TODO
+    bgnoise_volume : float, default=0.1
+        volume of background noise.
     data_file : TODO
-        TODO
+        TODO : This looks unused, what is it for???
     dev_dly : float
         Mouth-to-ear latency inherent to the measurement system. Determined by
         running a mouth-to-ear latency characterization measurement. This
         delay must be accounted for in access time measurements for accurate
         results.
-    get_post_notes : TODO
-        TODO
-    info : TODO
-        TODO
+    get_post_notes : function or None
+        Function to call to get notes at the end of the test. Often set to
+        mcvqoe.post_test to get notes with a gui popup.
+        lambda : mcvqoe.post_test(error_only=True) can be used if notes should
+        only be gathered when there is an error
+    info : dict
+        Dictionary with test info to for the log entry
     inter_word_diff : TODO
-        TODO
-    no_log : TODO
-        TODO
-    outdir : string
+        TODO : This thing seems not really used, why do we care? actually, why is it even a class property?
+    no_log : tuple of strings
+        static property that is a tuple of property names that will not be added
+        to the 'Arguments' field in the log. This should not be modified in most
+        cases
+    outdir : string, default=''
         Base directory where data is stored
     ptt_delay : list
         ptt_delay can be a 1 or 2 element list of floats. If it is a 1 element
@@ -100,19 +105,19 @@ class measure:
         used, ptt_rep must be at least 15.
     ptt_step : float
         Time, in seconds, between successive PTT delays. Default is 20 ms.
-    rec_file : TODO
-        TODO
+    rec_file : string, default=None
+        Filename for recovery file. If set to a recovery file, the test will be restarted.
     ri : mcvqoe.RadioInterface or mcvqoe.QoEsim
         Object to use to key the audio channel.
-    user_check : TODO
-        TODO
-    s_thresh : double
+    user_check : function, default=mcvqoe.base.terminal_user.terminal_user_check
+        Function that is called to notify the user that they should check the radio
+    s_thresh : double, default=-50
         The threshold of A-weight power for P2, in dB, below which a trial is
         considered to have no audio. Defaults to -50.
-    s_tries : int
+    s_tries : int, default=3
         Number of times to retry a trial before giving up and ended up the
         measurement. Defaults to 3.
-    stop_rep : int
+    stop_rep : int, default=10
         Number of times that access must be detected in a row before the test
         is complete. In particular, checks for intelligibility equivalency
         between P1 and P2 at consecutive time steps.
@@ -122,13 +127,15 @@ class measure:
         A single element list sets time expand before and after the keyword. A
         two element list sets the time at the beginning and the end of the
         keyword respectively.
-    trials : int
+    trials : int, default=100
         Number of trials to run at a time. Test will run the number of trials
         before pausing for user input. This allows for battery changes or
         radio cooling if needed. If pausing is not desired set trials to
         np.inf.
-    progress_update : TODO
-        TODO
+    progress_update : function, default=mcvqoe.base.terminal_user.terminal_progress_update
+        function to call to provide updates on test progress. This function
+        takes three positional arguments, prog_type, total number of trials, current
+        trial number. Depending on prog_type, different information is displayed to the user.
 
     Methods
     -------
@@ -203,7 +210,7 @@ class measure:
         self.s_tries = 3
         self.stop_rep = 10
         self.time_expand = [100e-3 - 0.11e-3, 0.11e-3]
-        self.trials = 100.0
+        self.trials = 100
         self.progress_update = terminal_progress_update
 
         for k, v in kwargs.items():
