@@ -101,8 +101,9 @@ class QoEsim:
         channels. By default the path is searched for ffmpeg, if the ffmpeg
         program is found on the path then this will be the full path to ffmpeg.
         Otherwise this will simply be the string 'ffmpeg'.
-    m2e_latency : float, default=21.1e-3
-        Simulated mouth to ear latency for the channel in seconds.
+    m2e_latency : float, default=None
+        Simulated mouth to ear latency for the channel in seconds. If none than
+        the minimum latency for the technology is used.
     access_delay : float, default=0
         Delay between the time that the simulated push to talk button is pushed
         and when audio starts coming through the channel. If the 'ptt_delay'
@@ -185,8 +186,8 @@ class QoEsim:
         self.pre_impairment = None
         self.post_impairment = None
         self.channel_impairment = None
-        # TODO : set based on tech
-        self.m2e_latency = 21.1e-3
+        # set to none to get min delay
+        self.m2e_latency = None
         self.access_delay = 0
         # SNR for audio in dB
         self.rec_snr = 60
@@ -660,8 +661,12 @@ class QoEsim:
 
         # calculate values in samples
         overplay_samples = int(self.overplay * self.sample_rate)
-        # correct for audio channel latency
-        m2e_latency_samples = int((self.m2e_latency - m2e_offset) * self.sample_rate)
+        
+        if self.m2e_latency is None:
+            m2e_latency_samples = 0
+        else:
+            # correct for audio channel latency
+            m2e_latency_samples = int((self.m2e_latency - m2e_offset) * self.sample_rate)
 
         if m2e_latency_samples < 0:
             # TODO : it might be possible to get around this but, it sounds slightly nontrivial...
