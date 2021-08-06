@@ -178,6 +178,9 @@ class PBI:
             self.P_a2 = P_a2
         self.P_r = P_r
         self.state_history = []
+        
+    def __repr__(self):
+        return f'{type(self).__name__}({self.P_a1}, {self.P_a2}, {self.P_r}, {self.interval})'
 
     def initial_state(self):
         self.state = self.STATE_G0
