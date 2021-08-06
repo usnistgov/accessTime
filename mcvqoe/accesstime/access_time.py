@@ -349,7 +349,12 @@ class measure:
             for k in range(len(temp_data_filenames)):
                 save_dat = self.load_dat(temp_data_filenames[k])
                 if not save_dat:
-                    print(f"\nNo data file found for {temp_data_filenames[k]}\n")
+                    self.progress_update(
+                                'status',
+                                len(temp_data_filenames),
+                                k,
+                                f"No data file found for {temp_data_filenames[k]}"
+                            )
                 else:
                     # File is good, need to copy to new name
                     copy_files[k] = True
@@ -905,7 +910,12 @@ class measure:
                                 #rename file to save it and record again
                                 os.rename(audioname, wav_name)
                                 
-                                print(f"Saving bad data to '{bad_name}'\n")
+                                self.progress_update(
+                                        'status',
+                                        total_trials,
+                                        trial_count,
+                                        msg=f"Saving bad data to '{bad_name}'"
+                                    )
                                 # Check if file exists for appending, or we need to create it
                                 if not (os.path.isfile(bad_name)):
                                     # File doesn't exist, create and write header
