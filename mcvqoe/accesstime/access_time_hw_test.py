@@ -14,17 +14,17 @@ from .access_time import measure as access_time_meas
 
         
 def int_or_inf(input):
-    """Check for 'infinite' entry, and change 'trials' to np.inf if found"""
+    """Check for 'infinite' entry, and change value  to np.inf if found"""
     try:
         return int(input)
-    except ValueError:
+    except ValueError as e:
         word = input.lower()
         infinite = ['inf', 'np.inf', 'math.inf', 'infinite']
         if word in infinite:
             return np.inf
         else:
-            print(f"\n{input} is an invalid value for '-t/--trials'")
-            sys.exit(1)
+            #not infinite, re throw ValueError
+            raise e
 
 import mcvqoe.gui.test_info_gui as test_info_gui
            
