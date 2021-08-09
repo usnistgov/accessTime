@@ -1,8 +1,7 @@
-import scipy.io.wavfile
 import scipy.signal
 import sounddevice as sd
 from fractions import Fraction
-from mcvqoe.base import audio_float
+import mcvqoe.base
 import tempfile
 import pkgutil
 import io
@@ -39,11 +38,9 @@ def single_play(ri, ap, audio_file=None, playback=False, ptt_wait=0.68, save_nam
     fs = ap.sample_rate
 
     # Gather audio data in numpy array and audio samplerate
-    fs_file, audio_dat = scipy.io.wavfile.read(audio_file)
+    fs_file, audio_dat = mcvqoe.base.audio_read(audio_file)
     # Calculate resample factors
     rs_factor = Fraction(fs / fs_file)
-    # Convert to float sound array
-    audio_dat = audio_float(audio_dat)
     # Resample audio
     audio = scipy.signal.resample_poly(
         audio_dat, rs_factor.numerator, rs_factor.denominator
@@ -69,7 +66,7 @@ def single_play(ri, ap, audio_file=None, playback=False, ptt_wait=0.68, save_nam
 
         if playback:
             # read in file
-            fs_rec, rec_dat = scipy.io.wavfile.read(audio_file)
+            fs_rec, rec_dat = mcvqoe.base.audio_read(audio_file)
             # check if we have multiple channels
             if len(rec_dat.shape) > 1:
                 # drop all but the first channel

@@ -7,7 +7,6 @@ import warnings
 
 import mcvqoe.base
 import numpy as np
-import scipy.io.wavfile
 import scipy.signal
 from mcvqoe.base import audio_float
 from mcvqoe.delay.ITS_delay_est import active_speech_level
@@ -786,6 +785,6 @@ class QoEsim:
                 raise RuntimeError("Internal error")
 
         # write out audio file
-        scipy.io.wavfile.write(out_name, int(self.sample_rate), rx_data)
+        mcvqoe.base.audio_write(out_name, int(self.sample_rate), rx_data)
 
         return outputs

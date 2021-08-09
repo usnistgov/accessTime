@@ -48,15 +48,15 @@ def ITS_delay_est(x_speech, y_speech, mode, fs=8000, dlyBounds=[np.NINF, np.inf]
 
     See Also
     --------
-    mcvqoe.sliding_delay_estimates : Uses ITS_delay_est.
-    scipy.io.wavfile.read : Function for reading in audio data.
+    mcvqoe.delay.sliding_delay_estimates : Uses ITS_delay_est.
+    mcvqoe.base.audio_read : Function for reading in audio data.
 
     Examples
     --------
     load in speech file for examples
 
     >>> speechf=io.BytesIO(pkgutil.get_data('mcvqoe','audio_clips/test.wav'))
-    >>> (fs_speech,speech)=scipy.io.wavfile.read(speechf)
+    >>> (fs_speech,speech)=mcvqoe.base.audio_read(speechf)
 
     Simple fixed delay example.
 

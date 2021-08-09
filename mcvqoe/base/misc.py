@@ -120,6 +120,12 @@ def audio_read(filename):
         shape (Nsamples, Nchannels) otherwise. Numpy data type is always set
         to float.
 
+    See Also
+    --------
+    mcvqoe.base.audio_write
+
+    mcvqoe.base.audio_type
+
     """
     sample_rate, audio_data = scipy.io.wavfile.read(filename)
     audio_data = audio_type(audio_data, dtype=np.dtype('float32'))
@@ -144,6 +150,12 @@ def audio_write(filename, rate, data):
     Returns
     -------
     None.
+
+    See Also
+    --------
+    mcvqoe.base.audio_read
+
+    mcvqoe.base.audio_type
 
     """
     data = audio_type(data, dtype=np.dtype('int16'))
