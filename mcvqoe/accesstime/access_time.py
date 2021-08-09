@@ -127,10 +127,10 @@ class measure:
         A single element list sets time expand before and after the keyword. A
         two element list sets the time at the beginning and the end of the
         keyword respectively.
-    trials : int, default=100
+    pause_trials : int, default=100
         Number of trials to run at a time. Test will run the number of trials
         before pausing for user input. This allows for battery changes or
-        radio cooling if needed. If pausing is not desired set trials to
+        radio cooling if needed. If pausing is not desired set pause_trials to
         np.inf.
     progress_update : function, default=mcvqoe.base.terminal_user.terminal_progress_update
         function to call to provide updates on test progress. This function
@@ -160,7 +160,7 @@ class measure:
 
     >>> test_obj = mcvqoe.accesstime.measure(ri=sim_obj,
                                              audio_interface=sim_obj,
-                                             trials = np.Inf)
+                                             pause_trials = np.Inf)
     >>> test_obj.run()
     """
     data_header = ['PTT_time', 'PTT_start', 'ptt_st_dly', 'P1_Int', 'P2_Int',
@@ -210,7 +210,7 @@ class measure:
         self.s_tries = 3
         self.stop_rep = 10
         self.time_expand = [100e-3 - 0.11e-3, 0.11e-3]
-        self.trials = 100
+        self.pause_trials = 100
         self.progress_update = terminal_progress_update
 
         for k, v in kwargs.items():
@@ -974,7 +974,7 @@ class measure:
                         
                         #------------------------[Check Trial Limit]--------------------------
                         
-                        if ((trial_count % self.trials) == 0):
+                        if ((trial_count % self.pause_trials) == 0):
                             
                             # Calculate set time
                             time_diff = datetime.datetime.now().replace(microsecond=0)
@@ -987,7 +987,7 @@ class measure:
                             user_exit = self.user_check(
                                     'normal-stop',
                                     'check batteries.',
-                                    trials=self.trials,
+                                    trials=self.pause_trials,
                                     time=set_time,
                                 )
                             

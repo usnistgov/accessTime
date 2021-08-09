@@ -24,8 +24,8 @@ def main():
     test_obj = access_time_meas()
     #set wait times to zero for simulation
     test_obj.ptt_gap = 0
-    #default trials to inf because we don't need to stop
-    test_obj.trials = np.inf
+    #default pause_trials to inf because we don't need to stop
+    test_obj.pause_trials = np.inf
     #only get test notes on error
     test_obj.get_post_notes = lambda : mcvqoe.gui.post_test(error_only=True)
 
@@ -46,8 +46,10 @@ def main():
     parser.add_argument('-k', '--audiopath', dest="audio_path", default=test_obj.audio_path,
                         metavar="Path", help="Path to look for audio file in. All audio"+
                         " file paths are relative to this unless they are absolute.")
-    parser.add_argument('-t', '--trials', type=int_or_inf, default=test_obj.trials, metavar="T",
-                        help="Number of trials to use for test. Defaults to 100.")
+    parser.add_argument('-t', '--pause-trials', type=int_or_inf,
+                        default=test_obj.pause_trials, metavar="T",
+                        help='Number of trials to run until a pause is ' +
+                        'encountered (default: %(default)s).')
     parser.add_argument('-y', '--pttdelay', nargs="+", dest="ptt_delay", type=float,
                         default=test_obj.ptt_delay, help="ptt_delay can be a 1 or 2 element double"+
                         " vector. If it is a 1 element vector then it specifies the minimum"+

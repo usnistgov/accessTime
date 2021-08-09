@@ -56,8 +56,10 @@ def main():
     parser.add_argument('-k', '--audiopath', dest="audio_path", default=test_obj.audio_path,
                         metavar="Path", help="Path to look for audio file in. All audio"+
                         " file paths are relative to this unless they are absolute.")
-    parser.add_argument('-t', '--trials', type=int_or_inf, default=test_obj.trials, metavar="T",
-                        help="Number of trials to use for test. Defaults to 100.")
+    parser.add_argument('-t', '--pause-trials', type=int_or_inf,
+                        default=test_obj.pause_trials, metavar="T",
+                        help='Number of trials to run until a pause is ' +
+                        'encountered (default: %(default)s).')
     parser.add_argument('-r', '--radioport', default='', metavar="PORT",
                         help="Port to use for radio interface. Defaults to the first"+
                         " port where a radio interface is detected.")
