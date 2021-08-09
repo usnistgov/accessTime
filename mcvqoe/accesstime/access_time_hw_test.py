@@ -68,8 +68,7 @@ def main():
                         " vector. If it is a 1 element vector then it specifies the minimum"+
                         " ptt_delay that will be used with the maximum being the end of the"+
                         " first word in the clip. If a two element vector then the first"+
-                        " element is the smallest delay used and the second is the largest."+
-                        " Defaults to 0.0(start of clip).")
+                        " element is the smallest delay used and the second is the largest.")
     parser.add_argument('-p', '--pttstep', dest="ptt_step", type=float, default=test_obj.ptt_step,
                         help="Time in seconds between successive pttdelays. Default is 20ms.")
     parser.add_argument('-z', '--bgnoisefile', dest="bgnoise_file", default='', help="If this is"+
@@ -77,23 +76,23 @@ def main():
                         "test audio. Default is no background noise.")
     parser.add_argument('-v', '--bgnoisevolume', dest="bgnoise_volume", type=float,
                         default=test_obj.bgnoise_volume, help="Scale factor for background"+
-                        " noise. Defaults to 0.1.")
+                        " noise. (Defaults to %(default).1f).")
     parser.add_argument('-s', '--pttgap', dest="ptt_gap", type=float, default=test_obj.ptt_gap,
                         help="Time to pause after completing one trial and starting the next."+
-                        " Defaults to 3.1s.")
+                        " (Defaults to %(default).1f s).")
     parser.add_argument('-e', '--pttrep', dest="ptt_rep", type=int, default=test_obj.ptt_rep,
                         help="Number of times to repeat a given PTT delay value. If auto_stop is "+
-                        "used ptt_rep must be greater than 15.")
+                        "used ptt_rep must be greater than 15. (Defaults to %(default)i)")
     parser.add_argument('-c', '--autostop', dest="auto_stop", action='store_true', default=test_obj.auto_stop,
                         help="Enable checking for access and stopping the test when it is detected.")
     parser.add_argument('--no-autostop', dest="auto_stop", action='store_false',
                         help="Disable checking for access and stopping the test when it is detected.")
     parser.add_argument('-f', '--stoprep', dest="stop_rep", type=int, default=test_obj.stop_rep,
                         help="Number of times that access must be detected in a row before the"+
-                        " test is completed.")
+                        " test is completed. (Defaults to %(default)i)")
     parser.add_argument('-g', '--devdly', dest="dev_dly", type=float, default=test_obj.dev_dly,
                         help="Delay in seconds of the audio path with no communication device"+
-                        " present. Defaults to 21e-3.")
+                        " present. (Defaults to %(default).4f s)")
     parser.add_argument('-m', '--datafile', dest="data_file", default=test_obj.data_file,
                         help="Name of a temporary datafile to use to restart a test. If this is"+
                         " given all other parameters are ignored and the settings that the original"+
@@ -117,9 +116,9 @@ def main():
                         help="Directory that is added to the output path for all files.")
     parser.add_argument('-i', '--sthresh', dest="s_thresh", default=test_obj.s_thresh,
                         help="The threshold of A-weight power for P2, in dB, below which a trial"+
-                        " is considered to have no audio. Defaults to -50.")
+                        " is considered to have no audio. (Defaults to %(default).1f dB)")
     parser.add_argument('-j', '--stries', dest="s_tries", type=int, default=test_obj.s_tries,
-                        help="Number of times to retry the test before giving up. Defaults to 3.")
+                        help="Number of times to retry the test before giving up. (Defaults to %(default)i)") 
     
     args = parser.parse_args()
     
