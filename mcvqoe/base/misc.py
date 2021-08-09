@@ -95,7 +95,60 @@ def audio_type(dat,dtype = np.dtype('int16')):
         return out_dat.astype('int32')
     else:
         raise RuntimeError(f'unknown audio type \'{dat.dtype}\'')
-    
+
+
+def audio_read(filename):
+    """
+    Open a WAV file.
+
+    Return the sample rate (in samples/sec) and data from a WAV file.
+    Regardless of original WAV file format, data is returned as float32 numpy
+    array.
+
+    Parameters
+    ----------
+    fname : str
+        Input WAV file.
+
+    Returns
+    -------
+    sample_rate : int
+        Sample rate of WAV file
+
+    audio_data : numpy array
+        Data read from WAV file. Data is 1-D for 1-channel WAV, or 2-D of
+        shape (Nsamples, Nchannels) otherwise. Numpy data type is always set
+        to float.
+
+    """
+    sample_rate, audio_data = scipy.io.wavfile.read(filename)
+    audio_data = audio_type(audio_data, dtype=np.dtype('float32'))
+    return sample_rate, audio_data
+
+
+def audio_write(filename, rate, data):
+    """
+    Write a NumPy array as a WAV file.
+
+    Regardless of type of data, writes wavfile as 16 bit PCM.
+
+    Parameters
+    ----------
+    filename : TYPE
+        DESCRIPTION.
+    rate : int
+        The sample rate (in samples/sec).
+    data : ndarray
+        A 1-D or 2-D NumPy array of either integer or float data-type.
+
+    Returns
+    -------
+    None.
+
+    """
+    data = audio_type(data, dtype=np.dtype('int16'))
+    scipy.io.wavfile.write(filename, rate, data)
+
 
 def svp56_fast(x, fs=8000):
     """
@@ -146,7 +199,6 @@ def svp56_fast(x, fs=8000):
 
     >>> (asl,_,_)=svp56_fast('speech.wav')
     """
-
     # if x is a filename, extact data from the wav file
     if isinstance(x, str):
         fs, x = scipy.io.wavfile(x)
