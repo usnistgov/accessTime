@@ -197,17 +197,17 @@ class QoEsim:
         self.PTT_sig_freq = 409.6  # TODO : VERIFY!
         self.PTT_sig_aplitude = 0.7
 
-    def __str__(self):
+    def __repr__(self):
         string_props=('sample_rate','overplay','rec_chans','playback_chans','channel_tech','channel_rate','m2e_latency','access_delay','rec_snr')
         string_opt_props=('pre_impairment','post_impairment','channel_impairment')
 
         props=[]
 
         for prop in string_props:
-            props.append(f'{prop} = {getattr(self, prop)}')
+            props.append(f'{prop} = {repr(getattr(self, prop))}')
         for prop in string_opt_props:
             if getattr(self, prop) is not None:
-                props.append(f'{prop} = {getattr(self, prop)}')
+                props.append(f'{prop} = {repr(getattr(self, prop))}')
 
         return f'{type(self).__name__}({", ".join(props)})'
 	
