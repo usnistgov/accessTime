@@ -7,7 +7,6 @@ import os
 import pkg_resources
 import pickle
 import scipy.interpolate
-import scipy.io.wavfile
 import scipy.signal
 import time
 import timeit
@@ -16,7 +15,6 @@ from .version import version
 from fractions import Fraction
 from mcvqoe.base.terminal_user import terminal_progress_update, terminal_user_check
 from mcvqoe.math import approx_permutation_test
-from warnings import warn
 
 import numpy as np
 
@@ -45,6 +43,14 @@ def mk_format(header):
     fmt = fmt[:-1]+'\n'
 
     return fmt
+    
+
+#generate filter for PTT signal
+#NOTE : this relies on fs being fixed!!
+# Calculate niquest frequency
+fn = abcmrt.fs/2
+# Create lowpass filter for PTT signal processing
+ptt_filt = scipy.signal.firwin(400, 200/fn, pass_zero='lowpass')
 
 
 class measure:
@@ -136,6 +142,9 @@ class measure:
         function to call to provide updates on test progress. This function
         takes three positional arguments, prog_type, total number of trials, current
         trial number. Depending on prog_type, different information is displayed to the user.
+    split_audio_dest : str, default=None
+        Location to store split audio. Intended for (yet to be completed)
+        reprocess.
 
     Methods
     -------
@@ -212,6 +221,9 @@ class measure:
         self.time_expand = [100e-3 - 0.11e-3, 0.11e-3]
         self.pause_trials = 100
         self.progress_update = terminal_progress_update
+        self.split_audio_dest = None
+        self.save_tx_audio = True
+        self.save_audio = True
 
         for k, v in kwargs.items():
             if hasattr(self, k):
@@ -219,56 +231,105 @@ class measure:
             else:
                 raise TypeError(f"{k} is not a valid keyword argument")
 
+    def load_audio(self):
+        """
+        load audio files for use in test.
+        
+        this loads audio from self.audio_files and stores values in self.y,
+        self.cutpoints. In most cases run() will call this automatically but,
+        it can be called in the case that self.audio_files is changed after
+        run() is called.
 
-    def _cutpoint_check(self, cutpoint):
-        """Check if cutpoint contains what we need and has the proper format"""
+        Parameters
+        ----------
 
-        with open(cutpoint, 'r') as csv_file:
-            reader = csv.reader(csv_file)
-            rows = sum(1 for row in reader)
-            if (rows != 5):
-                raise ValueError(f"Loading {cutpoint}: 4 'words' expected but, {rows-1} found")
+        Returns
+        -------
+
+        Raises
+        ------
+        ValueError
+            If self.audio_files is empty
+        RuntimeError
+            If clip fs is not 48 kHz
+        """
+   
+        #if we are not using all files, check that audio files is not empty
+        if not self.audio_files:
+            #TODO : is this the right error to use here??
+            raise ValueError('Expected self.audio_files to not be empty')
+
+        #check if we are making split audio
+        if(self.split_audio_dest):
+            #make sure that splid audio directory exists
+            os.makedirs(self.split_audio_dest,exist_ok=True)
+
+        #list for input speech
+        self.y=[]
+        #list for cutpoints
+        self.cutpoints=[]
+        #list for word spacing
+        self.inter_word_diff=0.0
+        
+        # If noise file was given, laod and resample to match audio files
+        if (self.bgnoise_file):
+            nfs, nf = mcvqoe.base.audio_read(self.bgnoise_file)
+            rs = Fraction(abcmrt.fs/nfs)
+            nf = mcvqoe.base.audio_float(nf)
+            nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)
+        
+        for f in self.audio_files:
+            #make full path from relative paths
+            f_full=os.path.join(self.audio_path,f)
+            # load audio
+            fs_file, audio_dat = mcvqoe.base.audio_read(f_full)
+            #check fs
+            if(fs_file != abcmrt.fs):
+                raise RuntimeError(f'Expected fs to be {abcmrt.fs} but got {fs_file} for {f}')
+                
+            #add noise if given
+            if self.bgnoise_file:
+                if (nf.size != audio_dat.size):
+                    #resize to fit
+                    n_nf=np.resize(nf, audio_dat.size)
+                    #add to array
+                    audio_dat = audio_dat + n_nf*self.bgnoise_volume
+            # Convert to float sound array and add to list
+            self.y.append( audio_dat )
+            #strip extension from file
+            fne,_=os.path.splitext(f_full)
+            #add .csv extension
+            fcsv=fne+'.csv'
+            #load cutpoints
+            cp=mcvqoe.base.load_cp(fcsv)
             
-            sheet = list(csv.reader(open(cutpoint)))
-            if (sheet[1][0] != 'NaN') or (sheet[3][0] != 'NaN'):
-                raise ValueError(f"Loading {cutpoint}: Words 1 and 3 must be silence")
+            #check cutpoints
+            words = len(cp)
+            if (words != 4):
+                raise ValueError(f"Loading {cutpoint}: 4 'words' expected but, {words} found")
             
-            if (sheet[2][0] != sheet[4][0]):
-                raise ValueError(f"Loading {cutpoint}: Words 2 and 4 must be the same")
+            if not np.isnan(cp[0]['Clip']) or not np.isnan(cp[2]['Clip']):
+                raise ValueError(f"Loading {fcsv}: Words 1 and 3 must be silence")
+            
+            if (cp[1]['Clip'] != cp[3]['Clip']):
+                raise ValueError(f"Loading {fcsv}: Words 2 and 4 must be the same")
             
             # Check inter word delays
-            inter_delay = (int(sheet[3][2]) - int(sheet[3][1])) / self.audio_interface.sample_rate
+            inter_delay = (cp[2]['End'] - cp[2]['Start']) / self.audio_interface.sample_rate
             if (self.inter_word_diff == 0.0):
                 self.inter_word_diff = inter_delay
             else:
                 if (self.inter_word_diff != inter_delay):
-                    warn(f"It is recommended that all inter word times are the same\n")
+                    #give warning
+                    self.progress_update(
+                                'warning',
+                                0,0,
+                                msg='It is recommended that all inter word times are the same',
+                            )
+            
+            #add cutpoints to array
+            self.cutpoints.append(cp)
 
-    def _cutpoint_exist(self, audiofile):
-        """Check if there's a cutpoint to match the audio file
-        
-        ...
-        
-        Parameters
-        ----------
-        audiofile : str
-            The .wav file we're hoping to find a match for
-            
-        Returns
-        -------
-        found : boolean
-            True/False if cutpoint is found/not found
-            
-        """
-        
-        # Split name of file with file extension
-        name, extension = os.path.splitext(audiofile)
-        cutpoint = name + ".csv"
-        if os.path.isfile(cutpoint):
-            return cutpoint
-        else:
-            return None
-            
     def set_time_expand(self,t_ex):
         """
         convert time expand from seconds to samples and ensure a 2 element vector.
@@ -308,18 +369,9 @@ class measure:
         
         #----------------[List of Vars to Save in Pickle File]----------------
         
-        save_vars = ('audiofiles_names', 'cutpoints', 'clipnames', 'audiofiles',
+        save_vars = ('self.audio_files', 'self.cutpoints', 'clip_names', 'self.y',
                      'bad_name', 'temp_data_filenames', 'ptt_st_dly',
-                     'wav_cap_dir')
-        
-        # Array of audiofile full path names
-        audiofiles_names = []
-        # Array of cutpoint tuples
-        cutpoints = []
-        # Array of cutpoint/audiofile names (no path or extensions)
-        clipnames = []
-        # Array of resampled audiofiles
-        audiofiles = []
+                     'wavdir')
         
         # Initialize clip end time for gap time calculation
         time_e = np.nan
@@ -359,9 +411,8 @@ class measure:
             # Copy recovery variables to current test
             ptt_st_dly = self.rec_file['ptt_st_dly']
             audiofiles_names = self.rec_file['audiofiles_names']
-            clipnames = self.rec_file['clipnames']
-            cutpoints = self.rec_file['cutpoints']
-            audiofiles = self.rec_file['audiofiles']
+            self.cutpoints = self.rec_file['cutpoints']
+            self.y = self.rec_file['audiofiles']
             
             # Recreate 'temp_data_filenames'
             temp_data_filenames = self.rec_file['temp_data_filenames']
@@ -370,7 +421,7 @@ class measure:
             # Save old names to copy to new names
             old_filenames = temp_data_filenames
             # Save old .wav folder
-            old_wavdir = self.rec_file['wav_cap_dir']
+            old_wavdir = self.rec_file['wavdir']
             # Save old bad file name
             old_bad_name = self.rec_file['bad_name']
    
@@ -431,48 +482,7 @@ class measure:
             k_start = 0
             kk_start = 0
             
-            # Parse through given audio_files
-            for aud in self.audio_files:
-                
-                # Create audio file path name
-                audio = os.path.join(self.audio_path, aud)
-                    
-                # Check if file exists, and run cutpoint checks
-                if os.path.isfile(audio):
-                    cutpoint = self._cutpoint_exist(audio)
-                    if cutpoint is not None:
-                        audiofiles_names.append(audio)
-                        
-                        self._cutpoint_check(cutpoint)
-                        # Turn cutpoint file path into useable tuple
-                        cut = mcvqoe.base.load_cp(cutpoint)
-                        cutpoints.append(cut)
-                        
-                        # Add to clipnames
-                        tmp_clip = os.path.basename(audio)
-                        nm, _ = os.path.splitext(tmp_clip)
-                        
-                        clipnames.append(nm)
-                    else:
-                        raise ValueError(f"{audio} has no corresponding .csv cutpoints file!")
-                else:
-                    raise TypeError(f"\n{audio} is not an audio file!")
-            
-            # Check proper sample rate and place audio files into array
-            for aud in audiofiles_names:
-                fs_file, audio_dat = scipy.io.wavfile.read(aud)
-                if fs_file != abcmrt.fs:
-                    raise ValueError(f"\nImproper sample rate. {aud} is at {fs_file} Hz and {abcmrt.fs} Hz is expected")
-                audio = mcvqoe.base.audio_float(audio_dat)
-                audiofiles.append(audio)
-            
-            # If noise file was given, resample to match audio files
-            if (self.bgnoise_file):
-                nfs, nf = scipy.io.wavfile.read(self.bgnoise_file)
-                rs = Fraction(abcmrt.fs/nfs)
-                nf = mcvqoe.base.audio_float(nf)
-                nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)    
-
+            self.load_audio()
         
         #-------------------------[Get Test Start Time]-------------------------
 
@@ -490,74 +500,55 @@ class measure:
 
         #-----------------[Initialize Folders and Filenames]------------------
 
-        # Data folder
-        dat_fold = os.path.join(self.outdir, "data")
-        os.makedirs(dat_fold, exist_ok=True)
+        #generate data dir names
+        data_dir     = os.path.join(self.outdir,'data')
+        wav_data_dir = os.path.join(data_dir,'wav')
+        csv_data_dir = os.path.join(data_dir,'csv')
+        rec_data_dir = os.path.join(data_dir, 'recovery')
         
-        # Recovery folder
-        rec_fold = os.path.join(dat_fold, 'recovery')
-        os.makedirs(rec_fold, exist_ok=True)
         
-        # Error folder
-        err_fold = os.path.join(dat_fold, 'error')
-        os.makedirs(err_fold, exist_ok=True)
+        #create data directories 
+        os.makedirs(csv_data_dir, exist_ok=True)
+        os.makedirs(wav_data_dir, exist_ok=True)
+        os.makedirs(rec_data_dir, exist_ok=True)
         
-        # CSV file folder
-        csvdir = os.path.join(dat_fold, "csv")
-        os.makedirs(csvdir, exist_ok=True)
+        #generate base file name to use for all files
+        base_filename='capture_%s_%s'%(self.info['Test Type'],dtn);
         
-        # WAV file folder
-        wavdir = os.path.join(dat_fold, "wav")
+        #generate test dir names
+        wavdir=os.path.join(wav_data_dir,base_filename) 
+        
+        #create test dir
         os.makedirs(wavdir, exist_ok=True)
         
-        # Create capture WAV file folder
-        td = self.info.get("Tstart").strftime("%d-%b-%Y_%H-%M-%S")
-        wav_cap_dir = 'capture_' + self.info['Test Type'] + '_' + td
-        wav_cap_dir = os.path.join(wavdir, wav_cap_dir)
-        # Expectation is this does not exist
-        os.makedirs(wav_cap_dir, exist_ok=False)
+        #get name of audio clip without path or extension
+        clip_names=[ os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files]
         
         # Generate csv filenames and add path
         self.data_filenames = []
         temp_data_filenames = []
-        for name in clipnames:
-            file = f"capture_{self.info['Test Type']}_{td}_{name}.csv"
-            tmp_f = f"capture_{self.info['Test Type']}_{td}_{name}_TEMP.csv"
-            file = os.path.join(csvdir, file)
-            tmp_f = os.path.join(csvdir, tmp_f)
+        for name in clip_names:
+            file = f"{base_filename}_{name}.csv"
+            tmp_f = f"{base_filename}_{name}_TEMP.csv"
+            file = os.path.join(csv_data_dir, file)
+            tmp_f = os.path.join(csv_data_dir, tmp_f)
             self.data_filenames.append(file)
             temp_data_filenames.append(tmp_f)
 
         # Generate filename for bad csv data
-        bad_name = f"capture_{self.info['test']}_{td}_BAD.csv"
-        bad_name = os.path.join(csvdir, bad_name)
-        
-        #---------------------[Add Noise File if Given]-----------------------
-        
-        if (self.bgnoise_file):
-            for audio in range(len(audiofiles)):
-                if (nf.size != audiofiles[audio].size):
-                    nf = np.resize(nf, audiofiles[audio].size)
-                audiofiles[audio] = audiofiles[audio] + nf*self.bgnoise_volume
+        bad_name = f"{base_filename}_BAD.csv"
+        bad_name = os.path.join(csv_data_dir, bad_name)
 
         #---------[Write Transmit Audio File(s) and cutpoint File(s)]----------
         
-        for num in range(len(audiofiles_names)):
-            tmp_csv = "Tx_" + clipnames[num] + ".csv"
-            tmp_wav = "Tx_" + clipnames[num] + ".wav"
-            tmp_csv = os.path.join(wav_cap_dir, tmp_csv)
-            tmp_wav = os.path.join(wav_cap_dir, tmp_wav)
-            mcvqoe.base.write_cp(tmp_csv, cutpoints[num])
-            # Write audio file
-            scipy.io.wavfile.write(tmp_wav,self.audio_interface.sample_rate,audiofiles[num])
-
-        #-------------------[Generate Filters and Times]----------------------
-
-        # Calculate niquest frequency
-        fn = self.audio_interface.sample_rate/2
-        
-        # Create lowpass filter for PTT signal processing
-        ptt_filt = scipy.signal.firwin(400, 200/fn, pass_zero='lowpass')
+        #write out Tx clips and cutpoints to files
+        #cutpoints are always written, they are needed for eval
+        for dat,name,cp in zip(self.y,clip_names,self.cutpoints):
+            out_name=os.path.join(wavdir,f'Tx_{name}')
+            #check if saving audio, cutpoints are needed for processing
+            if(self.save_tx_audio and self.save_audio):
+                mcvqoe.base.audio_write(out_name+'.wav', int(self.audio_interface.sample_rate), dat)
+            mcvqoe.base.write_cp(out_name+'.csv',cp)
 
         #-----------------------[Generate PTT Delays]-------------------------
         
@@ -567,11 +558,11 @@ class measure:
             ptt_step_counts = []
     
             if (len(self.ptt_delay) == 1):
-                for num in range(len(cutpoints)):
+                for num in range(len(self.cutpoints)):
                     # Word start time from end of first silence
-                    w_st = (cutpoints[num][0]['End']/self.audio_interface.sample_rate)
+                    w_st = (self.cutpoints[num][0]['End']/self.audio_interface.sample_rate)
                     # Word end time from end of word
-                    w_end = (cutpoints[num][1]['End']/self.audio_interface.sample_rate)
+                    w_end = (self.cutpoints[num][1]['End']/self.audio_interface.sample_rate)
                     # Delay during word (.0001 added to w_end ensures w_end's use)
                     w_dly = np.arange(w_st, (w_end+.0001), self.ptt_step)
                     # Delay during silence (.0001 decrement to ensure ptt_delay usage)
@@ -584,7 +575,7 @@ class measure:
                         ptt_st_dly[-1][-1] = 0.0
                     ptt_step_counts.append(len(ptt_st_dly[-1]))
             else:
-                for _ in range(len(cutpoints)):
+                for _ in range(len(self.cutpoints)):
                     dly_steps = np.arange(self.ptt_delay[1], self.ptt_delay[0], -self.ptt_step)
                     ptt_st_dly.append(dly_steps)
                     ptt_step_counts.append(len(dly_steps))
@@ -595,13 +586,16 @@ class measure:
         #----------------[Pickle important data for restart]------------------
         
         # Initialize error file
-        error_file = os.path.join(rec_fold, td+'.pickle')
+        error_file = os.path.join(rec_data_dir,base_filename+'.pickle')
          
         # Error dictionary
         err_dict = {}
          
         for var in save_vars:
-            err_dict[var] = locals()[var]
+            if var.startswith('self.'):
+                err_dict[var] = self.__dict__[var.split('.')[1]]
+            else:
+                err_dict[var] = locals()[var]
          
         # Add all access_time object parameters to error dictionary
         for i in self.__dict__:
@@ -632,14 +626,14 @@ class measure:
     
             #----------------------------[Clip Loop]------------------------------
             
-            for clip in range(len(audiofiles)):
+            for clip in range(len(self.y)):
                 
                 #---------------------[Calculate Delay Start Index]-------------------
                 
                 # Calculate index to start M2E latency at. This is 3/4 through the second silence.
                 # If more of the clip is used, ITS_delay can get confused and return bad values.
-                dly_st_idx = (int(cutpoints[clip][2]['Start'] + 0.75*(cutpoints[clip][2]['End']
-                                                                      -cutpoints[clip][2]['Start'])))
+                dly_st_idx = (int(self.cutpoints[clip][2]['Start'] + 0.75*(self.cutpoints[clip][2]['End']
+                                                                      -self.cutpoints[clip][2]['Start'])))
                 
                 
                 #---------------------[Update Total Trials]---------------------
@@ -653,7 +647,7 @@ class measure:
                     
                     with open(temp_data_filenames[clip], 'w', newline='') as csv_file:
                         writer = csv.writer(csv_file)
-                        writer.writerow([f'Audiofile = {audiofiles_names[clip]}'])
+                        writer.writerow([f'Audiofile = {self.audio_files[clip]}'])
                         writer.writerow([f'fs = {self.audio_interface.sample_rate}'])
                         writer.writerow(['----------------'])
                         writer.writerow(self.data_header)
@@ -663,7 +657,7 @@ class measure:
                                 'csv-update',
                                 total_trials,
                                 trial_count,
-                                clip_name=clipnames[clip],
+                                clip_name=clip_names[clip],
                                 file=temp_data_filenames[clip]
                             )):
                         raise SystemExit()
@@ -689,7 +683,7 @@ class measure:
                                 'acc-clip-update',
                                 total_trials,
                                 trial_count,
-                                clip_name=clipnames[clip],
+                                clip_name=clip_names[clip],
                                 delay=ptt_st_dly[clip][k],
                             )):
                         raise SystemExit()
@@ -719,13 +713,13 @@ class measure:
                         
                         #-----------------------------[Check Loop]----------------------------
                         
-                        # A-weight power of P2, used for silence detection
-                        a_p2 = -np.inf
+                        # flag for loop
+                        low_p2_aw=True
                         
                         # Number of retries for this clip
                         retries = 0
                         
-                        while (a_p2 <= self.s_thresh):
+                        while low_p2_aw:
                             
                             retries = retries + 1
                             
@@ -756,15 +750,15 @@ class measure:
                             tg_last = tg_e
                             
                             # Create audiofile name/path for recording
-                            audioname = f"Rx{clip_count}_{clipnames[clip]}.wav"
-                            audioname = os.path.join(wav_cap_dir, audioname)
+                            audioname = f"Rx{clip_count}_{clip_names[clip]}.wav"
+                            audioname = os.path.join(wavdir, audioname)
                             
                             # Get start timestamp
                             time_s = datetime.datetime.now().replace(microsecond=0)
                             tg_s = timeit.default_timer()
                             
                             # Play and record audio data
-                            rec_names = self.audio_interface.play_record(audiofiles[clip], audioname)
+                            rec_names = self.audio_interface.play_record(self.y[clip], audioname)
                             
                             # Get start time
                             time_e = datetime.datetime.now().replace(microsecond=0)
@@ -796,12 +790,6 @@ class measure:
                             else:
                                 # Unknown state
                                 raise RuntimeError(f"Unknown radio interface wait state: {state}")
-                            
-                            # Calculate gap time (try/except here for nan exception)
-                            try:
-                                time_gap = tg_s - tg_last
-                            except:
-                                time_gap = np.nan
 
                             #------------------------[Pause Between Runs]-------------------------
                             
@@ -809,125 +797,47 @@ class measure:
                             
                             #-------------------------[Data Processing]---------------------------
                             
-                            #get index of rx_voice channel
-                            voice_idx = rec_names.index('rx_voice')
-                            #get index of PTT_signal
-                            psig_idx = rec_names.index('PTT_signal')
+                            data = self.process_audio(clip,audioname,rec_names,dly_st_idx)
                             
-                            # Get latest run Rx audio
-                            dat_fs, dat = scipy.io.wavfile.read(audioname)
-                            dat = mcvqoe.base.audio_float(dat)
+                            #TODO : intelligibility for autostop
+                            success[0, clip_count-1] = data['P1Int']
+                            success[1, clip_count-1] = data['P2Int']
                             
-                            # Extract push to talk signal (getting envelope)
-                            ptt_sig = scipy.signal.filtfilt(
-                                                ptt_filt,
-                                                1,
-                                                np.absolute(dat[:,psig_idx])
-                                            )
-
-                            # Get max value
-                            ptt_max = np.amax(ptt_sig)
+                            data['pttstdly'] = ptt_st_dly[clip][k]
                             
-                            # Check levels
-                            if(ptt_max < 0.25):
-                                if(not self.progress_update(
-                                            'warning',
-                                            total_trials,
-                                            trial_count,
-                                            msg='Low PTT signal values. Check levels',
-                                        )):
-                                    raise SystemExit()
-
-                                
-                            # Normalize levels
-                            ptt_sig = ((ptt_sig*np.sqrt(2))/ptt_max)
+                            #----------------------[Add times to data]---------------------
                             
+                            # Calculate gap time (try/except here for nan exception)
                             try:
-                                # Determine turn on sample
-                                ptt_st_idx = np.nonzero(ptt_sig > 0.5)[0][0]
+                                time_gap = tg_s - tg_last
+                            except:
+                                time_gap = np.nan
                                 
-                                # Convert sample index to time
-                                st = ptt_st_idx/self.audio_interface.sample_rate
-                                
-                            except IndexError:
-                                st = np.nan
-                                #TODO figure and plot like MATLAB
-                            
-                            # Find when the ptt was pushed    
-                            ptt_start = st
-                            
-                            # Get ptt time. Subtract nominal play/record delay
-                            # (can be seen in PTT Gate data)
-                            ptt_time = ptt_start - self.dev_dly
-                            
-                            # Calculate delay. Only use data after dly_st_idx
-                            (_,dly) = mcvqoe.delay.ITS_delay_est(
-                                audiofiles[clip][dly_st_idx:], 
-                                dat[dly_st_idx:,voice_idx],
-                                mode='f',
-                                dlyBounds=[0, np.inf],
-                                fs=self.audio_interface.sample_rate
-                            )
-                            
-                            #convert to seconds
-                            dly_its = dly/self.audio_interface.sample_rate
-                            
-                            audio=dat[:,voice_idx]
-                            #array of audio data for each word
-                            word_audio=[]
-                            #array of word numbers
-                            word_num=[]
-                            #maximum index
-                            max_idx=len(audio)-1
-                            
-                            #amount to shift cutpoints is delay in samples
-                            cp_shift=dly
-                            
-                            clip_base=f"Rx{clip_count}_{clipnames[clip]}"
-                            self.split_audio_dest=None
-                            
-                            
-                            for cp_num,cpw in enumerate(cutpoints[clip]):
-                                if(not np.isnan(cpw['Clip'])):
-                                    #calculate start and end points
-                                    start=np.clip(cp_shift+cpw['Start']-self._time_expand_samples[0],0,max_idx)
-                                    end  =np.clip(cp_shift+cpw['End']  +self._time_expand_samples[1],0,max_idx)
-                                    #add word audio to array
-                                    word_audio.append(audio[start:end])
-                                    #add word num to array
-                                    word_num.append(cpw['Clip'])                
-                                    
-                                    if(clip_base and isinstance(self.split_audio_dest, str)):
-                                        outname=os.path.join(self.split_audio_dest,f'{clip_base}_cp{cp_num}_w{cpw["Clip"]}.wav')
-                                        #write out audio
-                                        scipy.io.wavfile.write(outname, int(abcmrt.fs), audio[start:end])
-                                    
-                            print(f'word_num : {word_num}')
-                                    
-                            _, success[:, clip_count-1] = abcmrt.process(word_audio, word_num)
-                            
-                            #----------------------[Calculate A-weight of P2]---------------------
-                            
                             # Format time_gap for CSV file
                             if np.isnan(time_gap):
-                                tg_str = 'nan'
+                                data['TimeGap'] = 'nan'
                             else:
-                                tg_str = f"{(time_gap//3600):.0f}:{((time_gap//60)%60):.0f}:{(time_gap%60):.3f}"
+                                data['TimeGap'] = f"{(time_gap//3600):.0f}:{((time_gap//60)%60):.0f}:{(time_gap%60):.3f}"
+                
+                            data['TimeStart'] = time_s.strftime('%H:%M:%S'),
+                            data['TimeEnd'] = time_e.strftime('%H:%M:%S'),
                             
-                            a_p2 = mcvqoe.base.a_weighted_power(word_audio[1], self.audio_interface.sample_rate)
-                            
-                            if (a_p2 <= self.s_thresh):
+                            #----------------------[Check A-weight of P2]---------------------
+                                                     
+                            low_p2_aw = data['p2Aweight'] <= self.s_thresh
+                                                     
+                            if low_p2_aw:
                                 if(not self.progress_update(
                                         'check-fail',
                                         total_trials,
                                         trial_count,
-                                        msg=f'A-weight power for P2 is {a_p2:.2f}dB',
+                                        msg=f'A-weight power for P2 is {data["p2Aweight"]:.2f}dB',
                                     )):
                                     raise SystemExit()
                                 
                                 # Save bad audiofile
-                                wav_name = f"Bad{clip_count}_r{retries}_{clipnames[clip]}"
-                                wav_name = os.path.join(wav_cap_dir, wav_name)
+                                wav_name = f"Bad{clip_count}_r{retries}_{clip_names[clip]}"
+                                wav_name = os.path.join(wavdir, wav_name)
                                 #rename file to save it and record again
                                 os.rename(audioname, wav_name)
                                 
@@ -952,12 +862,6 @@ class measure:
                                             trialcount=trial_count,
                                             clipcount=clip_count,
                                             rtry=retries,
-                                            p2Aweight=a_p2,
-                                            m2elatency=dly_its,
-                                            channels=chans_to_string(rec_names),
-                                            TimeStart=time_s.strftime('%H:%M:%S'),
-                                            TimeEnd=time_e.strftime('%H:%M:%S'),
-                                            TimeGap=tg_str
                                         )
                                     )
                                     
@@ -971,7 +875,7 @@ class measure:
                                         'check-resume',
                                         total_trials,
                                         trial_count,
-                                        msg=f'A-weight power of {a_p2:.2f} dB for P2',
+                                        msg=f'A-weight power of {data["p2Aweight"]:.2f} dB for P2',
                                     )):
                                 raise SystemExit()
                             
@@ -980,16 +884,7 @@ class measure:
                         with open(temp_data_filenames[clip], 'a') as csv_file:
                             csv_file.write(
                                 dat_format.format(
-                                    PTTtime=ptt_time,
-                                    PTTstart=ptt_start,
-                                    pttstdly=ptt_st_dly[clip][k],
-                                    P1Int=success[0, clip_count-1],
-                                    P2Int=success[1, clip_count-1],
-                                    m2elatency=dly_its,
-                                    channels=chans_to_string(rec_names),
-                                    TimeStart=time_s.strftime('%H:%M:%S'),
-                                    TimeEnd=time_e.strftime('%H:%M:%S'),
-                                    TimeGap=tg_str
+                                    **data,
                                 )
                             )
                         
@@ -1052,7 +947,7 @@ class measure:
                     
                     # Check if we should look for stopping condition
                     # Only stop if ptt delay is before the first word
-                    if (self.auto_stop and (cutpoints[clip][1]['End']/self.audio_interface.sample_rate)>ptt_st_dly[clip][k]):
+                    if (self.auto_stop and (self.cutpoints[clip][1]['End']/self.audio_interface.sample_rate)>ptt_st_dly[clip][k]):
                         if (self.stop_rep<=k and all(stop_flag[(k-self.stop_rep):k])):
                             #stopped early, update step counts
                             ptt_step_counts[clip] = k
@@ -1089,6 +984,159 @@ class measure:
             #finish log entry
             mcvqoe.base.post(outdir=self.outdir, info=info)
 
+    def process_audio(self,clip_index,fname,rec_chans,dly_st_idx):
+    
+        #-----------------------[Load in recorded audio]-----------------------
+ 
+        # Get latest run Rx audio
+        dat_fs, rec_dat = mcvqoe.base.audio_read(fname)
+        
+        #get index of rx_voice channel
+        voice_idx = rec_chans.index('rx_voice')
+        #get voice channel
+        voice_dat=rec_dat[:,voice_idx]
+        
+        #get index of PTT_signal
+        psig_idx = rec_chans.index('PTT_signal')
+        #get PTT signal data
+        psig_dat=rec_dat[:,psig_idx]
+        
+        #----------------------------[Calculate M2E]----------------------------
+        
+        # Calculate delay. Only use data after dly_st_idx
+        (_,dly) = mcvqoe.delay.ITS_delay_est(
+            self.y[clip_index][dly_st_idx:], 
+            voice_dat[dly_st_idx:],
+            mode='f',
+            dlyBounds=[0, np.inf],
+            fs=self.audio_interface.sample_rate
+        )
+        
+        #convert to seconds
+        estimated_m2e_latency = dly/self.audio_interface.sample_rate
+        
+        #---------------------[Compute intelligibility]---------------------
+        
+        #strip filename for basename in case of split clips
+        if(isinstance(self.split_audio_dest, str)):
+            (bname,_)=os.path.splitext(os.path.basename(fname))
+        else:
+            bname=None
+        
+        data=self.compute_intelligibility(
+                                          voice_dat,
+                                          self.cutpoints[clip_index],
+                                          dly,clip_base=bname
+                                          )
+                
+        
+        #--------------------------[Compute ptt_time]--------------------------
+        
+        data['PTTstart'] = self.process_ptt(psig_dat)
+        
+        # Get ptt time. Subtract nominal play/record delay
+        # (can be seen in PTT Gate data)
+        data['PTTtime']= data['PTTstart'] - self.dev_dly
+        
+        #----------------------------[Add M2E data]----------------------------
+
+        data['m2elatency'] = estimated_m2e_latency
+        
+        #----------------------------[Add channels]----------------------------
+
+        data['channels'] = chans_to_string(rec_chans)
+        
+        return data
+        
+    def compute_intelligibility(self,audio,cutpoints,cp_shift,clip_base=None):
+        
+        #array of audio data for each word
+        word_audio=[]
+        #array of word numbers
+        word_num=[]
+        #maximum index in audio array
+        max_idx=len(audio)-1
+        
+        for cp_num,cpw in enumerate(cutpoints):
+            if(not np.isnan(cpw['Clip'])):
+                #calculate start and end points
+                start=np.clip(cp_shift+cpw['Start']-self._time_expand_samples[0],0,max_idx)
+                end  =np.clip(cp_shift+cpw['End']  +self._time_expand_samples[1],0,max_idx)
+                #add word audio to array
+                word_audio.append(audio[start:end])
+                #add word num to array
+                word_num.append(cpw['Clip'])                
+                
+                if(clip_base and isinstance(self.split_audio_dest, str)):
+                    outname=os.path.join(self.split_audio_dest,f'{clip_base}_cp{cp_num}_w{cpw["Clip"]}.wav')
+                    #write out audio
+                    mcvqoe.base.audio_write(outname, int(abcmrt.fs), audio[start:end])
+                
+        _, success = abcmrt.process(word_audio, word_num)
+
+        #put data into return array
+        data={
+              'P1Int' : success[0],
+              'P2Int' : success[1],
+             }
+    
+        #compute a weight power of word two here, because we have the cut audio
+        data['p2Aweight'] = mcvqoe.base.a_weighted_power(word_audio[1],self.audio_interface.sample_rate)
+        
+        return data
+        
+    def process_ptt(self,signal):
+        '''
+        Compute PTT time from ptt signal.
+        
+        Parameters
+        ----------
+        signal : numpy vector
+            Audio recording vector of the PTT signal.
+        
+        Returns
+        -------
+        float
+            The time, in seconds from the start of the clip, that the PTT was
+            pushed at.
+        '''
+        
+        # Extract push to talk signal (getting envelope)
+        ptt_sig = scipy.signal.filtfilt(
+                            ptt_filt,
+                            1,
+                            np.absolute(signal)
+                        )
+
+        # Get max value
+        ptt_max = np.amax(ptt_sig)
+        
+        # Check levels
+        if(ptt_max < 0.25):
+            if(not self.progress_update(
+                        'warning',
+                        total_trials,
+                        trial_count,
+                        msg='Low PTT signal values. Check levels',
+                    )):
+                raise SystemExit()
+
+            
+        # Normalize levels
+        ptt_sig = ((ptt_sig*np.sqrt(2))/ptt_max)
+        
+        try:
+            # Determine turn on sample
+            ptt_st_idx = np.nonzero(ptt_sig > 0.5)[0][0]
+            
+            # Convert sample index to time
+            st = ptt_st_idx/self.audio_interface.sample_rate
+            
+        except IndexError:
+            st = np.nan
+        
+        # Return when the ptt was pushed    
+        return st
             
     def param_check(self):
         """Check all input parameters for value errors"""
