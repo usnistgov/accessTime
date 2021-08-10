@@ -1073,7 +1073,7 @@ class measure:
                 #return value not checked, test is finished so no abort possible
                 self.progress_update(
                                 'csv-rename',
-                                trial_count,
+                                len(temp_data_filenames),
                                 k,
                                 file=temp_data_filenames[k],
                                 new_file=self.data_filenames[k],
