@@ -626,6 +626,9 @@ class measure:
     
             #----------------------------[Clip Loop]------------------------------
             
+            #load templates outside the loop so we take the hit here
+            abcmrt.load_templates()
+            
             for clip in range(len(self.y)):
                 
                 #---------------------[Calculate Delay Start Index]-------------------
