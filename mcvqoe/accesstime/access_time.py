@@ -268,6 +268,31 @@ class measure:
             return cutpoint
         else:
             return None
+            
+    def set_time_expand(self,t_ex):
+        """
+        convert time expand from seconds to samples and ensure a 2 element vector.
+        
+        This is called automatically in run and post_process and, normally, it
+        is not required to call set_time_expand manually
+
+        Parameters
+        ----------
+        t_ex :
+            time expand values in seconds
+        Returns
+        -------
+        """
+        self._time_expand_samples=np.array(t_ex)
+        
+        if(len(self._time_expand_samples)==1):
+            #make symmetric interval
+            self._time_expand_samples=np.array([self._time_expand_samples,]*2)
+
+        #convert to samples
+        self._time_expand_samples=np.ceil(
+                self._time_expand_samples*abcmrt.fs
+                ).astype(int)
 
     def run(self, recovery=False):
         """Run an Access Time test
@@ -316,6 +341,9 @@ class measure:
             raise ValueError('self.audio_interface must be set up to record rx_voice')
         if('PTT_signal' not in self.audio_interface.rec_chans.keys()):
             raise ValueError('self.audio_interface must be set up to record PTT_signal')
+            
+        #---------------------------[Set time expand]---------------------------
+        self.set_time_expand(self.time_expand)
                    
         #---------------------[Generate csv format strings]---------------------
         
@@ -530,11 +558,6 @@ class measure:
         
         # Create lowpass filter for PTT signal processing
         ptt_filt = scipy.signal.firwin(400, 200/fn, pass_zero='lowpass')
-        
-        # Generate time vector for audiofiles
-        t_y = []
-        for i in range(len(audiofiles)):
-            t_y.append((np.arange(1, len(audiofiles[i])+1)) / self.audio_interface.sample_rate)
 
         #-----------------------[Generate PTT Delays]-------------------------
         
@@ -834,12 +857,11 @@ class measure:
                             ptt_start = st
                             
                             # Get ptt time. Subtract nominal play/record delay
-                            # TODO: This might not be right, seems that device delays don't impact this
                             # (can be seen in PTT Gate data)
                             ptt_time = ptt_start - self.dev_dly
                             
                             # Calculate delay. Only use data after dly_st_idx
-                            (_,dly_its) = mcvqoe.delay.ITS_delay_est(
+                            (_,dly) = mcvqoe.delay.ITS_delay_est(
                                 audiofiles[clip][dly_st_idx:], 
                                 dat[dly_st_idx:,voice_idx],
                                 mode='f',
@@ -848,42 +870,41 @@ class measure:
                             )
                             
                             #convert to seconds
-                            dly_its = dly_its/self.audio_interface.sample_rate
+                            dly_its = dly/self.audio_interface.sample_rate
                             
-                            # Interpolate for new time
-                            # TODO: do this with an offset once we've confirmed we're equivalent to matlab
-                            inter_arr = (np.arange(len(dat[:, voice_idx]))/self.audio_interface.sample_rate-dly_its)
-                            rec_int = scipy.interpolate.RegularGridInterpolator((inter_arr, ), dat[:,voice_idx])
-
-                            # New shifted version of signal
-                            rec_a = rec_int(t_y[clip])
-            
-                            # Expand cutpoints by TimeExpand
-                            ex_cp_1 = np.array([cutpoints[clip][1]['Start'], cutpoints[clip][1]['End']])
-                            ex_cp_2 = np.array([cutpoints[clip][3]['Start'], cutpoints[clip][3]['End']])
-                            # Turn into numpy array for easier use
-                            tm_expand = np.array(self.time_expand)
-                            tm_expand = np.round((tm_expand*self.audio_interface.sample_rate) * np.array([1, -1]), 0)
-                            tm_expand = tm_expand.astype(int)
-                            ex_cp_1 = ex_cp_1 - tm_expand
-                            ex_cp_2 = ex_cp_2 - tm_expand
+                            audio=dat[:,voice_idx]
+                            #array of audio data for each word
+                            word_audio=[]
+                            #array of word numbers
+                            word_num=[]
+                            #maximum index
+                            max_idx=len(audio)-1
                             
-                            # Limit cutpoints to clip length
-                            ylen = len(audiofiles[clip])
-                            ex_cp_1[ex_cp_1>ylen] = ylen
-                            ex_cp_2[ex_cp_2>ylen] = ylen
+                            #amount to shift cutpoints is delay in samples
+                            cp_shift=dly
                             
-                            # Minimum cutpoint index is 0
-                            ex_cp_1[ex_cp_1<1] = 0
-                            ex_cp_2[ex_cp_2<1] = 0
+                            clip_base=f"Rx{clip_count}_{clipnames[clip]}"
+                            self.split_audio_dest=None
                             
-                            # Split file into clips
-                            dec_sp = [np.transpose(rec_a[ex_cp_1[0]: ex_cp_1[1]]),
-                                      np.transpose(rec_a[ex_cp_2[0]: ex_cp_2[1]])]
-
-                            # Compute MRT scores for clips
-                            cutpoint_MRT = [cutpoints[clip][1]['Clip'], cutpoints[clip][3]['Clip']]
-                            _, success[:, clip_count-1] = abcmrt.process(dec_sp, cutpoint_MRT)
+                            
+                            for cp_num,cpw in enumerate(cutpoints[clip]):
+                                if(not np.isnan(cpw['Clip'])):
+                                    #calculate start and end points
+                                    start=np.clip(cp_shift+cpw['Start']-self._time_expand_samples[0],0,max_idx)
+                                    end  =np.clip(cp_shift+cpw['End']  +self._time_expand_samples[1],0,max_idx)
+                                    #add word audio to array
+                                    word_audio.append(audio[start:end])
+                                    #add word num to array
+                                    word_num.append(cpw['Clip'])                
+                                    
+                                    if(clip_base and isinstance(self.split_audio_dest, str)):
+                                        outname=os.path.join(self.split_audio_dest,f'{clip_base}_cp{cp_num}_w{cpw["Clip"]}.wav')
+                                        #write out audio
+                                        scipy.io.wavfile.write(outname, int(abcmrt.fs), audio[start:end])
+                                    
+                            print(f'word_num : {word_num}')
+                                    
+                            _, success[:, clip_count-1] = abcmrt.process(word_audio, word_num)
                             
                             #----------------------[Calculate A-weight of P2]---------------------
                             
@@ -893,7 +914,7 @@ class measure:
                             else:
                                 tg_str = f"{(time_gap//3600):.0f}:{((time_gap//60)%60):.0f}:{(time_gap%60):.3f}"
                             
-                            a_p2 = mcvqoe.base.a_weighted_power(dec_sp[1], self.audio_interface.sample_rate)
+                            a_p2 = mcvqoe.base.a_weighted_power(word_audio[1], self.audio_interface.sample_rate)
                             
                             if (a_p2 <= self.s_thresh):
                                 if(not self.progress_update(
