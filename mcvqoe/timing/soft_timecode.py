@@ -6,7 +6,7 @@ import datetime
 soft_time_fmt = "TM%j-%Y_%H-%M-%S.%f"
 
 
-def softTimeDecode(audio):
+def soft_time_decode(audio,fs):
     if len(audio.shape) != 1:
         raise ValueError("Input must be a numpy vector")
     times = []
@@ -35,6 +35,7 @@ def softTimeDecode(audio):
         tc_str = "".join([chr(c) for c in audio[idx:end_idx]])
         time = datetime.datetime.strptime(tc_str, soft_time_fmt)
         # append time and index to array
-        times.append((idx, time))
+        times.append(time)
+        samples.append(idx)
 
-    return times
+    return np.array(times), np.array(samples)

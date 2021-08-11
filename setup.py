@@ -40,6 +40,7 @@ setuptools.setup(
             "local-copy=mcvqoe.utilities.local_copy:main",
             "mcvqoe-test-play=mcvqoe.hardware.PTT_play:main",
             "mcvqoe-chan=mcvqoe.utilities.channelinfo:main",
+            "mcvqoe-2loc-process=mcvqoe.timing.two_loc_process:main",
         ],
         "mcvqoe.channel": "clean=mcvqoe.simulation.cleanchan",
     },

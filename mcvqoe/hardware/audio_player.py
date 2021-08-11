@@ -13,9 +13,7 @@ import scipy.signal
 import sounddevice as sd
 import soundfile as sf
 
-from mcvqoe.base.soft_timecode import soft_time_fmt
-
-soft_time_fmt = "TM%j-%Y_%H-%M-%S.%f"
+from mcvqoe.timing.soft_timecode import soft_time_fmt
 
 try:
     import ctypes
