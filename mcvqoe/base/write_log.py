@@ -137,7 +137,7 @@ def fill_log(test_obj, git_path=None):
     # ---------------------------[Fill Arguments list]---------------------------
 
     # class properties to skip in all cases
-    standard_skip = ["no_log", "info"]
+    standard_skip = ["no_log", "info", "progress_update", "user_check"]
     arg_list = []
 
     for k, v in vars(test_obj).items():
