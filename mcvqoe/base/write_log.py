@@ -141,7 +141,7 @@ def fill_log(test_obj, git_path=None):
     arg_list = []
 
     for k, v in vars(test_obj).items():
-        if k not in test_obj.no_log and k not in standard_skip:
+        if not k.startswith('_') and k not in test_obj.no_log and k not in standard_skip:
             arg_list.append(k + " = " + repr(v))
 
     info["Arguments"] = ",".join(arg_list)
