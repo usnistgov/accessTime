@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import scipy.signal as sig
 from numpy.fft import fft, ifft
@@ -87,7 +89,6 @@ def ITS_delay_est(x_speech, y_speech, mode, fs=8000, dlyBounds=[np.NINF, np.inf]
     >>> ITS_delay_est(speech,speech[:1000],'f')
     array([0, 0])
     """
-
     # ----------------------------Parse Arguments--------------------------------
     x_speech = np.array(x_speech, dtype=np.float64)
     if len(x_speech) == 0:
@@ -99,7 +100,7 @@ def ITS_delay_est(x_speech, y_speech, mode, fs=8000, dlyBounds=[np.NINF, np.inf]
     if len(y_speech) == 0:
         raise ValueError("y_speech can not have zero length")
     if y_speech.ndim != 1:
-        raise ValueError(f"Expected 1 dimension for y_speech but {t_speech.ndim} found")
+        raise ValueError(f"Expected 1 dimension for y_speech but {y_speech.ndim} found")
 
     if mode not in ("f", "v", "u"):
         raise ValueError(f'Unknown mode "{mode}", expected mode to be one of "f", "v", or "u"')
@@ -126,8 +127,19 @@ def ITS_delay_est(x_speech, y_speech, mode, fs=8000, dlyBounds=[np.NINF, np.inf]
 
     # --------------------------Level Normalization-----------------------------#
     # Measure active speech level
-    asl_x = active_speech_level(x_speech)
-    asl_y = active_speech_level(y_speech)
+    try:
+        asl_x = active_speech_level(x_speech)
+        asl_y = active_speech_level(y_speech)
+    except ValueError:
+        warnings.warn('Input vector has no signal')
+        Delay_est = np.array([0, 0], ndmin=2)
+
+        if ret_type == "single-value":
+            # return results as a tuple of ints
+            return (int(Delay_est[:, 0]), int(Delay_est[:, 1]))
+        else:
+            # return results as a tuple of tuples
+            return (tuple(Delay_est[:, 0]), tuple(Delay_est[:, 1]))
     # Force active speech level to -26 dB r.e. overload
     x_speech = x_speech * 10 ** ((asl_x + 26) / -20)
     y_speech = y_speech * 10 ** ((asl_y + 26) / -20)
@@ -217,7 +229,7 @@ def ITS_delay_est(x_speech, y_speech, mode, fs=8000, dlyBounds=[np.NINF, np.inf]
     Delay_est = (np.array(Delay_est, ndmin=2) * (fs / 8000)).astype(np.int)
 
     if ret_type == "single-value":
-        # return results as a tuple of tuples
+        # return results as a tuple of ints
         return (int(Delay_est[:, 0]), int(Delay_est[:, 1]))
     else:
         # return results as a tuple of tuples
