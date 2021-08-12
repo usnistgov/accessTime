@@ -23,26 +23,6 @@ def test_name_parts(name):
                 name
               )
     return (m.group('prefix'),m.group('testtype'),m.group('date'))
-    
-def chans_to_string(chans):
-    #check if we got a string
-    if(isinstance(chans, str)):
-        raise ValueError('Input can not be str')
-    #channel string
-    return '('+(';'.join(chans))+')'
-
-
-def parse_audio_chans(csv_str):
-    '''
-    Function to parse audio channels from csv file
-    '''
-    match=re.search('\((?P<chans>[^)]+)\)',csv_str)
-
-    if(not match):
-        raise ValueError(f'Unable to parse chans {csv_str}, expected in the form "(chan1;chan2;...)"')
-
-    return tuple(match.group('chans').split(';'))
-
 
 def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=np.dtype('int16')):
     '''
@@ -252,7 +232,7 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=
             #make floating point for processing purposes
             tx_rec_dat=mcvqoe.base.audio_float(tx_rec_dat)
             
-            tx_rec_chans=parse_audio_chans(row['channels'])
+            tx_rec_chans=mcvqoe.base.parse_audio_channels(row['channels'])
             
             if(len(tx_rec_chans)==1):
                 #only one channel, make sure that it's a timecode
@@ -346,7 +326,7 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=
                 out_audio=rx_rec
             
             #overwrite new channels to csv
-            row['channels']=chans_to_string(out_chans)
+            row['channels']=mcvqoe.base.audio_channels_to_string(out_chans)
             
             #TODO : process audio?
             
