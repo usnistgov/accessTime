@@ -6,6 +6,7 @@ import json
 import mcvqoe.base
 import os
 import re
+import shutil
 
 import numpy as np
 
@@ -223,6 +224,9 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=
         
         #create dict writer, same fields as input
         writer=csv.DictWriter(out_csv_f,reader.fieldnames)
+        
+        #write output header
+        writer.writeheader()
     
         #loop thru all tx recordings
         for trial,row in enumerate(reader):
@@ -340,6 +344,14 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=
             #write row to new .csv
             writer.writerow(row)
         
+        #copy Tx files into destination folder
+        for name in glob.glob(os.path.join(tx_wav_path,'Tx_*')):
+            #get clip name from path
+            clip_name=os.path.basename(name)
+            #construct destination name
+            destname=os.path.join(wavdir,clip_name)
+            #copy file
+            shutil.copyfile(name,destname)
 
 
 
