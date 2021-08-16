@@ -12,12 +12,14 @@ import re
 import shutil
 import warnings
 
+import pdb
+
 appname = "mcvqoe"
 appauthor = "MCV"
 
 
 def local_copy(test_names, test_type, local_path=None,
-               network_path=None, tx_wav=False):
+               network_path=None, tx_wav=False, rx_wav = False):
     """
     Copy MCV QoE Measurement Data.
 
@@ -131,8 +133,10 @@ def local_copy(test_names, test_type, local_path=None,
             # Define local path to store wav files, make it if need be
             lppath = os.path.join(local_path, "wav", tname)
             os.makedirs(lppath, exist_ok=True)
+
+            # Search pattern to determine if looking at received file
+            rx_pattern = r'^Rx\d+_.+.wav$'
             for wfile in wav_files:
-                # TODO: Add ability to copy rx_wav
                 if ".csv" in wfile:
                     # Copy cut point file
                     wpath = os.path.join(wav_path, wfile)
@@ -159,6 +163,18 @@ def local_copy(test_names, test_type, local_path=None,
                             shutil.copyfile(tx_wpath, tx_lpath)
                         else:
                             print(f"Found locally: {tx_lpath}")
+                elif rx_wav and re.search(rx_pattern, wfile):
+                    # Looking at a received audio file
+                    # Copy from path
+                    rx_wpath = os.path.join(wav_path, wfile)
+                    # Copy to path
+                    rx_lpath = os.path.join(lppath, wfile)
+                    # Check if local file already exists
+                    if not os.path.exists(rx_lpath):
+                        print(f"Copying {rx_wpath} to {rx_lpath}")
+                        shutil.copyfile(rx_wpath, rx_lpath)
+                    else:
+                        print(f"Found locally: {rx_lpath}")
 
 
 def print_config(test_type=None):
@@ -279,6 +295,10 @@ def main():
                         action="store_true",
                         help="Copy transmit audio wav file with cutpoints",
                         )
+    parser.add_argument('-r', '--rx-wav',
+                        default=False,
+                        action="store_true",
+                        help="Copy received audio wav file with cutpoints")
 
     args = parser.parse_args()
 
@@ -295,6 +315,7 @@ def main():
             local_path=args.local_path,
             network_path=args.network_path,
             tx_wav=args.tx_wav,
+            rx_wav=args.rx_wav
         )
 
 
