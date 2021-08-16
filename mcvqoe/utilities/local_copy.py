@@ -4,22 +4,22 @@ Created on Wed Jan 13 14:07:46 2021
 
 @author: jkp4
 """
-import os
+import appdirs
 import argparse
-import pdb
+import configparser
+import os
+import re
 import shutil
 import warnings
-import appdirs
-import configparser
-import re
 
 appname = "mcvqoe"
 appauthor = "MCV"
 
 
-def local_copy(test_names, test_type, local_path=None, network_path=None, tx_wav=False):
+def local_copy(test_names, test_type, local_path=None,
+               network_path=None, tx_wav=False):
     """
-    Function to copy MCV QoE Measurement Data.
+    Copy MCV QoE Measurement Data.
 
     Stores local_path and network_path for each test_type in a config file so
     they only need to be set once.
@@ -55,7 +55,8 @@ def local_copy(test_names, test_type, local_path=None, network_path=None, tx_wav
     config = configparser.ConfigParser()
 
     # load config file
-    config_path = os.path.join(appdirs.user_data_dir(appname, appauthor), "config.ini")
+    config_path = os.path.join(appdirs.user_data_dir(appname, appauthor),
+                               "config.ini")
     config.read(config_path)
 
     if network_path is None:
@@ -63,7 +64,9 @@ def local_copy(test_names, test_type, local_path=None, network_path=None, tx_wav
         if config.has_option(test_type, "network_path"):
             network_path = config[test_type]["network_path"]
         else:
-            raise ValueError("No network path passed and has not been configured")
+            raise ValueError(
+                "No network path passed and has not been configured"
+                )
     else:
         # If new network path passed update config file
         if config.has_section(test_type):
@@ -76,7 +79,9 @@ def local_copy(test_names, test_type, local_path=None, network_path=None, tx_wav
         if config.has_option(test_type, "local_path"):
             local_path = config[test_type]["local_path"]
         else:
-            raise ValueError("No local path passed and has not been configured")
+            raise ValueError(
+                "No local path passed and has not been configured"
+                )
     else:
         # If new local path passed update config file
         if config.has_section(test_type):
@@ -91,12 +96,12 @@ def local_copy(test_names, test_type, local_path=None, network_path=None, tx_wav
     # Make local path if it doesn't exist
     os.makedirs(local_path, exist_ok=True)
 
-    # ---------------------[Ensure local path has proper subdirs]---------------
+    # ---------------------[Ensure local path has proper subdirs]--------------
     if not os.path.exists(os.path.join(local_path, "csv")):
         os.makedirs(os.path.join(local_path, "csv"))
     if not os.path.exists(os.path.join(local_path, "wav")):
         os.makedirs(os.path.join(local_path, "wav"))
-    # --------------------[Test CSV files]--------------------------------------------
+    # --------------------[Test CSV files]-------------------------------------
     csv_path = os.path.join(network_path, "csv")
     csv_files = os.listdir(csv_path)
 
@@ -106,10 +111,10 @@ def local_copy(test_names, test_type, local_path=None, network_path=None, tx_wav
             if tname in cfile:
                 lpath = os.path.join(local_path, "csv", cfile)
                 if not os.path.exists(lpath):
-                    print("Copying {} to {}".format(cpath, lpath))
+                    print(f"Copying {cpath} to {lpath}")
                     shutil.copyfile(cpath, lpath)
                 else:
-                    print("Found locally: {}".format(lpath))
+                    print(f"Found locally: {lpath}")
 
     # --------------------[Cutpoint Files]----------------------------------
     for tname in test_names:
@@ -118,7 +123,7 @@ def local_copy(test_names, test_type, local_path=None, network_path=None, tx_wav
         # Path to wav folder
         wav_path = os.path.join(network_path, "wav", tname)
         if not os.path.exists(wav_path):
-            warnings.warn("Test path not found in wav on network {}".format(wav_path))
+            warnings.warn(f"Test path not found in wav on network {wav_path}")
         else:
             # Get all files in wav_path
             wav_files = os.listdir(wav_path)
@@ -127,16 +132,16 @@ def local_copy(test_names, test_type, local_path=None, network_path=None, tx_wav
             lppath = os.path.join(local_path, "wav", tname)
             os.makedirs(lppath, exist_ok=True)
             for wfile in wav_files:
-                # TODO: Add ability to copy tx_wav
+                # TODO: Add ability to copy rx_wav
                 if ".csv" in wfile:
                     # Copy cut point file
                     wpath = os.path.join(wav_path, wfile)
                     lpath = os.path.join(lppath, wfile)
                     if not os.path.exists(lpath):
-                        print("Copying {} to {}".format(wpath, lpath))
+                        print(f"Copying {wpath} to {lpath}")
                         shutil.copyfile(wpath, lpath)
                     else:
-                        print("Found locally: {}".format(lpath))
+                        print(f"Found locally: {lpath}")
                     # ------------[Transmit Audio]-----------------------------
                     # Copy Tx wav file if option set
                     if tx_wav:
@@ -150,10 +155,10 @@ def local_copy(test_names, test_type, local_path=None, network_path=None, tx_wav
                         tx_lpath = os.path.join(lppath, tx_wav_wfile)
                         # Check if file already exists
                         if not os.path.exists(tx_lpath):
-                            print("Copying {} to {}".format(tx_wpath, tx_lpath))
+                            print(f"Copying {tx_wpath} to {tx_lpath}")
                             shutil.copyfile(tx_wpath, tx_lpath)
                         else:
-                            print("Found locally: {}".format(tx_lpath))
+                            print(f"Found locally: {tx_lpath}")
 
 
 def print_config(test_type=None):
@@ -178,7 +183,8 @@ def print_config(test_type=None):
     config = configparser.ConfigParser()
 
     # load config file
-    config_path = os.path.join(appdirs.user_data_dir(appname, appauthor), "config.ini")
+    config_path = os.path.join(appdirs.user_data_dir(appname, appauthor),
+                               "config.ini")
     config.read(config_path)
 
     ttype_str = "----{}----"
@@ -196,7 +202,10 @@ def print_config(test_type=None):
 
 def convert_log_search_names(fnames):
     """
-    Convert output from mcvqoe.utilities.log_search datafilenames() to what local-copy expects
+    Get log search ready file names.
+
+    Convert output from mcvqoe.utilities.log_search datafilenames() to what
+    local-copy expects.
 
     Parameters
     ----------
@@ -214,10 +223,12 @@ def convert_log_search_names(fnames):
     lc_names = []
     for fn in fnames:
         _, short_name = os.path.split(fn)
-        # TODO: Make this work with an optional non-capturing group for audio file...
-        # thought that '(capture_.+)(?:_\w{2}_b\d{1,2}_w\d{1}_\w+)?(?:.csv)' should work but it doesn't
+        # TODO: Make this work with an optional non-capturing group for audio
+        # file...
+        # thought that '(capture_.+)(?:_\w{2}_b\d{1,2}_w\d{1}_\w+)?(?:.csv)'
+        # should work but it doesn't
         # re_search = '(capture_.+)(?:_\w{2}_b\d{1,2}_w\d{1}_\w+)(?:.csv)'
-        re_search = "(R?capture_.+\d{2}-\d{2}-\d{2}).*.csv"
+        re_search = r"(R?capture_.+\d{2}-\d{2}-\d{2}).*.csv"
         # Extract part of the name that local-copy expects
         rs = re.search(re_search, short_name)
         if rs:
@@ -228,46 +239,46 @@ def convert_log_search_names(fnames):
 
 
 def main():
+    """Command line method to run local-copy."""
     parser = argparse.ArgumentParser(
         description="Copy data files from network drive to local machine"
     )
-    parser.add_argument(
-        "-f", "--test-names", default=[], type=str, nargs="+", help="Tests to copy"
-    )
+    parser.add_argument("-f", "--test-names",
+                        default=[],
+                        type=str,
+                        nargs="+",
+                        help="Tests to copy"
+                        )
 
-    parser.add_argument(
-        "-t", "--test-type", default=None, type=str, help="Type of test to copy from"
-    )
-    parser.add_argument(
-        "-l",
-        "--local-path",
-        default=None,
-        type=None,
-        help="Local path to copy to. If not passed read from last path used for this test-type.",
-    )
+    parser.add_argument("-t", "--test-type",
+                        default=None,
+                        type=str,
+                        help="Type of test to copy from"
+                        )
+    parser.add_argument("-l", "--local-path",
+                        default=None,
+                        type=None,
+                        help=("Local path to copy to. If not passed read from "
+                              "last path used for this test-type."),
+                        )
 
-    parser.add_argument(
-        "-n",
-        "--network-path",
-        default=None,
-        type=str,
-        help="Network path to copy from. If not passed read from last path used for this test-type.",
-    )
-    parser.add_argument(
-        "-p",
-        "--print-config",
-        default=False,
-        action="store_true",
-        help="Print current config file settings",
-    )
+    parser.add_argument("-n", "--network-path",
+                        default=None,
+                        type=str,
+                        help=("Network path to copy from. If not passed read "
+                              "from last path used for this test-type."),
+                        )
+    parser.add_argument("-p", "--print-config",
+                        default=False,
+                        action="store_true",
+                        help="Print current config file settings",
+                        )
 
-    parser.add_argument(
-        "-w",
-        "--tx-wav",
-        default=False,
-        action="store_true",
-        help="Copy transmit audio wav file with cutpoints",
-    )
+    parser.add_argument("-w", "--tx-wav",
+                        default=False,
+                        action="store_true",
+                        help="Copy transmit audio wav file with cutpoints",
+                        )
 
     args = parser.parse_args()
 
