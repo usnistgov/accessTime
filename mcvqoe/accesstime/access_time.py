@@ -865,6 +865,7 @@ class measure:
                                             trialcount=trial_count,
                                             clipcount=clip_count,
                                             rtry=retries,
+                                            **data,
                                         )
                                     )
                                     
