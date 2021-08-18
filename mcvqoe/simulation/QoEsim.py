@@ -694,25 +694,6 @@ class QoEsim:
         overplay_audio = np.zeros(int(overplay_samples), dtype=np.float32)
         tx_data_with_overplay = np.concatenate((float_audio, overplay_audio))
 
-        if self.rec_snr is None:
-            # don't add any noise
-            tx_data_with_overplay_and_noise = tx_data_with_overplay
-        else:
-            # generate gaussian noise, of unit standard deveation
-            noise = np.random.normal(0, 1, len(tx_data_with_overplay)).astype(np.float32)
-
-            # measure amplitude of signal and noise
-            sig_level = active_speech_level(tx_data_with_overplay, self.sample_rate)
-            noise_level = active_speech_level(noise, self.sample_rate)
-
-            # calculate noise gain required to get desired SNR
-            noise_gain = sig_level - (self.rec_snr + noise_level)
-
-            # set noise to the correct level
-            noise_scaled = noise * (10 ** (noise_gain / 20))
-
-            # add noise to audio
-            tx_data_with_overplay_and_noise = tx_data_with_overplay + noise_scaled
 
         # check if PTT was keyed during audio
         if self.ptt_wait_delay[1] == -1:
@@ -725,7 +706,7 @@ class QoEsim:
 
         # mute portion of tx_data that occurs prior to triggering of PTT
         muted_samples = int(access_delay_samples + ptt_st_dly_samples)
-        muted_tx_data_with_overplay = tx_data_with_overplay_and_noise[muted_samples:]
+        muted_tx_data_with_overplay = tx_data_with_overplay[muted_samples:]
 
         # add pre channel impairments
         if self.pre_impairment:
@@ -733,25 +714,40 @@ class QoEsim:
                 muted_tx_data_with_overplay, self.sample_rate
             )
 
+        if self.rec_snr is None:
+            # don't add any noise
+            muted_tx_data_with_overplay_and_noise = muted_tx_data_with_overplay
+        else:
+            # generate gaussian noise, of unit standard deveation
+            noise = np.random.normal(0, 1, len(muted_tx_data_with_overplay)).astype(np.float32)
+
+            # measure amplitude of signal and noise
+            sig_level = active_speech_level(tx_data_with_overplay, self.sample_rate)
+            noise_level = active_speech_level(noise, self.sample_rate)
+
+            # calculate noise gain required to get desired SNR
+            noise_gain = sig_level - (self.rec_snr + noise_level)
+
+            # set noise to the correct level
+            noise_scaled = noise * (10 ** (noise_gain / 20))
+
+            # add noise to audio
+            muted_tx_data_with_overplay_and_noise = muted_tx_data_with_overplay + noise_scaled
+
         # call audio channel function from module
         channel_voice = chan_mod.simulate_audio_channel(
-            muted_tx_data_with_overplay,
+            muted_tx_data_with_overplay_and_noise,
             self.sample_rate,
             self.channel_rate,
             self.print_args,
             self.channel_impairment,
         )
-        # TODO: Verify did this right
-        if self.rec_snr is None:
-            channel_voice = channel_voice
-        else:
-            post_noise = np.random.normal(0, 1, len(channel_voice)).astype(type(channel_voice))
-            post_noise_scaled = post_noise * (10 ** (noise_gain/20))
-            channel_voice = channel_voice + post_noise_scaled
+
         # add post channel impairments
         if self.post_impairment:
             channel_voice = self.post_impairment(channel_voice, self.sample_rate)
 
+        # TODO: consider adding quiet "recording" level noise here
         # generate silent noise section comprised of ptt_st_dly, access delay and m2e latency audio snippets
         silence_length = int(ptt_st_dly_samples + access_delay_samples + m2e_latency_samples)
 
