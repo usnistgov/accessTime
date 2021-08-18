@@ -741,7 +741,13 @@ class QoEsim:
             self.print_args,
             self.channel_impairment,
         )
-
+        # TODO: Verify did this right
+        if self.rec_snr is None:
+            channel_voice = channel_voice
+        else:
+            post_noise = np.random.normal(0, 1, len(channel_voice)).astype(type(channel_voice))
+            post_noise_scaled = post_noise * (10 ** (noise_gain/20))
+            channel_voice = channel_voice + post_noise_scaled
         # add post channel impairments
         if self.post_impairment:
             channel_voice = self.post_impairment(channel_voice, self.sample_rate)
