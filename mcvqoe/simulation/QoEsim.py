@@ -9,7 +9,7 @@ import mcvqoe.base
 import numpy as np
 import scipy.signal
 from mcvqoe.base import audio_float
-from mcvqoe.delay.ITS_delay_est import active_speech_level
+from mcvqoe.delay.ITS_delay import active_speech_level
 
 try:
     # try to import importlib.metadata

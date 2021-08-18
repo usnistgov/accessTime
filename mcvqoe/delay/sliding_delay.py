@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.signal as sig
 
-from .ITS_delay_est import ITS_delay_est
+from .ITS_delay import ITS_delay_est
 
 
 def sliding_delay_estimates(test, ref, fs, winLength=4, winStep=2):

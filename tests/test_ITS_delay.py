@@ -7,7 +7,7 @@ import mcvqoe.delay
 import numpy as np
 import scipy.io.wavfile
 import xmlrunner
-from mcvqoe.delay.ITS_delay_est import active_speech_level
+from mcvqoe.delay.ITS_delay import active_speech_level
 
 try:
     # try to import importlib.metadata
