@@ -747,11 +747,12 @@ class QoEsim:
         if self.post_impairment:
             channel_voice = self.post_impairment(channel_voice, self.sample_rate)
 
-        # TODO: consider adding quiet "recording" level noise here
         # generate silent noise section comprised of ptt_st_dly, access delay and m2e latency audio snippets
         silence_length = int(ptt_st_dly_samples + access_delay_samples + m2e_latency_samples)
 
-        # derive mean and standard deviation from real-world noise observed in the audio recordings
+        # Derive mean and standard deviation from real-world noise observed in
+        # the audio recordings. This basically simulates the noise floor from
+        # audio cables/audio interface that we always have when we record.
         mean = 0
         std = 1.81e-5
 
