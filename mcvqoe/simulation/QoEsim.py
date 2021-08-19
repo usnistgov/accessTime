@@ -747,20 +747,22 @@ class QoEsim:
         if self.post_impairment:
             channel_voice = self.post_impairment(channel_voice, self.sample_rate)
 
-        # generate silent noise section comprised of ptt_st_dly, access delay and m2e latency audio snippets
-        silence_length = int(ptt_st_dly_samples + access_delay_samples + m2e_latency_samples)
-
+        # generate silent noise section comprised of ptt_st_dly, access delay
+        # and m2e latency audio snippets
+        silence_length = int(ptt_st_dly_samples
+                             + access_delay_samples
+                             + m2e_latency_samples)
+        silent_section = np.zeros(silence_length)
+        # prepend silent section to rx_data
+        rx_voice = np.concatenate((silent_section, channel_voice))
         # Derive mean and standard deviation from real-world noise observed in
         # the audio recordings. This basically simulates the noise floor from
         # audio cables/audio interface that we always have when we record.
         mean = 0
         std = 1.81e-5
-
-        silent_section = np.random.normal(mean, std, silence_length)
-        rx_noise = np.random.normal(mean, std, len(channel_voice))
-
-        # prepend silent section to rx_data
-        rx_voice = np.concatenate((silent_section, channel_voice+rx_noise))
+        rx_noise = np.random.normal(mean, std, len(rx_voice))
+        # Add noise to rx voice
+        rx_voice = rx_voice + rx_noise
 
         # force rx_data to be the same length as tx_data_with_overplay
         rx_voice = rx_voice[: tx_data_with_overplay.shape[0]]
