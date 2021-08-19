@@ -149,7 +149,7 @@ def log_update(log_in_name, log_out_name, dryRun=False):
                 # get the remaining data in the file
                 out_dat = fout.read()
         else:
-            if dryRun:
+            if not dryRun:
                 # make sure that path to log file exists
                 os.makedirs(os.path.dirname(log_out_name), exist_ok=True)
             # no in_dat
