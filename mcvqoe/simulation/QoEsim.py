@@ -756,9 +756,10 @@ class QoEsim:
         std = 1.81e-5
 
         silent_section = np.random.normal(mean, std, silence_length)
+        rx_noise = np.random.normal(mean, std, len(channel_voice))
 
         # prepend silent section to rx_data
-        rx_voice = np.concatenate((silent_section, channel_voice))
+        rx_voice = np.concatenate((silent_section, channel_voice+rx_noise))
 
         # force rx_data to be the same length as tx_data_with_overplay
         rx_voice = rx_voice[: tx_data_with_overplay.shape[0]]
