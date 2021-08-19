@@ -694,25 +694,6 @@ class QoEsim:
         overplay_audio = np.zeros(int(overplay_samples), dtype=np.float32)
         tx_data_with_overplay = np.concatenate((float_audio, overplay_audio))
 
-        if self.rec_snr is None:
-            # don't add any noise
-            tx_data_with_overplay_and_noise = tx_data_with_overplay
-        else:
-            # generate gaussian noise, of unit standard deveation
-            noise = np.random.normal(0, 1, len(tx_data_with_overplay)).astype(np.float32)
-
-            # measure amplitude of signal and noise
-            sig_level = active_speech_level(tx_data_with_overplay, self.sample_rate)
-            noise_level = active_speech_level(noise, self.sample_rate)
-
-            # calculate noise gain required to get desired SNR
-            noise_gain = sig_level - (self.rec_snr + noise_level)
-
-            # set noise to the correct level
-            noise_scaled = noise * (10 ** (noise_gain / 20))
-
-            # add noise to audio
-            tx_data_with_overplay_and_noise = tx_data_with_overplay + noise_scaled
 
         # check if PTT was keyed during audio
         if self.ptt_wait_delay[1] == -1:
@@ -725,7 +706,7 @@ class QoEsim:
 
         # mute portion of tx_data that occurs prior to triggering of PTT
         muted_samples = int(access_delay_samples + ptt_st_dly_samples)
-        muted_tx_data_with_overplay = tx_data_with_overplay_and_noise[muted_samples:]
+        muted_tx_data_with_overplay = tx_data_with_overplay[muted_samples:]
 
         # add pre channel impairments
         if self.pre_impairment:
@@ -733,9 +714,29 @@ class QoEsim:
                 muted_tx_data_with_overplay, self.sample_rate
             )
 
+        if self.rec_snr is None:
+            # don't add any noise
+            muted_tx_data_with_overplay_and_noise = muted_tx_data_with_overplay
+        else:
+            # generate gaussian noise, of unit standard deveation
+            noise = np.random.normal(0, 1, len(muted_tx_data_with_overplay)).astype(np.float32)
+
+            # measure amplitude of signal and noise
+            sig_level = active_speech_level(tx_data_with_overplay, self.sample_rate)
+            noise_level = active_speech_level(noise, self.sample_rate)
+
+            # calculate noise gain required to get desired SNR
+            noise_gain = sig_level - (self.rec_snr + noise_level)
+
+            # set noise to the correct level
+            noise_scaled = noise * (10 ** (noise_gain / 20))
+
+            # add noise to audio
+            muted_tx_data_with_overplay_and_noise = muted_tx_data_with_overplay + noise_scaled
+
         # call audio channel function from module
         channel_voice = chan_mod.simulate_audio_channel(
-            muted_tx_data_with_overplay,
+            muted_tx_data_with_overplay_and_noise,
             self.sample_rate,
             self.channel_rate,
             self.print_args,
@@ -746,17 +747,22 @@ class QoEsim:
         if self.post_impairment:
             channel_voice = self.post_impairment(channel_voice, self.sample_rate)
 
-        # generate silent noise section comprised of ptt_st_dly, access delay and m2e latency audio snippets
-        silence_length = int(ptt_st_dly_samples + access_delay_samples + m2e_latency_samples)
-
-        # derive mean and standard deviation from real-world noise observed in the audio recordings
-        mean = 0
-        std = 1.81e-5
-
-        silent_section = np.random.normal(mean, std, silence_length)
-
+        # generate silent noise section comprised of ptt_st_dly, access delay
+        # and m2e latency audio snippets
+        silence_length = int(ptt_st_dly_samples
+                             + access_delay_samples
+                             + m2e_latency_samples)
+        silent_section = np.zeros(silence_length)
         # prepend silent section to rx_data
         rx_voice = np.concatenate((silent_section, channel_voice))
+        # Derive mean and standard deviation from real-world noise observed in
+        # the audio recordings. This basically simulates the noise floor from
+        # audio cables/audio interface that we always have when we record.
+        mean = 0
+        std = 1.81e-5
+        rx_noise = np.random.normal(mean, std, len(rx_voice))
+        # Add noise to rx voice
+        rx_voice = rx_voice + rx_noise
 
         # force rx_data to be the same length as tx_data_with_overplay
         rx_voice = rx_voice[: tx_data_with_overplay.shape[0]]
