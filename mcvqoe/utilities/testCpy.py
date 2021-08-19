@@ -8,6 +8,7 @@ import re
 import subprocess
 import argparse
 import pkgutil
+import shutil
 
 # used for version checking
 import pkg_resources
@@ -158,19 +159,15 @@ def log_update(log_in_name, log_out_name, dryRun=False):
         # get remaining data in input file
         in_dat = fin.read()
 
-        # strip trailing white space to prevent errors in future, add extra data
+        # strip trailing white space, add extra data
         in_dat = extra + in_dat.rstrip()
 
         # check if we have more data from the input file
         if in_dat:
-
-            # with open(log_out_name,'at') as fout:
-            with (
-                os.fdopen(os.dup(sys.stdout.fileno()), "w")
-                if dryRun
-                else open(log_out_name, "at")
-            ) as fout:
-                fout.write(in_dat)
+            
+            if not dryRun:
+                #copy file to new location
+                shutil.copy(log_in_name,log_out_name)
 
             print(f"{len(in_dat.splitlines())} lines copied")
 
