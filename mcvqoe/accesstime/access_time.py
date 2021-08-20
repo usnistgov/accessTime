@@ -369,9 +369,8 @@ class measure:
         
         #----------------[List of Vars to Save in Pickle File]----------------
         
-        save_vars = ('self.audio_files', 'self.cutpoints', 'clip_names', 'self.y',
-                     'bad_name', 'temp_data_filenames', 'ptt_st_dly',
-                     'wavdir')
+        save_vars = ( 'clip_names', 'bad_name', 'temp_data_filenames',
+                      'ptt_st_dly', 'wavdir' , 'ptt_step_counts' )
         
         # Initialize clip end time for gap time calculation
         time_e = np.nan
@@ -405,85 +404,39 @@ class measure:
         #------------------[Load In Old Data File If Given]-------------------
         
         if recovery:
-            
+
             trial_count = 0
-            
+
+            #compare versions
+            if('version' not in self.rec_file):
+                #no version, so it must be old, give warning
+                self.progress_update('warning',0,0,
+                                        msg='recovery file missing version')
+            elif version != self.rec_file['version']:
+                #warn on version mismatch, recovery could have issues
+                self.progress_update('warning',0,0,
+                                        msg='recovery file version mismatch!')
+
+            # Restore saved class properties
+            for k in self.rec_file:
+                if k.startswith('self.') and not k == 'self.rec_file':
+                    varname=k[len('self.'):]
+                    self.__dict__[varname]=self.rec_file[k]
+
             # Copy recovery variables to current test
             ptt_st_dly = self.rec_file['ptt_st_dly']
-            audiofiles_names = self.rec_file['audiofiles_names']
-            self.cutpoints = self.rec_file['cutpoints']
-            self.y = self.rec_file['audiofiles']
-            
-            # Recreate 'temp_data_filenames'
-            temp_data_filenames = self.rec_file['temp_data_filenames']
-            # Boolean array to see which files to copy to new name
-            copy_files = np.full(len(temp_data_filenames), False)
-            # Save old names to copy to new names
-            old_filenames = temp_data_filenames
-            # Save old .wav folder
-            old_wavdir = self.rec_file['wavdir']
-            # Save old bad file name
-            old_bad_name = self.rec_file['bad_name']
-   
-            for k in range(len(temp_data_filenames)):
-                save_dat = self.load_dat(temp_data_filenames[k])
-                if not save_dat:
-                    self.progress_update(
-                                'status',
-                                len(temp_data_filenames),
-                                k,
-                                f"No data file found for {temp_data_filenames[k]}"
-                            )
-                else:
-                    # File is good, need to copy to new name
-                    copy_files[k] = True
-                    # Get number of "rows" from CSV
-                    clen = len(save_dat)
-                    # Initialize success with zeros
-                    success = np.zeros((2, (len(ptt_st_dly[k])*self.ptt_rep)))
-                    # Fill in success from file
-                    for p in range(clen):
-                        success[0, p] = save_dat[p]['P1_Int']
-                        success[1, p] = save_dat[p]['P2_Int']
-                    # Stop flag is computed every delay step
-                    stop_flag = np.empty(len(ptt_st_dly[k]))
-                    stop_flag[:] = np.nan
-                    # Trial count is the sum of all trial counts from each file
-                    trial_count = trial_count + clen
-                    # Set clip start to curren index
-                    # If another datafile is found it will be overwritten
-                    clip_start = k
-                    # Initialize k_start
-                    k_start = 0
-                    
-                    # Loop through data and evaluate stop condition
-                    for kk in range(self.ptt_rep, clen, self.ptt_rep):
-                        
-                        # Identify trials calculated at last timestep
-                        ts_ix = np.arange((kk-(self.ptt_rep)), kk)
-                        p1_intell = success[0, ts_ix]
-                        p2_intell = success[1, :]
-                        stop_flag[k] = not approx_permutation_test(p2_intell, p1_intell, tail = 'right')
-                        k_start = k_start + 1
-                    
-                    # Assign kk_start point for inner loop    
-                    if (clen == 0):
-                        kk_start = 0
-                    else:
-                        kk_start = ((clen-1) % self.ptt_rep) + 1
-        
-        #-------[Parse Through Audio Files/Cutpoints and Perform Checks]--------
-        
+            ptt_step_counts = self.rec_file['ptt_step_counts']
+
         # Only read in data if this is the first time
         else:
-        
+
             # Set initial loop indices
             clip_start = 0
             k_start = 0
             kk_start = 0
-            
+
             self.load_audio()
-        
+
         #-------------------------[Get Test Start Time]-------------------------
 
         self.info['Tstart'] = datetime.datetime.now()
@@ -539,8 +492,73 @@ class measure:
         bad_name = f"{base_filename}_BAD.csv"
         bad_name = os.path.join(csv_data_dir, bad_name)
 
+        #-----------------------[Do more recovery things]-----------------------
+
+        if recovery:
+            # Boolean array to see which files to copy to new name
+            copy_files = np.full(len(temp_data_filenames), False)
+            # Save old names to copy to new names
+            old_filenames = self.rec_file['temp_data_filenames']
+            # Save old .wav folder
+            old_wavdir = self.rec_file['wavdir']
+            # Save old bad file name
+            old_bad_name = self.rec_file['bad_name']
+
+            for k in range(len(temp_data_filenames)):
+                save_dat = self.load_dat(old_filenames[k])
+                if not save_dat:
+                    self.progress_update(
+                                'status',
+                                len(temp_data_filenames),
+                                k,
+                                f"No data file found for {old_filenames[k]}"
+                            )
+                else:
+                    self.progress_update(
+                                'status',
+                                len(temp_data_filenames),
+                                k,
+                                f"initializing with data from {old_filenames[k]}"
+                            )
+                    # File is good, need to copy to new name
+                    copy_files[k] = True
+                    # Get number of "rows" from CSV
+                    clen = len(save_dat)
+                    # Initialize success with zeros
+                    success = np.zeros((2, (len(ptt_st_dly[k])*self.ptt_rep)))
+                    # Fill in success from file
+                    for p in range(clen):
+                        success[0, p] = save_dat[p]['P1_Int']
+                        success[1, p] = save_dat[p]['P2_Int']
+                    # Stop flag is computed every delay step
+                    stop_flag = np.empty(len(ptt_st_dly[k]))
+                    stop_flag[:] = np.nan
+                    # Trial count is the sum of all trial counts from each file
+                    trial_count = trial_count + clen
+                    # Set clip start to curren index
+                    # If another datafile is found it will be overwritten
+                    clip_start = k
+                    # Initialize k_start
+                    k_start = 0
+
+                    # Loop through data and evaluate stop condition
+                    for kk in range(self.ptt_rep, clen, self.ptt_rep):
+
+                        # Identify trials calculated at last timestep
+                        ts_ix = np.arange((kk-(self.ptt_rep)), kk)
+                        p1_intell = success[0, ts_ix]
+                        p2_intell = success[1, :]
+                        stop_flag[k] = not approx_permutation_test(p2_intell, p1_intell, tail = 'right')
+                        k_start = k_start
+
+                    # Assign kk_start point for inner loop
+                    if (clen == 0):
+                        kk_start = 0
+                    else:
+                        kk_start = ((clen-1) % self.ptt_rep)
+
         #---------[Write Transmit Audio File(s) and cutpoint File(s)]----------
-        
+
         #write out Tx clips and cutpoints to files
         #cutpoints are always written, they are needed for eval
         for dat,name,cp in zip(self.y,clip_names,self.cutpoints):
@@ -588,14 +606,11 @@ class measure:
         # Initialize error file
         error_file = os.path.join(rec_data_dir,base_filename+'.pickle')
          
-        # Error dictionary
-        err_dict = {}
+        # Error dictionary, add version
+        err_dict = {'version' : version}
          
         for var in save_vars:
-            if var.startswith('self.'):
-                err_dict[var] = self.__dict__[var.split('.')[1]]
-            else:
-                err_dict[var] = locals()[var]
+            err_dict[var] = locals()[var]
          
         # Add all access_time object parameters to error dictionary
         for i in self.__dict__:
@@ -603,7 +618,7 @@ class measure:
                     'inter_word_diff', 'get_post_notes',
                     'progress_update', 'user_check']
             if (i not in skip):
-                err_dict[i] = self.__dict__[i]
+                err_dict['self.'+i] = self.__dict__[i]
          
         # Place dictionary into pickle file
         with open(error_file, 'wb') as pkl:
@@ -629,7 +644,7 @@ class measure:
             #load templates outside the loop so we take the hit here
             abcmrt.load_templates()
             
-            for clip in range(len(self.y)):
+            for clip in range(clip_start, len(self.y)):
                 
                 #---------------------[Calculate Delay Start Index]-------------------
                 
@@ -1178,15 +1193,17 @@ class measure:
         # List to store each csv row(dictionaries)
         dat_list = []
         
-        # Read csv file and occupy list, skipping header section
-        with open(fname) as csv_f:
-            reader = csv.DictReader(csv_f, fieldnames=self.data_header)
-            for n, row in enumerate(reader):
-                if n < 4:
-                    continue
-                dat_list.append(row)
-                
-            # Delete last row to ensure proper restart
-            del dat_list[-1]
+        try:
+            # Read csv file and occupy list, skipping header section
+            with open(fname) as csv_f:
+                #burn the first 4 lines in the file
+                for n in range(4):
+                    csv_f.readline()
+                #dict reader to get data
+                reader = csv.DictReader(csv_f, fieldnames=self.data_header)
+                for row in reader:
+                    dat_list.append(row)
 
-            return dat_list
+                return dat_list
+        except FileNotFoundError:
+            return None
