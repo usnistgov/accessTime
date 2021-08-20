@@ -70,7 +70,7 @@ def audio_type(dat,dtype = np.dtype('int16')):
         return(dat)
         
     #---------------------[Convert to float]------------------
-    if(dat.dtype is np.dtype('float32') or dat.dtype is np.dtype('float64')):
+    if np.issubdtype(dat.dtype, np.floating):
         dat = dat
     elif(dat.dtype is np.dtype('uint8')):
         dat = (dat.astype('float')-64)/64
@@ -82,7 +82,7 @@ def audio_type(dat,dtype = np.dtype('int16')):
         raise RuntimeError(f'unknown audio type \'{dat.dtype}\'')
         
     #-----------------[Convert to output]------------------------
-    if(dtype is np.dtype('float32') or dtype is np.dtype('float64')):
+    if np.issubdtype(dtype, np.floating):
         return(dat.astype(dtype))
     elif(dtype is np.dtype('uint8')):
         out_dat = 64*dat + 64
