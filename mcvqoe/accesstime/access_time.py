@@ -604,7 +604,7 @@ class measure:
         #----------------[Pickle important data for restart]------------------
         
         # Initialize error file
-        error_file = os.path.join(rec_data_dir,base_filename+'.pickle')
+        recovery_file = os.path.join(rec_data_dir,base_filename+'.pickle')
          
         # Error dictionary, add version
         err_dict = {'version' : version}
@@ -621,7 +621,7 @@ class measure:
                 err_dict['self.'+i] = self.__dict__[i]
          
         # Place dictionary into pickle file
-        with open(error_file, 'wb') as pkl:
+        with open(recovery_file, 'wb') as pkl:
             pickle.dump(err_dict, pkl)
         
         #---------------------------[write log entry]---------------------------
@@ -993,6 +993,10 @@ class measure:
                                 new_file=self.data_filenames[k],
                             )
                 os.rename(temp_data_filenames[k], self.data_filenames[k])
+                
+            #----------------------[Delete recovery file]----------------------
+            
+            os.remove(recovery_file)
 
         finally:
             if (self.get_post_notes):
