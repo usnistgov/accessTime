@@ -837,8 +837,8 @@ class measure:
                             else:
                                 data['TimeGap'] = f"{(time_gap//3600):.0f}:{((time_gap//60)%60):.0f}:{(time_gap%60):.3f}"
                 
-                            data['TimeStart'] = time_s.strftime('%H:%M:%S'),
-                            data['TimeEnd'] = time_e.strftime('%H:%M:%S'),
+                            data['TimeStart'] = time_s.strftime('%H:%M:%S')
+                            data['TimeEnd'] = time_e.strftime('%H:%M:%S')
                             
                             #----------------------[Check A-weight of P2]---------------------
                                                      
