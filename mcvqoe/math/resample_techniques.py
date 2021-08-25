@@ -9,7 +9,7 @@ import pdb
 import numpy as np
 
 
-def bootstrap_ci(x, p=0.95, R=1e4, stat=np.mean):
+def bootstrap_ci(x, p=0.95, R=1e4, stat=np.mean, method="percentile"):
     """
     Bootstrap confidence interval for array of data
 
@@ -39,24 +39,53 @@ def bootstrap_ci(x, p=0.95, R=1e4, stat=np.mean):
         R = int(R)
     # Length of data
     N = len(x)
+    # Note observed statistic
+    obs = stat(x)
     # Array to store resample stat values in
     resamples = []
     # Random generator
     gen = np.random.default_rng()
 
-    for k in range(R):
-        # Get resample of same size as x (with replacement)
-        resamp = gen.choice(x, N)
-        # Store statisitc of resample
-        resamples.append(stat(resamp))
+    if method == "percentile":
+        for k in range(R):
+            # Get resample of same size as x (with replacement)
+            resamp = gen.choice(x, N)
+            # Store statisitc of resample
+            resamples.append(stat(resamp))
 
-    # Lower bound of confidence interval
-    q_l = (1 - p) / 2
-    # Upper bound of confidence interval
-    q_u = 1 - q_l
-    # Confidence interval
-    ci = np.quantile(resamples, [q_l, q_u])
-    return (ci, resamples)
+        # Lower bound of confidence interval
+        q_l = (1 - p) / 2
+        # Upper bound of confidence interval
+        q_u = 1 - q_l
+        # Confidence interval
+        ci = np.quantile(resamples, [q_l, q_u])
+        return (ci, resamples)
+
+    # Standard error known only for sample mean, at the moment
+    elif (method == "t") and (stat == np.mean):
+        rs_ses = []
+        rs_ts = []
+        for k in range(R):
+            # Get resample of same size as x (with replacement)
+            resamp = gen.choice(x, N)
+            # Store statisitc of resample
+            resamples.append(stat(resamp))
+            # Store standard errors
+            rs_ses.append(np.std(resamp)/np.sqrt(N))
+            # Store t-score statistics
+            rs_ts.append((stat(resamp) - obs)/(np.std(resamp)/np.sqrt(N)))
+
+        # Get t-score quantiles for esimating confidence interval
+        q_l = (1 - p) / 2
+        # Upper bound of confidence interval
+        q_u = 1 - q_l
+        bounds = np.quantile(rs_ts, [q_l, q_u])
+
+        # Calculate CI from observed mean, observed standard error, and
+        # t-scores from estimated t-distribution
+        ci = obs + bounds*np.std(x)/np.sqrt(N)
+
+        return (ci, resamples)
 
 
 def approx_permutation_test(
@@ -102,25 +131,25 @@ def approx_permutation_test(
     Return
     ------
     Boolean
-        Rejection or not of the null hypothesis, in this case that data comes 
-        from same distribution. Explicitly if x and y are from distinct 
-        distributions this function will return True as the Null hypothesis 
-        assumes that they are from equivalent distributions. Alternatively if 
+        Rejection or not of the null hypothesis, in this case that data comes
+        from same distribution. Explicitly if x and y are from distinct
+        distributions this function will return True as the Null hypothesis
+        assumes that they are from equivalent distributions. Alternatively if
         x and y are from the same distribution this function will return False.
-        
+
     Examples
     --------
-    Compare two extremely distinct data sets, returns True as the null 
+    Compare two extremely distinct data sets, returns True as the null
     hypothesis is rejected.
-    
+
     >>> x = np.ones(120)
     >>> y = np.zeros(30)
     >>> mcvqoe.math.approx_permutation_test(x,y)
     True
-    
+
     Compare two similar data sets, returns False as the null hypothesis is not
     rejected.
-    
+
     >>> rng = np.random.default_rng()
     >>> x = rng.normal(0,1,100)
     >>> y = rng.normal(0.1,1,100)
