@@ -24,6 +24,9 @@ def bootstrap_ci(x, p=0.95, R=1e4, stat=np.mean, method="percentile"):
         Number of resamples to calculate. The default is 1e4.
     stat : function, optional
         Statistic for confidence interval. The default is np.mean.
+    method : str, optional
+        Defines the method used for bootstrapping. May be either
+        "percentile" or "t".
 
     Returns
     -------
@@ -59,7 +62,6 @@ def bootstrap_ci(x, p=0.95, R=1e4, stat=np.mean, method="percentile"):
         q_u = 1 - q_l
         # Confidence interval
         ci = np.quantile(resamples, [q_l, q_u])
-        return (ci, resamples)
 
     # Standard error known only for sample mean, at the moment
     elif (method == "t") and (stat == np.mean):
@@ -83,9 +85,13 @@ def bootstrap_ci(x, p=0.95, R=1e4, stat=np.mean, method="percentile"):
 
         # Calculate CI from observed mean, observed standard error, and
         # t-scores from estimated t-distribution
-        ci = obs + bounds*np.std(x)/np.sqrt(N)
+        se = np.std(x)/np.sqrt(N)
+        ci = obs - bounds[::-1]*se
 
-        return (ci, resamples)
+    elif (method == "t") and (stat != np.mean):
+        raise ValueError("Standard error for this statistic is not implemented.")
+
+    return (ci, resamples)
 
 
 def approx_permutation_test(
