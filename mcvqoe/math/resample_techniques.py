@@ -4,15 +4,12 @@ Created on Tue Jan 12 08:43:22 2021
 
 @author: jkp4
 """
-import pdb
-
 import numpy as np
 
 
 def bootstrap_ci(x, p=0.95, R=1e4, stat=np.mean, method="percentile"):
     """
-    Bootstrap confidence interval for array of data
-
+    Bootstrap confidence interval for array of data.
 
     Parameters
     ----------
@@ -26,7 +23,9 @@ def bootstrap_ci(x, p=0.95, R=1e4, stat=np.mean, method="percentile"):
         Statistic for confidence interval. The default is np.mean.
     method : str, optional
         Defines the method used for bootstrapping. May be either
-        "percentile" or "t".
+        "percentile" or "t". "percentile" performs a "quick-and-dirty"
+        confidence interval, where "t" performs a bootstrap-t confidence
+        interval.
 
     Returns
     -------
@@ -35,6 +34,12 @@ def bootstrap_ci(x, p=0.95, R=1e4, stat=np.mean, method="percentile"):
 
     resamples : list
          Values of stat for each resample
+
+    Notes
+    -----
+    .. [1] Tim C. Hesterberg (2015) What Teachers Should Know About the
+    Bootstrap: Resampling in the Undergraduate Statistics Curriculum, The
+    American Statistician, 69:4, 371-386, DOI: 10.1080/00031305.2015.1089789
 
     """
     # Force R to be an int
@@ -65,17 +70,17 @@ def bootstrap_ci(x, p=0.95, R=1e4, stat=np.mean, method="percentile"):
 
     # Standard error known only for sample mean, at the moment
     elif (method == "t") and (stat == np.mean):
-        rs_ses = []
         rs_ts = []
         for k in range(R):
             # Get resample of same size as x (with replacement)
             resamp = gen.choice(x, N)
             # Store statisitc of resample
-            resamples.append(stat(resamp))
+            rs_stat = stat(resamp)
+            resamples.append(rs_stat)
             # Store standard errors
-            rs_ses.append(np.std(resamp)/np.sqrt(N))
+            rs_se = np.std(resamp)/np.sqrt(N)
             # Store t-score statistics
-            rs_ts.append((stat(resamp) - obs)/(np.std(resamp)/np.sqrt(N)))
+            rs_ts.append((rs_stat - obs)/rs_se)
 
         # Get t-score quantiles for esimating confidence interval
         q_l = (1 - p) / 2
@@ -86,6 +91,7 @@ def bootstrap_ci(x, p=0.95, R=1e4, stat=np.mean, method="percentile"):
         # Calculate CI from observed mean, observed standard error, and
         # t-scores from estimated t-distribution
         se = np.std(x)/np.sqrt(N)
+        # Note that the bounds flip, see Ref [1] equation (4)
         ci = obs - bounds[::-1]*se
 
     elif (method == "t") and (stat != np.mean):
