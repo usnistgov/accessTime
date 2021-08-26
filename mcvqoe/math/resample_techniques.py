@@ -54,12 +54,11 @@ def bootstrap_ci(x, p=0.95, R=1e4, stat=np.mean, method="percentile"):
     # Random generator
     gen = np.random.default_rng()
 
-    if method == "percentile":
-        for k in range(R):
-            # Get resample of same size as x (with replacement)
-            resamp = gen.choice(x, N)
-            # Store statisitc of resample
-            resamples.append(stat(resamp))
+    if method == "percentile" or method == "p":
+        # Generate resampled data, RxN matrix
+        resamp = gen.choice(x, size=(R, N))
+        # Calculate stat for each resample
+        resamples = stat(resamp, axis=1)
 
         # Lower bound of confidence interval
         q_l = (1 - p) / 2
@@ -70,17 +69,14 @@ def bootstrap_ci(x, p=0.95, R=1e4, stat=np.mean, method="percentile"):
 
     # Standard error known only for sample mean, at the moment
     elif (method == "t") and (stat == np.mean):
-        rs_ts = []
-        for k in range(R):
-            # Get resample of same size as x (with replacement)
-            resamp = gen.choice(x, N)
-            # Store statisitc of resample
-            rs_stat = stat(resamp)
-            resamples.append(rs_stat)
-            # Store standard errors
-            rs_se = np.std(resamp)/np.sqrt(N)
-            # Store t-score statistics
-            rs_ts.append((rs_stat - obs)/rs_se)
+        # Generate resampled data, RxN matrix
+        resamp = gen.choice(x, size=(R, N))
+        # Calculate stat for each resample
+        rs_stat = stat(resamp, axis=1)
+        # Calculate standard error for each resample
+        rs_se = np.std(resamp, axis=1)/np.sqrt(N)
+        # Estimate t-statistic for each resample
+        rs_ts = (rs_stat - obs)/rs_se
 
         # Get t-score quantiles for esimating confidence interval
         q_l = (1 - p) / 2
