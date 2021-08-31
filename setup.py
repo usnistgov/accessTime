@@ -43,6 +43,7 @@ setuptools.setup(
             "mcvqoe-2loc-process=mcvqoe.timing.two_loc_process:main",
         ],
         "mcvqoe.channel": "clean=mcvqoe.simulation.cleanchan",
+        "mcvqoe.impairment" : "probabilityiser=mcvqoe.simulation.pbiplugin",
     },
     python_requires=">=3.6",
 )

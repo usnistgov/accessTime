@@ -604,8 +604,81 @@ class QoEsim:
             self._chan_mods[self.channel_tech] = chan_mod
 
         return chan_mod
+    
+    # =====================[get impairment plugins]=====================
+    @staticmethod
+    def _get_impairments():
+        '''
+        Get installed impairments.
+        
+        Return a tuple of EntryPoint objects for the installed impairments.
+        
+        Returns
+        -------
+        tuple
+            Tuple with one EntryPoint object for each impairment plugin.
+        '''
+        # locate any impairment plugins installed
+        return entry_points()["mcvqoe.impairment"]
+        
+    # =========================[get impairment plugins]=========================
+    def _get_impairment_module(name):
+    
+        # locate any impairment plugins installed
+        impairments = QoEsim._get_impairments()
+        
+        for i in impairments:
+            if i.name == name:
+                module = i.load()
+                break
+        else:
+            raise ValueError(f'impairment name \'{name}\' is not installed')
+            
+        return module
+    # =========================[get impairment plugins]=========================
+    @staticmethod
+    def get_impairment_names(plugin_type):
+        
+        # locate any impairment plugins installed
+        impairments = QoEsim._get_impairments()
+        
+        names = []
+        
+        for i in impairments:
+            #TODO : probably need a try in her somewhere
+            #load module
+            module = i.load()
+            #check if type matches
+            if plugin_type == module.impairment_type or 'generic' == module.impairment_type:
+                names.append(i.name)
+        
+        return names
+    
+    # =======================[get impairment parameters]=======================
+    @staticmethod
+    def get_impairment_params(name):
+    
+        module = QoEsim._get_impairment_module(name)
+        
+        return module.parameters
+    
+    # =======================[get impairment Description]=======================
+    @staticmethod
+    def get_impairment_description(name):
+    
+        module = QoEsim._get_impairment_module(name)
+        
+        return module.description
+    
+    # ========================[initialize an impairment]========================
+    @staticmethod
+    def get_impairment_func(name, **kwargs):
+        
+        module = QoEsim._get_impairment_module(name)
+        
+        return module.create_impairment(**kwargs)
 
-    # =====================[record audio function]=====================
+    # =========================[record audio function]=========================
     def play_record(self, audio, out_name):
         """
         Simulate playing and recording of audio through a communication channel.
@@ -794,3 +867,17 @@ class QoEsim:
         mcvqoe.base.audio_write(out_name, int(self.sample_rate), rx_data)
 
         return outputs
+
+class ImpairmentParam:
+    '''
+    Class for defining parameters to impairments.
+    '''
+    def __init__(self, default, value_type, choice_type, **kwargs):
+        self.default = default
+        self.value_type = value_type
+        self.choice_type = choice_type
+        
+        #add kwargs
+        for k, v in kwargs.items():
+            #set attribute, don't care if it exists
+            setattr(self, k, v)
