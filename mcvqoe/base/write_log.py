@@ -3,6 +3,7 @@ import importlib
 import os
 import shutil
 import traceback
+import warnings
 
 import mcvqoe.base.version
 
@@ -59,8 +60,22 @@ def fill_log(test_obj):
 
     # ----------------------[Add Measurement class version]----------------------
 
-    # get module for test_obj
-    module = test_obj.__class__.__module__
+    if test_obj.__class__.__name__ == 'measure':
+        # get module for test_obj
+        module = test_obj.__class__.__module__
+    else:
+        #TESTING : print base classes
+        for base in test_obj.__class__.__bases__:
+            #see if we have subclassed a measure class
+            if base.__name__ == 'measure':
+                #get module from this class
+                module = base.__module__
+                #we are done
+                break;
+        else:
+            #could not find module
+            module = None
+            warnings.warn(f'Unable to find measure class for {test_obj.__class__.__name__}',category=RuntimeWarning)
 
     # set default version
     info["version"] = "Unknown"
@@ -71,6 +86,7 @@ def fill_log(test_obj):
         try:
             info["version"] = mod.version
         except AttributeError as e:
+            warnings.warn(f'Unable to get version {e}',category=RuntimeWarning)
             pass
 
     # ---------------------------[Fill Arguments list]---------------------------
