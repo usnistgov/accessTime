@@ -28,6 +28,9 @@ def main():
         mod = sim_obj._get_chan_mod(args.chan)
         print(f'module name : {mod.__name__}')
 
+        ver = sim_obj.get_channel_version(args.chan)
+        print(f'{args.chan} channel version : {ver}')
+
         (def_rate,rates)=sim_obj.get_channel_rates(args.chan)
         print(f'Default rate : {def_rate}')
         print(f'Possible rates : {", ".join(rates)}')

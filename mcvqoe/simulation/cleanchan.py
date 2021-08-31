@@ -1,5 +1,8 @@
 import warnings
 
+#version info
+from ..base.version import version
+
 """
 Channel plugin for a clean channel with no impairments.
 
