@@ -585,6 +585,40 @@ class QoEsim:
         mod = self._get_chan_mod(tech)
         return (mod.default_rate, mod.rates)
 
+    # =====================[Get Channel Version]=====================
+    def get_channel_version(self, tech):
+        """
+        Return version string for channel tech.
+
+        This queries a channel plugin for the installed version.
+
+        Returns
+        -------
+        string
+            Channel version string.
+
+        See Also
+        --------
+        mcvqoe.simulation.QoEsim.get_channel_techs : List of channel technologies.
+        mcvqoe.simulation.QoEsim.channel_tech : Channel technology to use.
+        mcvqoe.simulation.QoEsim.play_record : Function to simulate a channel.
+
+        Examples
+        --------
+        Get version for a clean channel
+
+        >>> sim=QoEsim()
+        >>> sim.get_channel_version('clean')
+        (None,[])
+        """
+        mod = self._get_chan_mod(tech)
+
+        try:
+            ver = mod.version
+        except AttributeError:
+            ver = 'Unknown'
+
+        return ver
     # =====================[get channel module]=====================
     def _get_chan_mod(self, tech):
         try:

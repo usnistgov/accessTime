@@ -2,13 +2,13 @@ import datetime
 import importlib
 import os
 import shutil
-import subprocess
 import traceback
+import warnings
 
 import mcvqoe.base.version
 
 
-def fill_log(test_obj, git_path=None):
+def fill_log(test_obj):
     """
     Take in QoE measurement class and fill in standard log entries
 
@@ -54,49 +54,28 @@ def fill_log(test_obj, git_path=None):
     # format string with '->' between files
     info["traceback"] = "->".join([f"{f}({n})" if n is not None else f for f, n in tb_info])
 
-    # ------------------------------[Get Git Hash]------------------------------
-
-    if git_path is None:
-        # try to find git
-        git_path = shutil.which("git")
-
-    if git_path:
-        repo_path = os.path.dirname(tb[-1].filename)
-
-        # get the full has of the commit described by rev
-        p = subprocess.run(
-            [git_path, "-C", repo_path, "rev-parse", "--verify", "HEAD"],
-            capture_output=True,
-        )
-
-        # convert to string and trim whitespace
-        rev = p.stdout.decode("utf-8").strip()
-
-        # check for error
-        if (p.returncode) == 0:
-
-            # check if there are local mods
-            mods_p = subprocess.run(
-                [git_path, "-C", repo_path, "diff-index", "--quiet", "HEAD", "--"],
-                capture_output=True,
-            )
-
-            if mods_p.returncode:
-                dirty = " dty"
-            else:
-                dirty = ""
-
-            # set info
-            info["Git Hash"] = rev + dirty
-
     # ---------------------------[Add MCV QoE version]---------------------------
 
     info["mcvqoe version"] = mcvqoe.base.version
 
     # ----------------------[Add Measurement class version]----------------------
 
-    # get module for test_obj
-    module = test_obj.__class__.__module__
+    if test_obj.__class__.__name__ == 'measure':
+        # get module for test_obj
+        module = test_obj.__class__.__module__
+    else:
+        #TESTING : print base classes
+        for base in test_obj.__class__.__bases__:
+            #see if we have subclassed a measure class
+            if base.__name__ == 'measure':
+                #get module from this class
+                module = base.__module__
+                #we are done
+                break;
+        else:
+            #could not find module
+            module = None
+            warnings.warn(f'Unable to find measure class for {test_obj.__class__.__name__}',category=RuntimeWarning)
 
     # set default version
     info["version"] = "Unknown"
@@ -107,32 +86,8 @@ def fill_log(test_obj, git_path=None):
         try:
             info["version"] = mod.version
         except AttributeError as e:
+            warnings.warn(f'Unable to get version {e}',category=RuntimeWarning)
             pass
-
-    # check if version was found
-    if info["version"] == "Unknown":
-        # no module was found, let's try git
-        # see if we found git before
-        if git_path:
-            # we did, use repo_path from before
-
-            # get version from git describe
-            p = subprocess.run(
-                [
-                    git_path,
-                    "-C",
-                    repo_path,
-                    "describe",
-                    "--match=v*.*",
-                    "--always",
-                    "--dirty=-dty",
-                ],
-                capture_output=True,
-            )
-
-            if p.returncode == 0:
-                # get version from output
-                info["version"] = p.stdout.decode("utf-8").strip()
 
     # ---------------------------[Fill Arguments list]---------------------------
 
