@@ -286,3 +286,76 @@ def compare_uncs(x):
             x_mean, b_u[0], b_u[1]
         )
     )
+
+
+def improved_autocorrelation(x):
+    """
+    Detect lags at which there is likely autocorrelation.
+
+    Determined according to the improved bounds given in 'Zhang NF (2006)
+    Calculation of the uncertainty of the mean of autocorrelated measurements'.
+
+    Parameters
+    ----------
+    x : numpy array
+        Numerical data on which to detect autocorrelation.
+
+    Returns
+    -------
+    numpy array
+        Array of indices for lags where this is likely autocorrelation.
+
+    """
+    # Calculate sample autocorrelation estimate
+    N = len(x)
+    corrs = np.zeros(N)
+    m = np.mean(x)
+    d = x - m
+    for ii in range(N):
+        corrs[ii] = np.sum(d[ii:] * d[:(N-ii)])
+    corrs = corrs/corrs[0]
+
+    # Respective uncertainties
+    sigmas = np.zeros(N)
+    sigmas[0] = 1/np.sqrt(N)
+    for ii in range(1, N):
+        sigmas[ii] = np.sqrt((1 + 2 * np.sum(corrs[:ii]**2))/N)
+
+    return np.argwhere(np.abs(corrs) > 1.96 * sigmas)
+
+
+def bootstrap_datasets_ci(*datasets, R=int(1e4), alpha=0.5):
+    """
+    Bootstrap for averaging means from different datasets.
+
+    Parameters
+    ----------
+    *datasets : numpy arrays
+        Datasets from which to take sample means. In context, the datasets
+        are the different M2E sessions within a test.
+    R : int, optional
+        Number of resamples. The default is int(1e4).
+    alpha : float, optional
+        Alpha level of the test. The default is 0.5.
+
+    Returns
+    -------
+    ci : numpy array
+        Two element array containing the upper and lower confidence bound on
+        the mean.
+
+    """
+    ds = datasets
+    N = len(ds[0])
+    x_bars = np.zeros((len(ds), R))
+    for ii, dataset in enumerate(ds):
+        rs = np.random.choice(dataset, size=(N, R))
+        x_bar = np.mean(rs, axis=0)
+        x_bars[ii, :] = x_bar
+    # Means across sessions
+    x_bar_dist = np.mean(x_bars, axis=1)
+    # percentiles
+    ql = alpha/2
+    qu = 1 - ql
+    ci = np.quantile(x_bar_dist, [ql, qu])
+    return ci
