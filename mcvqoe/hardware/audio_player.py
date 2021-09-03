@@ -312,20 +312,21 @@ class AudioPlayer:
         rec_chans={"rx_voice": 0},
         playback_chans={"tx_voice": 0},
         rec_stop=DefaultRecStop(),
+        device_str="UMC",
     ):
 
         self.sample_rate = fs
         self.blocksize = blocksize
         self.buffersize = buffersize
         self.overplay = overplay
-        self.device = AudioPlayer.find_device()
+        self.device = AudioPlayer.find_device(device_str)
         self.rec_chans = rec_chans
         self.playback_chans = playback_chans
         self.rec_stop = rec_stop
 
     # TODO allow different device defaults
     @staticmethod
-    def find_device():
+    def find_device(device_str="UMC"):
 
         devs = sd.query_devices()
 
@@ -333,7 +334,7 @@ class AudioPlayer:
             if (
                 d["max_input_channels"] > 0
                 and d["max_output_channels"] > 0
-                and "UMC" in d["name"]
+                and device_str in d["name"]
             ):
                 return d["name"]
         else:
