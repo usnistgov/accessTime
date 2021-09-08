@@ -910,7 +910,11 @@ class ImpairmentParam:
         self.default = default
         self.value_type = value_type
         self.choice_type = choice_type
-        
+
+        if self.choice_type == 'positive':
+            self.max_val = np.inf
+            self.min_val = 0.0 + kwargs['interval']
+
         #add kwargs
         for k, v in kwargs.items():
             #set attribute, don't care if it exists
