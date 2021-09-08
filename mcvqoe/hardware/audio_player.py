@@ -181,7 +181,7 @@ try:
             # get stdin file descriptor
             self.fd = sys.stdin.fileno()
             # save old settings to restore later
-            self.old_settings = termios.tcgetattr(fd)
+            self.old_settings = termios.tcgetattr(self.fd)
             # change settings for raw input
             tty.setraw(sys.stdin.fileno())
             return self
@@ -324,7 +324,6 @@ class AudioPlayer:
         self.playback_chans = playback_chans
         self.rec_stop = rec_stop
 
-    # TODO allow different device defaults
     @staticmethod
     def find_device(device_str="UMC"):
 
@@ -398,7 +397,7 @@ class AudioPlayer:
             # Make sure to write any audio data still left in the recording queue
             while self._qr.empty() != True:
                 rx_dat = self._qr.get()
-                rec_file.write(rx_dat[:, rec_map])
+                file.write(rx_dat[:, rec_map])
 
         # return the channels in the order recorded in the file
         return rec_names
