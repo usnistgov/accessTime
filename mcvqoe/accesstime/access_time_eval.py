@@ -27,7 +27,7 @@ class AccessData(object):
         self.sampling_frequency = self._get_sampling_frequency()
         self.audio_clips = self._get_audio_clips()
         self.speaker_word = self._get_speaker_word()
-        
+
     def _get_data(self, session_names, session_dir):
         try:
             dat = [pd.read_csv(session_dir + session, skiprows=3) for session in session_names]
@@ -46,22 +46,28 @@ class AccessData(object):
             return(cut_points)
         except(FileNotFoundError) as err:
             print(f"Session files can not be found. {err}")
-    
+
     def _get_sampling_frequency(self):
         if not all([(dat["fs"] == self.header_dat[0].iloc[0]["fs"]).any() for dat in self.header_dat]):
             raise ValueError("Different sampling frequencies.")
         else:
             return self.header_dat[0]["fs"]
-        
+
     def _get_audio_clips(self):
         # cheap, easy etraction of the word from the header data
         audio_clips = [fname["Wav file"] for fname in self.header_dat]
-        return(audio_clips)        
-        
+        return(audio_clips)
+
     def _get_speaker_word(self):
         # cheap, easy etraction of the word from the header data
         speaker_words = [fname.iloc[0]["Wav file"][:-4].split("_")[-1] for fname in self.header_dat]
         return(speaker_words)
+
+    def __repr__(self):
+        s = f'''AccessData object:
+            Speaker words: {self.speaker_word}
+            Sampling frequency: {self.sampling_frequency.iloc[0]}'''
+        return s
 
 class evaluate(object):
     def __init__(self, session_names, cut_names, session_dir, cut_dir, test_type):
@@ -69,25 +75,32 @@ class evaluate(object):
         self.access_data = AccessData(session_names, cut_names, session_dir, cut_dir)
         self.fit_type = self._get_fit_type(test_type)
         self.fit_data = None
-        
+
         # Data from fit
         self.fit_data = None
-    
+
     def _get_fit_type(self, fit_type):
         valid_fit_types = ["PTT", "SUT", "COR", "LEG"]
         if not fit_type in valid_fit_types:
             raise ValueError(f"Fit type not one of: {valid_fit_types}")
         return fit_type
-    
+
+    def __repr__(self):
+        s = f'''evaluate object:
+            Speaker words: {self.access_data.speaker_word}
+            Sampling frequency: {self.access_data.sampling_frequency.iloc[0]}
+            Test type: {self.fit_type}'''
+        return s
+
     def fit_data(self):
         pass
-    
+
     def eval_intell(self):
         pass
-    
+
     def eval_access(self):
         pass
-    
+
     def eval(self):
         pass
 
@@ -129,11 +142,13 @@ def main():
     # pretty_print(res)
     # return(res)
 
-    eta = AccessData(
-        ['capture_PTT-gate-2500ms_24-Nov-2020_07-24-31_F3_b31_w2_law.csv'],
-        ['F3_b31_w2_law.csv'],
-        'C:/Users/wrm3/Desktop/accesstime_local_data/csv/',
-        'C:/Users/wrm3/Desktop/accesstime_local_data/wav/T_2500ms-varyFilled/')
+    eta = evaluate(
+        ['Rcapture_P25_Direct_Access_Time_18-Oct-2019_07-38-54_F1_b39_w4_hook.csv',
+         'Rcapture_P25_Direct_Access_Time_22-Oct-2019_07-25-17_F3_b15_w5_west.csv'],
+        ['Tx_F1_b39_w4_hook.csv', 'Tx_F3_b15_w5_west.csv'],
+        'C:/Users/wrm3/Desktop/Access Time Addendum Paper Data/P25-Direct-2500-ms/',
+        'C:/Users/wrm3/Desktop/Access Time Addendum Paper Data/P25-Direct-2500-ms/',
+        'SUT')
 
 # =============================================================================
 # Execute if run as main script
