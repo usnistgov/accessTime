@@ -35,12 +35,14 @@ standard_delay = 0
 default_rate = None
 rates = []
 
+channel_type = 'audio'
 
 def simulate_audio_channel(
     tx_data, sample_rate, channel_rate=None, print_args=False, channel_impairment=None
 ):
     if channel_impairment:
-        warnings.warn("There is no channel for the 'clean' option. can not use channel_impairment")
+        #apply impairment
+        tx_data = channel_impairment(tx_data, sample_rate)
     if channel_rate:
         warnings.warn("For 'clean' there is no rate. 'channel_rate' option ignored")
 
