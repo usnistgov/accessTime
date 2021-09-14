@@ -66,7 +66,7 @@ def single_play(ri, ap, audio_file=None, playback=False, ptt_wait=0.68, save_nam
 
         if playback:
             # read in file
-            fs_rec, rec_dat = mcvqoe.base.audio_read(audio_file)
+            fs_rec, rec_dat = mcvqoe.base.audio_read(rec_file)
             # check if we have multiple channels
             if len(rec_dat.shape) > 1:
                 # drop all but the first channel

@@ -1,1 +1,5 @@
-from .resample_techniques import bootstrap_ci, approx_permutation_test, standard_error
+from .resample_techniques import bootstrap_ci
+from .resample_techniques import approx_permutation_test
+from .resample_techniques import standard_error
+from .resample_techniques import improved_autocorrelation
+from .resample_techniques import bootstrap_datasets_ci

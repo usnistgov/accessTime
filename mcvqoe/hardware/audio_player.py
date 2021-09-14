@@ -181,7 +181,7 @@ try:
             # get stdin file descriptor
             self.fd = sys.stdin.fileno()
             # save old settings to restore later
-            self.old_settings = termios.tcgetattr(fd)
+            self.old_settings = termios.tcgetattr(self.fd)
             # change settings for raw input
             tty.setraw(sys.stdin.fileno())
             return self
@@ -312,20 +312,20 @@ class AudioPlayer:
         rec_chans={"rx_voice": 0},
         playback_chans={"tx_voice": 0},
         rec_stop=DefaultRecStop(),
+        device_str="UMC",
     ):
 
         self.sample_rate = fs
         self.blocksize = blocksize
         self.buffersize = buffersize
         self.overplay = overplay
-        self.device = AudioPlayer.find_device()
+        self.device = AudioPlayer.find_device(device_str)
         self.rec_chans = rec_chans
         self.playback_chans = playback_chans
         self.rec_stop = rec_stop
 
-    # TODO allow different device defaults
     @staticmethod
-    def find_device():
+    def find_device(device_str="UMC"):
 
         devs = sd.query_devices()
 
@@ -333,7 +333,7 @@ class AudioPlayer:
             if (
                 d["max_input_channels"] > 0
                 and d["max_output_channels"] > 0
-                and "UMC" in d["name"]
+                and device_str in d["name"]
             ):
                 return d["name"]
         else:
@@ -397,7 +397,7 @@ class AudioPlayer:
             # Make sure to write any audio data still left in the recording queue
             while self._qr.empty() != True:
                 rx_dat = self._qr.get()
-                rec_file.write(rx_dat[:, rec_map])
+                file.write(rx_dat[:, rec_map])
 
         # return the channels in the order recorded in the file
         return rec_names
