@@ -619,6 +619,54 @@ class QoEsim:
             ver = 'Unknown'
 
         return ver
+
+    # =====================[Get Channel Version]=====================
+    def get_channel_type(self, tech):
+        """
+        Return channel type for channel tech.
+
+        This queries a channel plugin for the channel type. Right now there are
+        three defined channel types 'digital-channel', 'analog-channel' and
+        'audio'.
+
+        Digital channels should pass a boolean array to the channel impairment
+        function. Where each element represents one bit in the stream.
+
+        Analog channels should pass a floating point array to the channel
+        impairment function. Where each element represents the volage vs time in
+        the channel.
+
+        Audio channels are just audio channel data. Audio channels should pass a
+        floating point array to the channel impairment function, where each
+        sample represents voltage over time.
+
+        Returns
+        -------
+        string
+            Channel type string.
+
+        See Also
+        --------
+        mcvqoe.simulation.QoEsim.get_channel_techs : List of channel technologies.
+        mcvqoe.simulation.QoEsim.channel_tech : Channel technology to use.
+        mcvqoe.simulation.QoEsim.play_record : Function to simulate a channel.
+
+        Examples
+        --------
+        Get version for a clean channel
+
+        >>> sim=QoEsim()
+        >>> sim.get_channel_type('clean')
+        'audio'
+        """
+        mod = self._get_chan_mod(tech)
+
+        try:
+            ver = mod.channel_type
+        except AttributeError:
+            ver = 'Unknown'
+
+        return ver
     # =====================[get channel module]=====================
     def _get_chan_mod(self, tech):
         try:
