@@ -665,9 +665,9 @@ class QoEsim:
     # =====================[get channel module]=====================
     @staticmethod
     def _get_chan_mod(tech):
-    '''
-    Get module for channel plugin.
-    '''
+        '''
+        Get module for channel plugin.
+        '''
 
         chan_types = []
         # locate any channel plugins installed
