@@ -152,15 +152,6 @@ class QoEsim:
         playback_chans={"tx_voice": 0},
     ):
 
-        # locate any channel plugins installed
-        chans = entry_points()["mcvqoe.channel"]
-
-        self._chan_types = {}
-        self._chan_mods = {}
-        for c in chans:
-            # add to channel dict
-            self._chan_types[c.name] = c
-
         self.debug = debug
         self.PTT_state = [
             False,
@@ -524,7 +515,8 @@ class QoEsim:
         return __class__
 
     # =====================[Get Channel Technologies]=====================
-    def get_channel_techs(self):
+    @staticmethod
+    def get_channel_techs():
         """
         Return a list of channel technologies.
 
@@ -546,14 +538,18 @@ class QoEsim:
 
         List channel technologies.
 
-        >>>sim=QoEsim()
-        >>>sim.get_channel_techs()
-        ["clean"]
+        >>>QoEsim.get_channel_techs()
+        ("clean")
         """
-        return list(self._chan_types.keys())
+        chan_types = []
+        for c in entry_points()["mcvqoe.channel"]:
+            chan_types.append(c.name)
+
+        return tuple(chan_types)
 
     # =====================[Get Channel Rates]=====================
-    def get_channel_rates(self, tech):
+    @staticmethod
+    def get_channel_rates(tech):
         """
         Return possible rates for a given channel tech.
 
@@ -578,15 +574,15 @@ class QoEsim:
         --------
         Get rates for a clean channel
 
-        >>> sim=QoEsim()
-        >>> sim.get_channel_techs('clean')
+        >>> QoEsim.get_channel_techs('clean')
         (None,[])
         """
-        mod = self._get_chan_mod(tech)
+        mod = QoEsim._get_chan_mod(tech)
         return (mod.default_rate, mod.rates)
 
     # =====================[Get Channel Version]=====================
-    def get_channel_version(self, tech):
+    @staticmethod
+    def get_channel_version(tech):
         """
         Return version string for channel tech.
 
@@ -607,11 +603,10 @@ class QoEsim:
         --------
         Get version for a clean channel
 
-        >>> sim=QoEsim()
-        >>> sim.get_channel_version('clean')
-        (None,[])
+        >>> QoEsim.get_channel_version('clean')
+        <mcvqoe.base.version>
         """
-        mod = self._get_chan_mod(tech)
+        mod = QoEsim._get_chan_mod(tech)
 
         try:
             ver = mod.version
@@ -621,7 +616,8 @@ class QoEsim:
         return ver
 
     # =====================[Get Channel Version]=====================
-    def get_channel_type(self, tech):
+    @staticmethod
+    def get_channel_type(tech):
         """
         Return channel type for channel tech.
 
@@ -655,38 +651,34 @@ class QoEsim:
         --------
         Get version for a clean channel
 
-        >>> sim=QoEsim()
-        >>> sim.get_channel_type('clean')
+        >>> QoEsim.get_channel_type('clean')
         'audio'
         """
-        mod = self._get_chan_mod(tech)
+        mod = QoEsim._get_chan_mod(tech)
 
         try:
-            ver = mod.channel_type
+            chan_type = mod.channel_type
         except AttributeError:
-            ver = 'Unknown'
+            chan_type = 'Unknown'
 
-        return ver
+        return chan_type
     # =====================[get channel module]=====================
-    def _get_chan_mod(self, tech):
-        try:
-            chan_mod = self._chan_mods[tech]
-        except KeyError:
-            try:
-                chan_info = self._chan_types[tech]
-            except KeyError:
-                raise ValueError(
-                    f'Unknown channel tech "{tech}" valid channel technologies are {self.get_channel_techs()}'
-                ) from None
+    @staticmethod
+    def _get_chan_mod(tech):
+    '''
+    Get module for channel plugin.
+    '''
 
-            # load module for channel
-            chan_mod = chan_info.load()
-            # save module for later
-            # TODO : is this needed? good idea?
-            self._chan_mods[self.channel_tech] = chan_mod
+        chan_types = []
+        # locate any channel plugins installed
+        for c in entry_points()["mcvqoe.channel"]:
+            if c.name == tech:
+                #load module and return
+                return c.load()
+            chan_types.append(c.name)
+        #tech not found, raise error
+        raise ValueError(f'Unknown channel tech "{tech}" valid channel technologies are {chan_types}')
 
-        return chan_mod
-    
     # =====================[get impairment plugins]=====================
     @staticmethod
     def _get_impairments():
