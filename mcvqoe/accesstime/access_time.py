@@ -815,7 +815,28 @@ class measure:
                             
                             #-------------------------[Data Processing]---------------------------
                             
-                            data = self.process_audio(clip,audioname,rec_names,dly_st_idx)
+                            def warn_user( warn_str):
+                                '''
+                                Function to send a warning to the user.
+
+                                Defined here so that we know the current trial
+                                and trial count.
+                                '''
+                                if(not self.progress_update(
+                                                'warning',
+                                                total_trials,
+                                                trial_count,
+                                                msg = warn_str,
+                                    )):
+                                    raise SystemExit()
+
+                            data = self.process_audio(
+                                                        clip,
+                                                        audioname,
+                                                        rec_names,
+                                                        dly_st_idx,
+                                                        warn_func = warn_user,
+                                                    )
                             
                             #TODO : intelligibility for autostop
                             success[0, clip_count-1] = data['P1Int']
@@ -1007,7 +1028,7 @@ class measure:
             #finish log entry
             mcvqoe.base.post(outdir=self.outdir, info=info)
 
-    def process_audio(self,clip_index,fname,rec_chans,dly_st_idx):
+    def process_audio(self, clip_index, fname, rec_chans, dly_st_idx, warn_func = lambda s: None):
     
         #-----------------------[Load in recorded audio]-----------------------
  
@@ -1055,7 +1076,7 @@ class measure:
         
         #--------------------------[Compute ptt_time]--------------------------
         
-        data['PTTstart'] = self.process_ptt(psig_dat)
+        data['PTTstart'] = self.process_ptt(psig_dat, warn_func = warn_func)
         
         # Get ptt time. Subtract nominal play/record delay
         # (can be seen in PTT Gate data)
@@ -1108,7 +1129,7 @@ class measure:
         
         return data
         
-    def process_ptt(self,signal):
+    def process_ptt(self, signal, warn_func=lambda s: None):
         '''
         Compute PTT time from ptt signal.
         
@@ -1123,7 +1144,10 @@ class measure:
             The time, in seconds from the start of the clip, that the PTT was
             pushed at.
         '''
-        
+
+        #no warning, empty string
+        warn_text = ''
+
         # Extract push to talk signal (getting envelope)
         ptt_sig = scipy.signal.filtfilt(
                             ptt_filt,
@@ -1136,15 +1160,9 @@ class measure:
         
         # Check levels
         if(ptt_max < 0.25):
-            if(not self.progress_update(
-                        'warning',
-                        total_trials,
-                        trial_count,
-                        msg='Low PTT signal values. Check levels',
-                    )):
-                raise SystemExit()
+            #set warning text
+            warn_text = 'Low PTT signal values. Check levels'
 
-            
         # Normalize levels
         ptt_sig = ((ptt_sig*np.sqrt(2))/ptt_max)
         
@@ -1157,7 +1175,13 @@ class measure:
             
         except IndexError:
             st = np.nan
-        
+            #overwrite warning text (was probably set earlier)
+            warn_text = 'Unable to detect PTT start. Check levels'
+
+        if warn_text:
+            #warn user of issues
+            warn_func(warn_text)
+
         # Return when the ptt was pushed    
         return st
             
