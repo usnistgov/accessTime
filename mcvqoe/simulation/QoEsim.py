@@ -727,7 +727,16 @@ class QoEsim:
                 names.append(i.name)
         
         return names
-    
+        
+    # =======================[get all impairment plugins]=======================
+    @staticmethod
+    def get_all_impairment_names():
+
+        # locate any impairment plugins installed
+        impairments = QoEsim._get_impairments()
+
+        return [i for i in impairments]
+
     # =======================[get impairment parameters]=======================
     @staticmethod
     def get_impairment_params(name):
@@ -743,7 +752,20 @@ class QoEsim:
         module = QoEsim._get_impairment_module(name)
         
         return module.description
-    
+        
+    # =======================[get impairment Version]=======================
+    @staticmethod
+    def get_impairment_version(name):
+
+        module = QoEsim._get_impairment_module(name)
+
+        try:
+            ver = module.version
+        except AttributeError:
+            ver = 'Unknown'
+
+        return ver
+
     # ========================[initialize an impairment]========================
     @staticmethod
     def get_impairment_func(name, **kwargs):
