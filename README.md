@@ -9,6 +9,8 @@ to measure and quantify the access time of any push to talk (PTT) communication 
 # OBTAINING SOFTWARE
 - Access Time measurement software available at:  https://github.com/usnistgov/accessTime
 - Microcontroller firmware available at:  https://github.com/usnistgov/MCV-QoE-firmware
+- MCV QoE GUI software available at : https://github.com/usnistgov/mcvqoe
+- Core MCV QoE library available at : https://github.com/usnistgov/mcvqoe-base
 
 # OBTAINING PAPERS
 - Start-of-word correction paper available at: https://doi.org/10.6028/NIST.TN.2166
@@ -21,39 +23,22 @@ to measure and quantify the access time of any push to talk (PTT) communication 
 - Original measurement system data available at:  https://doi.org/10.18434/M32083
 
 # HARDWARE REQUIREMENTS
-- 1 computer able to run MATLAB and R
+- 1 computer able to run Python 3.6 or newer
 - 1 audio interface
 - 2 communications devices for testing
-- cables to connect test devices to audio interfaces
-- 1 microcontroller with daughter board
-- transformers
-
-**Additional details, reference the paper linked above.**
-
-# SOFTWARE REQUIREMENTS
-- MATLAB R2018a or newer with the following toolboxes:
-	- Audio System Toolbox (Audio Toolbox on R2019a and newer)
-	- Signal Processing Toolbox
-- R version 3.5.X or newer
-    - RStudio (recommended)
-	- ggplot2, minpack.lm packages (will install on accessTime package install)
-    - devtool package (must be installed via `install.packages("devtools")` )
-	- Rtools, required to build package. Download here: https://cran.r-project.org/bin/windows/Rtools/
-
-**Additional requirement information can be found in the papers.**	
+- QoE box for connecting radios to
+- cables to connect test devices to QoE box
+- Audio cables to connect QoE box to audio interface
 
 # RUNNING MEASUREMENT SOFTWARE
-To run the access delay test, run the test.m script. Speech will be played and recorded using the connected audio device. The raw and processed audio data is stored in a subfolder named data/. Test.m takes in a variety of optional input parameters, descriptions of these are available by typing `help test` in MATLAB when in the Access Time directory. 
 
-Example input specifications:
-`test('AudioFile', 'Filepath\Example.wav', 'PTTStep', 0.02,'PTTRep' , 30,  'Trials', 300, 'autoStop', true, 'StopRep', 6)`
+The easiest way to use the measurement system is to run the GUI (https://github.com/usnistgov/mcvqoe).
 
 # Post Processing
 
 # Calculating Access Time and Uncertainty
-The code to calculate access time values and their associated uncertainties is in the folder accessTime, as an R package. The package can be installed via the following command in the R console: `devtools::install_git(url="git://github.com/usnistgov/accessTime", subdir = "accessTime")`.
 
-Detailed documentation, with examples, is built into the R package. An index containing all documentation files as well as the description file can be found via the following command in the R console, after the package has been installed: `help(package="accessTime")`
+If access time is run through the GUI, the user will be guided through the process of calculating access time. Otherwise 
 
 # Microcontroller Code
 The code, as well as additional instructions, for the radio interface microcontroller is located:  <https://doi.org/10.18434/M32086>. 
@@ -63,7 +48,7 @@ This code was designed to run on the MSP-EXP430F5529LP "Launch Pad" development 
 The code uses the standard TI USB library and serial drivers. On Windows 10 driver installation is not necessary. On other systems the appropriate driver may need to be downloaded from TI.
 
 # Volume Settings
-Volume settings can impact test audio quality. To run the volume setting procedure, run the volume_adjust.m script. The output of this script gives the ideal volume settings for Vtx.
+Volume settings can impact test audio quality. To run the volume setting procedure, run the volume\_adjust.m script. The output of this script gives the ideal volume settings for Vtx.
 
 Example input specifications: `volume_adjust('AudioFile','Filepath\Example.wav','Trials',100, 'DevVolume', -5, 'Lim', [-30, 0])`
 
