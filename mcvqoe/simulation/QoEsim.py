@@ -735,7 +735,7 @@ class QoEsim:
         # locate any impairment plugins installed
         impairments = QoEsim._get_impairments()
 
-        return [i for i in impairments]
+        return [i.name for i in impairments]
 
     # =======================[get impairment parameters]=======================
     @staticmethod
