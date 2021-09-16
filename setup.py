@@ -10,7 +10,7 @@ setuptools.setup(
     description="Common code for MCV QoE Measurement Classes",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://gitlab.nist.gov/gitlab/PSCR/MCV/mcv-qoe-library",
+    url="https://github.com/usnistgov/mcvqoe-base",
     packages=setuptools.find_namespace_packages(include=['mcvqoe.*']),
     include_package_data=True,
     package_data={
