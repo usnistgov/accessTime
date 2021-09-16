@@ -840,12 +840,22 @@ class QoEsim:
 
         # get delay offset for channel technology
         m2e_offset = chan_mod.standard_delay
-
+        
         # calculate values in samples
         overplay_samples = int(self.overplay * self.sample_rate)
         
         if self.m2e_latency is None:
             m2e_latency_samples = 0
+        elif callable(self.m2e_latency):
+            # correct for audio channel latency
+            m2e_latency_samples = int((self.m2e_latency() - m2e_offset) * self.sample_rate)
+            #fix latency to zero
+            #TODO : is this the best thing to do?
+            if m2e_latency_samples<0:
+                #give warning about change
+                warnings.warn(f'M2E would be {m2e_latency_samples} samples, replacing with 0')
+                #set to zero
+                m2e_latency_samples = 0
         else:
             # correct for audio channel latency
             m2e_latency_samples = int((self.m2e_latency - m2e_offset) * self.sample_rate)
@@ -871,7 +881,18 @@ class QoEsim:
             access_delay_samples = 0
         else:
             ptt_st_dly_samples = int(self.ptt_wait_delay[1] * self.sample_rate)
-            access_delay_samples = int(self.access_delay * self.sample_rate)
+            #check if we have a function(ish) for access_delay
+            if callable(self.access_delay):
+                access_delay_samples = int(self.access_delay() * self.sample_rate)
+                #fix latency to zero
+                #TODO : is this the best thing to do?
+                if access_delay_samples<0:
+                    #give warning about change
+                    warnings.warn(f'access delay would be {access_delay_samples} samples, replacing with 0')
+                    #set to zero
+                    access_delay_samples = 0
+            else:
+                access_delay_samples = int(self.access_delay * self.sample_rate)
 
         # mute portion of tx_data that occurs prior to triggering of PTT
         muted_samples = int(access_delay_samples + ptt_st_dly_samples)
