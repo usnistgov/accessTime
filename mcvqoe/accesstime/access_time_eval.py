@@ -69,10 +69,21 @@ class AccessData(object):
             Sampling frequency: {self.sampling_frequency.iloc[0]}'''
         return s
 
+class FitData(object):
+
+    def __init__(self, I0, t0, lam, covar, curve_dat):
+        self.I0 = I0
+        self.t0 = t0
+        self.lam = lam
+        self.covar = covar
+        self.curve_dat = curve_dat
+
 class evaluate(object):
-    def __init__(self, session_names, cut_names, session_dir, cut_dir, test_type):
+
+    def __init__(self, session_names, cut_names, session_dir, cut_dir, test_type, ptt_session_names=None):
         # Data loaded in
-        self.access_data = AccessData(session_names, cut_names, session_dir, cut_dir)
+        self.sut_access_data = AccessData(session_names, cut_names, session_dir, cut_dir)
+        self.ptt_access_data = None if not ptt_session_names else AccessData(ptt_session_names, cut_names, session_dir, cut_dir)
         self.fit_type = self._get_fit_type(test_type)
         self.fit_data = None
 
@@ -80,20 +91,52 @@ class evaluate(object):
         self.fit_data = None
 
     def _get_fit_type(self, fit_type):
-        valid_fit_types = ["PTT", "SUT", "COR", "LEG"]
+        valid_fit_types = ["COR", "LEG"]
         if not fit_type in valid_fit_types:
             raise ValueError(f"Fit type not one of: {valid_fit_types}")
         return fit_type
 
     def __repr__(self):
         s = f'''evaluate object:
-            Speaker words: {self.access_data.speaker_word}
-            Sampling frequency: {self.access_data.sampling_frequency.iloc[0]}
+            Speaker words: {self.sut_access_data.speaker_word}
+            Sampling frequency: {self.sut_access_data.sampling_frequency.iloc[0]}
             Test type: {self.fit_type}'''
         return s
 
-    def fit_data(self):
-        pass
+    def fit_curve_data(self):
+        # Fit SUT tests
+        recenter = [cp["End"][0]/int(self.sut_access_data.sampling_frequency) for cp in self.sut_access_data.cut_points]
+        fresh_dat = [dat[["PTT_time", "P1_Int"]] for dat in self.sut_access_data.dat]
+        for ii in range(len(recenter)):
+            fresh_dat[ii]["PTT_time"] = recenter[ii] - fresh_dat[ii]["PTT_time"]
+
+        # Legacy fit
+        if self.fit_type == "LEG":
+            # join dataframes
+            curve_dat = pd.concat(fresh_dat)
+
+            # Calculate asymptotic int
+            I0 = np.mean([np.mean(x["P2_Int"]) for x in self.sut_access_data.dat])
+
+            # logistic function to fit
+            def logistic_fit(xdata, t0, lam):
+                return I0/(1+np.exp((xdata-t0)/lam))
+
+            # TODO: Attempt predictive paramter fit
+
+            # Naieve guess
+            init = [0, -0.1]
+            fit_dat = curve_fit(logistic_fit, curve_dat["PTT_time"], curve_dat["P1_Int"], p0=init)
+
+            # store as fit data and return
+            return FitData(I0, fit_dat[0][0], fit_dat[0][1], fit_dat[1], curve_dat)
+
+        if self.test_type == "COR":
+            # needs ptt tests to use correction factor
+            if not self.ptt_session_names:
+                raise ValueError("Correction factor requires PTT tests.")
+            return 0
+
 
     def eval_intell(self):
         pass
@@ -144,11 +187,17 @@ def main():
 
     eta = evaluate(
         ['Rcapture_P25_Direct_Access_Time_18-Oct-2019_07-38-54_F1_b39_w4_hook.csv',
-         'Rcapture_P25_Direct_Access_Time_22-Oct-2019_07-25-17_F3_b15_w5_west.csv'],
-        ['Tx_F1_b39_w4_hook.csv', 'Tx_F3_b15_w5_west.csv'],
+         'Rcapture_P25_Direct_Access_Time_22-Oct-2019_07-25-17_F3_b15_w5_west.csv',
+         'Rcapture_P25_Direct_Access_Time_23-Oct-2019_14-11-36_M3_b22_w3_cop.csv',
+         'Rcapture_P25_Direct_Access_Time_25-Oct-2019_13-22-20_M4_b18_w4_pay.csv'],
+        ['Tx_F1_b39_w4_hook.csv', 'Tx_F3_b15_w5_west.csv',
+         'Tx_M3_b22_w3_cop.csv', 'Tx_M4_b18_w4_pay.csv'],
         'C:/Users/wrm3/Desktop/Access Time Addendum Paper Data/P25-Direct-2500-ms/',
         'C:/Users/wrm3/Desktop/Access Time Addendum Paper Data/P25-Direct-2500-ms/',
-        'SUT')
+        'LEG')
+
+    u = eta.fit_curve_data()
+    print(u)
 
 # =============================================================================
 # Execute if run as main script
