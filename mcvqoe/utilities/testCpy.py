@@ -15,6 +15,8 @@ import pkg_resources
 import mcvqoe
 import mcvqoe.base
 
+#name for saved settings file
+settings_name = "CopySettings.json"
 
 if platform.system() == "Windows":
 
@@ -144,7 +146,7 @@ def log_update(log_in_name, log_out_name, dryRun=False):
                             extra = lin[len(lout) :]
                         else:
                             raise RuntimeError(
-                                f"Files differ at line {line}, can not copy"
+                                f"Files '{log_out_name}' and '{log_in_name}' differ at line {line}, can not copy"
                             )
 
                 # get the remaining data in the file
@@ -180,76 +182,10 @@ def log_update(log_in_name, log_out_name, dryRun=False):
     # print success message
     print(f"Log updated successfully to {log_out_name}\n")
 
+def copy_test_files(out_dir, dest_dir=None, cname=None, sync_dir=None, dry_run=False, force=False, direct=False):
+    set_file = os.path.join(out_dir, settings_name)
 
-# main function
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "-d",
-        "--dest-dir",
-        default=None,
-        type=str,
-        metavar="DIR",
-        dest="destDir",
-        help="Path to store files on removable drive",
-    )
-    parser.add_argument(
-        "-o",
-        "--outdir",
-        default="",
-        metavar="DIR",
-        help="Directory where test output data is stored",
-    )
-    parser.add_argument(
-        "-c",
-        "--computer-name",
-        default=None,
-        metavar="CNAME",
-        dest="cname",
-        help="computer name for log file renaming",
-    )
-    parser.add_argument(
-        "-s",
-        "--sync-directory",
-        default=None,
-        metavar="SZ",
-        dest="syncDir",
-        help="Directory on drive where sync script is stored",
-    )
-    parser.add_argument(
-        "-D",
-        "--dry-run",
-        action="store_true",
-        default=False,
-        dest="dryRun",
-        help="Go through all the motions but, don't copy any files",
-    )
-    parser.add_argument(
-        "-f",
-        "--force",
-        action="store_true",
-        default=False,
-        help="overwrite config files with values from arguments",
-    )
-    parser.add_argument(
-        "-i",
-        "--direct",
-        action="store_true",
-        default=False,
-        help="Copy directly to destination, not to a HD",
-    )
-
-    # parse arguments
-    args = parser.parse_args()
-
-    if args.outdir:
-        OutDir = os.getcwd()
-    else:
-        OutDir = args.outdir
-
-    set_file = os.path.join(OutDir, "CopySettings.json")
-
-    log_in_name = os.path.join(OutDir, "tests.log")
+    log_in_name = os.path.join(out_dir, "tests.log")
 
     if os.path.exists(set_file):
 
@@ -279,23 +215,23 @@ def main():
             dest_drive_prefix = drive_info["drive"] + os.sep
 
     else:
-        if not args.cname:
+        if not cname:
             raise RuntimeError(
                 f"--computer-name not given and '{set_file}' does not exist"
             )
 
-        if not args.destDir:
+        if not dest_dir:
             raise RuntimeError(f"--dest-dir not given and '{set_file}' does not exist")
 
         # TODO : check for questionable names in path?
 
-        if args.direct:
+        if direct:
             dest_drive_prefix = ""
-            rel_path = args.destDir
+            rel_path = dest_dir
             drive_ser = None
         else:
             # split drive from path
-            (dest_drive_prefix, rel_path) = os.path.splitdrive(args.destDir)
+            (dest_drive_prefix, rel_path) = os.path.splitdrive(dest_dir)
 
             # get serial number for drive
             drive_ser = get_drive_serial(dest_drive_prefix)
@@ -305,18 +241,18 @@ def main():
 
         # create dictionary of options, normalize paths
         set_dict = {
-            "ComputerName": os.path.normpath(args.cname),
+            "ComputerName": os.path.normpath(cname),
             "DriveSerial": drive_ser,
             "Path": os.path.normpath(rel_path),
-            "Direct": args.direct,
+            "Direct": direct,
         }
 
     with (
         os.fdopen(os.dup(sys.stdout.fileno()), "w")
-        if args.dryRun
+        if dry_run
         else open(set_file, "w")
     ) as sf:
-        if args.dryRun:
+        if dry_run:
             print("Settings file:")
         json.dump(set_dict, sf)
 
@@ -325,7 +261,7 @@ def main():
         dest_drive_prefix, set_dict["Path"], set_dict["ComputerName"] + "-tests.log"
     )
 
-    log_update(log_in_name, log_out_name, args.dryRun)
+    log_update(log_in_name, log_out_name, dry_run)
 
     print("Prefix : " + dest_drive_prefix)
 
@@ -334,13 +270,11 @@ def main():
 
     if not set_dict["Direct"]:
 
-        if args.syncDir:
-            syncDir = args.syncDir
-        else:
-            syncDir = os.path.join(dest_drive_prefix, "sync")
+        if sync_dir is None:
+            sync_dir = os.path.join(dest_drive_prefix, "sync")
 
-        SyncScript = os.path.join(syncDir, "sync.py")
-        sync_ver_path = os.path.join(syncDir, "version.txt")
+        SyncScript = os.path.join(sync_dir, "sync.py")
+        sync_ver_path = os.path.join(sync_dir, "version.txt")
 
         sync_update = False
 
@@ -369,10 +303,10 @@ def main():
                 sync_update = True
                 print("Sync version missing, updating")
 
-        if sync_update and not args.dryRun:
+        if sync_update and not dry_run:
             # there is no sync script
             # make sync dir
-            os.makedirs(syncDir, exist_ok=True)
+            os.makedirs(sync_dir, exist_ok=True)
             # copy sync script
             with open(SyncScript, "wb") as f:
                 f.write(pkgutil.get_data("mcvqoe.utilities", "sync.py"))
@@ -387,9 +321,9 @@ def main():
             # couldn't get path, try 'python' and hope for the best
             py_path = "python"
 
-        syncCmd = [py_path, SyncScript, "--import", OutDir, destDir, "--cull"]
+        syncCmd = [py_path, SyncScript, "--import", out_dir, destDir, "--cull"]
 
-        if args.dryRun:
+        if dry_run:
             print("Calling sync command:\n\t" + " ".join(syncCmd))
         else:
             stat = subprocess.run(syncCmd)
@@ -402,13 +336,116 @@ def main():
         # direct sync, use library version
         from .sync import sync_files
 
-        if args.dryRun:
+        if dry_run:
             print(
                 "Calling sync command:\n\t"
-                + f"sync.sync_files({repr(OutDir)}, {repr(destDir)}, bd=False, cull=True, sunset=30)"
+                + f"sync.sync_files({repr(out_dir)}, {repr(destDir)}, bd=False, cull=True, sunset=30)"
             )
         else:
-            sync_files(OutDir, destDir, bd=False, cull=True, sunset=30)
+            sync_files(out_dir, destDir, bd=False, cull=True, sunset=30)
+
+# main function
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "-d",
+        "--dest-dir",
+        default=None,
+        type=str,
+        metavar="DIR",
+        dest="dest_dir",
+        help="Path to store files on removable drive",
+    )
+    parser.add_argument(
+        "-o",
+        "--outdir",
+        default="",
+        metavar="DIR",
+        help="Directory where test output data is stored",
+    )
+    parser.add_argument(
+        "-c",
+        "--computer-name",
+        default=None,
+        metavar="CNAME",
+        dest="cname",
+        help="computer name for log file renaming",
+    )
+    parser.add_argument(
+        "-s",
+        "--sync-directory",
+        default=None,
+        metavar="SZ",
+        dest="sync_dir",
+        help="Directory on drive where sync script is stored",
+    )
+    parser.add_argument(
+        "-D",
+        "--dry-run",
+        action="store_true",
+        default=False,
+        dest="dry_run",
+        help="Go through all the motions but, don't copy any files",
+    )
+    parser.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        default=False,
+        help="overwrite config files with values from arguments",
+    )
+    parser.add_argument(
+        "-i",
+        "--direct",
+        action="store_true",
+        default=False,
+        help="Copy directly to destination, not to a HD",
+    )
+    parser.add_argument(
+        "-r",
+        "--recursive",
+        action="store_true",
+        default=False,
+        help="Find copy settings recursively and sync where they are found",
+    )
+
+    # parse arguments
+    args = parser.parse_args()
+
+    if args.outdir:
+        out_dir = os.getcwd()
+    else:
+        out_dir = args.outdir
+
+
+    #convert to dict for use as kwargs
+    args_dict = vars(args).copy()
+
+    #remove some things
+    args_dict.pop('outdir')
+    args_dict.pop('recursive')
+
+    if args.recursive:
+        out_dir = os.path.abspath(out_dir)
+        for root, dirs, files in os.walk(out_dir, topdown=True):
+            if args.dry_run:
+                print(f'Checking "{root}" for "{settings_name}"')
+            #check for copy settings
+            if settings_name in files:
+                print('\n'+f'"{settings_name}" found syncing "{root}":')
+                try:
+                    #settings found, copy files
+                    copy_test_files(root,dry_run=args.dry_run, sync_dir=args.sync_dir)
+                except RuntimeError as e:
+                    #print error and continue
+                    print(f'Error while syncing : {str(e)}')
+                #remove directories from dirs
+                #this will skip all directories
+                dirs.clear()
+                #print a blank line for readability
+                print()
+    else:
+        copy_test_files(out_dir,**args_dict)
 
 
 if __name__ == "__main__":
