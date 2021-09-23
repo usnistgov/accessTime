@@ -319,10 +319,14 @@ class AudioPlayer:
         self.blocksize = blocksize
         self.buffersize = buffersize
         self.overplay = overplay
-        self.device = AudioPlayer.find_device(device_str)
         self.rec_chans = rec_chans
         self.playback_chans = playback_chans
         self.rec_stop = rec_stop
+        try:
+            self.device = self.find_device(device_str)
+        except RuntimeError:
+            #no device found
+            self.device = None
 
     @staticmethod
     def find_device(device_str="UMC"):
@@ -349,6 +353,10 @@ class AudioPlayer:
             The file name to write audio to.
 
         """
+
+        #check that device is set
+        if not self.device:
+            RuntimeError(f'No audio device found')
 
         # get the highest numbered channel
         # this will be the number of channels that will be played
@@ -462,6 +470,10 @@ class AudioPlayer:
         >>> ap.rec_chans={'rx_voice':0,'PTT_signal':1}
         >>> ap.play_record(tx_voice,'test.wav')
         """
+
+        #check that device is set
+        if not self.device:
+            RuntimeError(f'No audio device found')
 
         if len(tx_voice.shape) == 2:
             if tx_voice.shape[1] != 1:
