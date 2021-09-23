@@ -379,8 +379,6 @@ class AudioPlayer:
         # Queue for recording input
         self._qr = queue.Queue()
 
-        sd.default.device = self.device
-
         # set loop var to Fals (keep looping)
         rec_done = False
 
@@ -390,7 +388,7 @@ class AudioPlayer:
         ) as file:
             with self.rec_stop, sd.InputStream(
                 samplerate=self.sample_rate,
-                device=sd.default.device,
+                device=self.device,
                 channels=chans,
                 callback=self._cb_rec,
             ):
@@ -531,10 +529,6 @@ class AudioPlayer:
         else:
             self._time_encode = False
 
-        # Set device and number of I/O channels
-        sd.default.device = self.device
-        sd.default.channels = [rec_chan, pb_chan]
-
         # check for 1D audio
         if len(audio.shape) == 1:
             # promote a 1D array to a 2D nx1 array
@@ -580,6 +574,8 @@ class AudioPlayer:
             blocksize=self.blocksize,
             samplerate=self.sample_rate,
             dtype="float32",
+            device=self.device,
+            channels=[rec_chan, pb_chan],
             callback=self._cb_play_rec,
             finished_callback=event.set,
             latency=0,
