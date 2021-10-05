@@ -116,7 +116,7 @@ class QoEsim:
         Print arguments to external programs.
     PTT_sig_freq : float, default=409.6
         Frequency of the PTT signal from the play_record method.
-    PTT_sig_aplitude : float, default=0.7
+    PTT_sig_amplitude : float, default=0.7
         Amplitude of the PTT signal from the play_record method.
 
     See Also
@@ -185,7 +185,7 @@ class QoEsim:
         self.print_args = False
         # PTT signal parameters
         self.PTT_sig_freq = 409.6  # TODO : VERIFY!
-        self.PTT_sig_aplitude = 0.7
+        self.PTT_sig_amplitude = 0.7
 
     def __repr__(self):
         string_props=('sample_rate','overplay','rec_chans','playback_chans','channel_tech','channel_rate','m2e_latency','access_delay','rec_snr')
@@ -958,7 +958,7 @@ class QoEsim:
                 # calculate length of sine signal in samples
                 sin_len_samples = rx_data.shape[0] - ptt_st_dly_samples
                 # construct sine signal
-                rx_data[ptt_st_dly_samples:, n] = self.PTT_sig_aplitude * np.sin(
+                rx_data[ptt_st_dly_samples:, n] = self.PTT_sig_amplitude * np.sin(
                     2
                     * np.pi
                     * self.PTT_sig_freq
