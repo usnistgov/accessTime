@@ -116,7 +116,7 @@ class QoEsim:
         Print arguments to external programs.
     PTT_sig_freq : float, default=409.6
         Frequency of the PTT signal from the play_record method.
-    PTT_sig_aplitude : float, default=0.7
+    PTT_sig_amplitude : float, default=0.7
         Amplitude of the PTT signal from the play_record method.
 
     See Also
@@ -185,7 +185,7 @@ class QoEsim:
         self.print_args = False
         # PTT signal parameters
         self.PTT_sig_freq = 409.6  # TODO : VERIFY!
-        self.PTT_sig_aplitude = 0.7
+        self.PTT_sig_amplitude = 0.7
 
     def __repr__(self):
         string_props=('sample_rate','overplay','rec_chans','playback_chans','channel_tech','channel_rate','m2e_latency','access_delay','rec_snr')
@@ -774,6 +774,29 @@ class QoEsim:
         
         return module.create_impairment(**kwargs)
 
+    # ========================[get delay value]========================    
+    def _get_delay_samples(self, value, name, offset=0):
+        if value is None:
+            delay_samples = 0
+        elif callable(value):
+            # correct for offset
+            delay_samples = int((value() - offset) * self.sample_rate)
+            #fix delay to zero
+            if delay_samples<0:
+                #give warning about change
+                warnings.warn(f'{name} would be {delay_samples} samples, replacing with 0')
+                #set to zero
+                delay_samples = 0
+        else:
+            # correct for offset
+            delay_samples = int((value - offset) * self.sample_rate)
+
+        if delay_samples < 0:
+            raise ValueError(
+                f"Unable to simulate {name} of {self.m2e_latency}. Minimum simulated {name} for technology '{self.channel_tech}' is {m2e_offset}"
+            )
+
+        return delay_samples
     # =========================[record audio function]=========================
     def play_record(self, audio, out_name):
         """
@@ -844,27 +867,8 @@ class QoEsim:
         # calculate values in samples
         overplay_samples = int(self.overplay * self.sample_rate)
         
-        if self.m2e_latency is None:
-            m2e_latency_samples = 0
-        elif callable(self.m2e_latency):
-            # correct for audio channel latency
-            m2e_latency_samples = int((self.m2e_latency() - m2e_offset) * self.sample_rate)
-            #fix latency to zero
-            #TODO : is this the best thing to do?
-            if m2e_latency_samples<0:
-                #give warning about change
-                warnings.warn(f'M2E would be {m2e_latency_samples} samples, replacing with 0')
-                #set to zero
-                m2e_latency_samples = 0
-        else:
-            # correct for audio channel latency
-            m2e_latency_samples = int((self.m2e_latency - m2e_offset) * self.sample_rate)
-
-        if m2e_latency_samples < 0:
-            # TODO : it might be possible to get around this but, it sounds slightly nontrivial...
-            raise ValueError(
-                f"Unable to simulate a latency of {self.m2e_latency}. Minimum simulated latency for technology '{self.channel_tech}' is {m2e_offset}"
-            )
+        # get value for M2E
+        m2e_latency_samples = self._get_delay_samples(self.m2e_latency,'M2E',offset = m2e_offset)
 
         # convert audio values to floats to work on them
         float_audio = mcvqoe.base.audio_float(audio)
@@ -880,19 +884,8 @@ class QoEsim:
             ptt_st_dly_samples = 0
             access_delay_samples = 0
         else:
+            access_delay_samples = self._get_delay_samples(self.access_delay,'Access Delay')
             ptt_st_dly_samples = int(self.ptt_wait_delay[1] * self.sample_rate)
-            #check if we have a function(ish) for access_delay
-            if callable(self.access_delay):
-                access_delay_samples = int(self.access_delay() * self.sample_rate)
-                #fix latency to zero
-                #TODO : is this the best thing to do?
-                if access_delay_samples<0:
-                    #give warning about change
-                    warnings.warn(f'access delay would be {access_delay_samples} samples, replacing with 0')
-                    #set to zero
-                    access_delay_samples = 0
-            else:
-                access_delay_samples = int(self.access_delay * self.sample_rate)
 
         # mute portion of tx_data that occurs prior to triggering of PTT
         muted_samples = int(access_delay_samples + ptt_st_dly_samples)
@@ -965,7 +958,7 @@ class QoEsim:
                 # calculate length of sine signal in samples
                 sin_len_samples = rx_data.shape[0] - ptt_st_dly_samples
                 # construct sine signal
-                rx_data[ptt_st_dly_samples:, n] = self.PTT_sig_aplitude * np.sin(
+                rx_data[ptt_st_dly_samples:, n] = self.PTT_sig_amplitude * np.sin(
                     2
                     * np.pi
                     * self.PTT_sig_freq
