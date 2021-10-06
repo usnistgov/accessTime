@@ -346,14 +346,16 @@ def bootstrap_datasets_ci(*datasets, R=int(1e4), alpha=0.5):
 
     """
     ds = datasets
+    # TODO: No need to limit this to first dataset
     N = len(ds[0])
     x_bars = np.zeros((len(ds), R))
     for ii, dataset in enumerate(ds):
         rs = np.random.choice(dataset, size=(N, R))
         x_bar = np.mean(rs, axis=0)
         x_bars[ii, :] = x_bar
+    
     # Means across sessions
-    x_bar_dist = np.mean(x_bars, axis=1)
+    x_bar_dist = np.mean(x_bars, axis=0)
     # percentiles
     ql = alpha/2
     qu = 1 - ql
