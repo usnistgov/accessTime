@@ -1,6 +1,7 @@
 import datetime
 import importlib
 import os
+import platform
 import shutil
 import traceback
 import warnings
@@ -88,6 +89,11 @@ def fill_log(test_obj):
         except AttributeError as e:
             warnings.warn(f'Unable to get version {e}',category=RuntimeWarning)
             pass
+    # ------------------------------[Add OS info]------------------------------
+
+    info["os name"] =  platform.system()
+    info["os release"] =  platform.release()
+    info["os version"] =  platform.version()
 
     # ---------------------------[Fill Arguments list]---------------------------
 
