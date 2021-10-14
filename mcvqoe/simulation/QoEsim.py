@@ -179,6 +179,7 @@ class QoEsim:
         # set to none to get min delay
         self.m2e_latency = None
         self.access_delay = 0
+        self.device_delay = 0
         # SNR for audio in dB
         self.rec_snr = 60
         # print arguments sent to external programs for debugging
@@ -188,7 +189,7 @@ class QoEsim:
         self.PTT_sig_amplitude = 0.7
 
     def __repr__(self):
-        string_props=('sample_rate','overplay','rec_chans','playback_chans','channel_tech','channel_rate','m2e_latency','access_delay','rec_snr')
+        string_props=('sample_rate','overplay','rec_chans','playback_chans','channel_tech','channel_rate','m2e_latency','access_delay','device_delay','rec_snr')
         string_opt_props=('pre_impairment','post_impairment','channel_impairment')
 
         props=[]
@@ -867,6 +868,9 @@ class QoEsim:
         # calculate values in samples
         overplay_samples = int(self.overplay * self.sample_rate)
         
+        # get value for device delay
+        device_delay_samples = self._get_delay_samples(self.device_delay,'device delay')
+
         # get value for M2E
         m2e_latency_samples = self._get_delay_samples(self.m2e_latency,'M2E',offset = m2e_offset)
 
@@ -934,7 +938,8 @@ class QoEsim:
         # and m2e latency audio snippets
         silence_length = int(ptt_st_dly_samples
                              + access_delay_samples
-                             + m2e_latency_samples)
+                             + m2e_latency_samples
+                             + device_delay_samples)
         silent_section = np.zeros(silence_length)
         # prepend silent section to rx_data
         rx_voice = np.concatenate((silent_section, channel_voice))
@@ -955,10 +960,12 @@ class QoEsim:
 
         for n, o_type in enumerate(outputs):
             if o_type == "PTT_signal":
+                # calculate PTT tone start time
+                ptt_tone_st_samples = ptt_st_dly_samples + device_delay_samples
                 # calculate length of sine signal in samples
-                sin_len_samples = rx_data.shape[0] - ptt_st_dly_samples
+                sin_len_samples = rx_data.shape[0] - ptt_tone_st_samples
                 # construct sine signal
-                rx_data[ptt_st_dly_samples:, n] = self.PTT_sig_amplitude * np.sin(
+                rx_data[ptt_tone_st_samples:, n] = self.PTT_sig_amplitude * np.sin(
                     2
                     * np.pi
                     * self.PTT_sig_freq
@@ -966,7 +973,7 @@ class QoEsim:
                     / float(self.sample_rate)
                 )
                 # zero out before PTT
-                rx_data[:ptt_st_dly_samples, n] = 0
+                rx_data[:ptt_tone_st_samples, n] = 0
             elif o_type == "rx_voice":
                 # add data to the array
                 rx_data[:, n] = rx_voice
