@@ -22,8 +22,8 @@ setuptools.setup(
     ],
     license='NIST software License',
     install_requires=[
-        'mcvqoe-nist>=0.4',
-        'abcmrt-nist>=0.1.3',
+        'mcvqoe-base>=0.4',
+        'abcmrt16>=0.1.3',
     ],
     entry_points={
         'console_scripts':[
