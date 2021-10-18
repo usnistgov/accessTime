@@ -1,7 +1,7 @@
 Package: accessTime
 Type: Package
 Title: Data Post-Processing and Uncertainty Analysis for Access Delay Measurements
-Version: 2.0.0
+Version: 2.0.1
 Author: Jaden Pieper <jaden.pieper@nist.gov>, Zainab Soetan <zainab.soetan@nist.gov>, William Magrogan <william.magrogan@nist.gov>
 Maintainer: Jaden Pieper <jaden.pieper@nist.gov>
 Description: Provides function for calculating the access delay and 
