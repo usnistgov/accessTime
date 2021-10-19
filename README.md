@@ -38,7 +38,9 @@ The easiest way to use the measurement system is to run the GUI (https://github.
 
 # Calculating Access Time and Uncertainty
 
-If access time is run through the GUI, the user will be guided through the process of calculating access time. Otherwise 
+If access time is run through the GUI, the user will be guided through the process of calculating access time. Otherwise the code to calculate access time values and their associated uncertainties is in the folder accessTime, as an R package. The package can be installed via the following command in the R console: `devtools::install_git(url="git://github.com/usnistgov/accessTime", subdir = "accessTime")`.
+
+Detailed documentation, with examples, is built into the R package. An index containing all documentation files as well as the description file can be found via the following command in the R console, after the package has been installed: `help(package="accessTime")`
 
 # Microcontroller Code
 The code, as well as additional instructions, for the radio interface microcontroller is located:  <https://doi.org/10.18434/M32086>. 
