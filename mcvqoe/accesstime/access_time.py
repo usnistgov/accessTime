@@ -2,6 +2,7 @@ import abcmrt
 import argparse
 import csv
 import datetime
+import glob
 import mcvqoe.base
 import os
 import pkg_resources
@@ -10,6 +11,7 @@ import scipy.interpolate
 import scipy.signal
 import time
 import timeit
+import zipfile
 
 from .version import version
 from fractions import Fraction
@@ -145,6 +147,9 @@ class measure:
     split_audio_dest : str, default=None
         Location to store split audio. Intended for (yet to be completed)
         reprocess.
+    zip_audio : bool, default=True
+        If true, after the test is complete, all recorded audio will be zipped
+        into 'audio.zip' and placed in the wav directory in it's place.
 
     Methods
     -------
@@ -224,6 +229,7 @@ class measure:
         self.split_audio_dest = None
         self.save_tx_audio = True
         self.save_audio = True
+        self.zip_audio = True
 
         for k, v in kwargs.items():
             if hasattr(self, k):
@@ -1052,7 +1058,32 @@ class measure:
                                 new_file=self.data_filenames[k],
                             )
                 os.rename(temp_data_filenames[k], self.data_filenames[k])
+
+            #------------------------[Zip audio data]--------------------------
+
+            if self.save_audio and self.zip_audio:
+                with zipfile.ZipFile(
+                        os.path.join(wavdir,'audio.zip'),
+                        mode='w',
+                        compression=zipfile.ZIP_LZMA,
+                    ) as audio_zip:
+                    #find all the rx wav files
+                    rx_wavs = glob.glob(os.path.join(wavdir,'Rx*.wav'))
+                    #fid all bad files
+                    bad_wavs = glob.glob(os.path.join(wavdir,'Bad*.wav'))
+                    #zip bad files and Rx files
+                    zip_wavs = rx_wavs + bad_wavs
+                    #get number of files
+                    num_zip_files = len(zip_wavs)
+                    for n, name in enumerate(zip_wavs):
+                        bname =  os.path.basename(name)
+                        self.progress_update('compress',num_zip_files,n)
+                        audio_zip.write(name,arcname=bname)
                 
+                #zip file has been written, delete files
+                self.progress_update('status',num_zip_files,num_zip_files,msg='Deleting compressed audio...')
+                for name in zip_wavs:
+                    os.remove(name)
             #----------------------[Delete recovery file]----------------------
             
             os.remove(recovery_file)
