@@ -495,33 +495,43 @@ class measure:
         #-----------------------[Do more recovery things]-----------------------
 
         if recovery:
-            # Boolean array to see which files to copy to new name
-            copy_files = np.full(len(temp_data_filenames), False)
             # Save old names to copy to new names
             old_filenames = self.rec_file['temp_data_filenames']
             # Save old .wav folder
             old_wavdir = self.rec_file['wavdir']
             # Save old bad file name
             old_bad_name = self.rec_file['bad_name']
+            #count the number of files loaded
+            load_count = 0
+            # List of tuples of filenames to copy
+            copy_files = []
+            #check if bad file exists
+            if os.path.exists(old_bad_name):
+                #add to list
+                copy_files.append((old_bad_name, bad_name))
 
-            for k in range(len(temp_data_filenames)):
-                save_dat = self.load_dat(old_filenames[k])
+            for k, (new_name, old_name) in enumerate(zip(temp_data_filenames,old_filenames)):
+                save_dat = self.load_dat(old_name)
                 if not save_dat:
                     self.progress_update(
                                 'status',
                                 len(temp_data_filenames),
                                 k,
-                                f"No data file found for {old_filenames[k]}"
+                                f"No data file found for {name}"
                             )
+                    #if file exists, we have a problem, throw an error
+                    if os.path.exists(old_name):
+                        raise RuntimeError(f'Problem loading data in \'{old_name}\'')
                 else:
                     self.progress_update(
                                 'status',
                                 len(temp_data_filenames),
                                 k,
-                                f"initializing with data from {old_filenames[k]}"
+                                f"initializing with data from {old_name}"
                             )
-                    # File is good, need to copy to new name
-                    copy_files[k] = True
+                    #file found, increment count
+                    load_count += 1
+                    copy_files.append((old_name, new_name))
                     # Get number of "rows" from CSV
                     clen = len(save_dat)
                     # Initialize success with zeros
@@ -556,6 +566,34 @@ class measure:
                         kk_start = 0
                     else:
                         kk_start = ((clen-1) % self.ptt_rep)
+
+            #check that we loaded some data
+            if load_count == 0:
+                raise RuntimeError('Could not find files to load')
+
+
+            wav_list = os.listdir(old_wavdir)
+            num_files = len(wav_list)
+            for n, file in enumerate(wav_list):
+                self.progress_update(
+                                'status',
+                                num_files,
+                                n+1,
+                                f"Coppying old test audio : {file}"
+                            )
+                new_name=os.path.join(wavdir, file)
+                old_name=os.path.join(old_wavdir, file)
+                shutil.copyfile(old_name, new_name)
+
+            for n, (old_name, new_name) in enumerate(copy_files):
+                self.progress_update(
+                                    'status',
+                                    len(copy_files),
+                                    n+1,
+                                    f"Coppying old test csvs : {old_name}"
+                                )
+                shutil.copyfile(old_name, new_name)
+
 
         #---------[Write Transmit Audio File(s) and cutpoint File(s)]----------
 
