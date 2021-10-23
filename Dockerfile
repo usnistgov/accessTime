@@ -1,4 +1,6 @@
 FROM python:3.8
+ARG ACCESS_TOKEN_NAME
+ARG ACCESS_TOKEN
 RUN apt-get update \
     && apt-get install -y ffmpeg \
     && apt-get clean
