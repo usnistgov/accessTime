@@ -7,8 +7,7 @@ stages:
 
 variables:
   IMAGE_MCVQOE_BASE: $CI_REGISTRY_IMAGE/mcvqoe-base:$CI_COMMIT_REF_SLUG
-  IMAGE_MCVQOE_BASE_RELEASE: $CI_REGISTRY_IMAGE/mcvqoe-base:$CI_COMMIT_REF_SLUG
-
+  IMAGE_MCVQOE_BASE_RELEASE: $CI_REGISTRY_IMAGE/mcvqoe-base:latest
 default:
   image: $IMAGE_MCVQOE_BASE
   tags:
