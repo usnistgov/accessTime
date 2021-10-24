@@ -35,7 +35,6 @@ build:docker:
       --destination $IMAGE_MCVQOE_BASE
       --build-arg ACCESS_TOKEN_NAME=gitlab-ci-token
       --build-arg ACCESS_TOKEN=$CI_JOB_TOKEN
-      --build-arg CI_API_V4_URL=$CI_API_V4_URL
 
 test-math:
   stage: test
