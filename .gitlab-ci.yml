@@ -8,6 +8,7 @@ stages:
 variables:
   IMAGE_MCVQOE_BASE: $CI_REGISTRY_IMAGE/mcvqoe-base:$CI_COMMIT_REF_SLUG
   IMAGE_MCVQOE_BASE_RELEASE: $CI_REGISTRY_IMAGE/mcvqoe-base:latest
+
 default:
   image: $IMAGE_MCVQOE_BASE
   tags:
@@ -108,6 +109,10 @@ release:docker:
   script:
     - crane auth login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - crane cp $IMAGE_MCVQOE_BASE $IMAGE_MCVQOE_BASE_RELEASE
+  rules:
+    - if : '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH'
+      changes:
+        - Dockerfile
 
 pages:
   stage: deploy
