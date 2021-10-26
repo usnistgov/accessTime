@@ -25,7 +25,7 @@ def test_name_parts(name):
               )
     return (m.group('prefix'),m.group('testtype'),m.group('date'))
 
-def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=np.dtype('int16')):
+def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir=""):
     '''
     Process rx and tx files for a two location test.
     
@@ -47,8 +47,6 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=
     outdir : string, default=""
         Directory that contains the `data/` folder where data will be read from
         and written to.
-    audio_type : np.dtype, default=np.dtype('int16')
-        Type of data to save .wav files as. 
         
     See Also
     --------
@@ -371,7 +369,6 @@ def main():
     parser.add_argument("--extra-play", type=int, default=1)
     parser.add_argument("--rx-name", type=str, default=None)
     parser.add_argument("--outdir", type=str, default="")
-    parser.add_argument("--audio-type", type=int, default=32)
 
     args = vars(parser.parse_args())
 
