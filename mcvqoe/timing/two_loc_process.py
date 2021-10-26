@@ -105,7 +105,14 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=
     
     indir=os.path.abspath(os.path.join(tx_fold,'..','..'))
     
-    rx_dir=os.path.join(indir,'data','2loc_rx-data')
+    #check if rx_name is a directory
+    if os.path.isdir(rx_name):
+        #use rx_name as dir
+        rx_dir = rx_name
+        #we don't have a specific name, clear rx_name
+        rx_name = None
+    else:
+        rx_dir=os.path.join(indir,'data','2loc_rx-data')
 
     # -----------------------[Setup Files and folders]-----------------------
 
