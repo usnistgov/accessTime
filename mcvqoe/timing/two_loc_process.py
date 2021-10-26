@@ -365,10 +365,28 @@ def main():
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("tx_name",type=str)
-    parser.add_argument("--extra-play", type=int, default=1)
-    parser.add_argument("--rx-name", type=str, default=None)
-    parser.add_argument("--outdir", type=str, default="")
+    parser.add_argument("tx_name",
+                        type=str,
+                        help='Name of the Tx .csv file to process/'
+                        )
+    parser.add_argument("--extra-play",
+                        type=int,
+                        default=0,
+                        help='Duration of extra audio to add after tx clip '+
+                        'stopped. This mayb be used, in some cases, to correct '+
+                        'for data that was recorded with a poorly chosen overplay.'
+                        )
+    parser.add_argument("--rx-name",
+                        type=str,
+                        default=None,
+                        help='Filename of the rx file to use. If a directory '+
+                        'is given, it will be searched for files'
+                        )
+    parser.add_argument("--outdir",
+                        type=str,
+                        default="",
+                        help='Root of directory structure where data will be stored'
+                        )
 
     args = vars(parser.parse_args())
 
