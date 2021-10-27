@@ -222,7 +222,7 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir=""):
     rx_time = np.array(rx_time)
 
     extra_samples = extra_play * rx_fs
-    with open(tx_name,'rt') as tx_csv_f, open(csv_out_name,'wt') as out_csv_f:
+    with open(tx_name,'rt') as tx_csv_f, open(csv_out_name,'wt',newline='') as out_csv_f:
         
         #create dict reader
         reader=csv.DictReader(tx_csv_f)
