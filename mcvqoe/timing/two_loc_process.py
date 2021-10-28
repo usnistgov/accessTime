@@ -12,8 +12,8 @@ import numpy as np
 
 from .audio_chans import timecode_chans
 from datetime import datetime, timedelta
+from mcvqoe.base.terminal_user import terminal_progress_update
 from .timecode import time_decode
-from warnings import warn
 
 
 def test_name_parts(name):
@@ -25,7 +25,9 @@ def test_name_parts(name):
               )
     return (m.group('prefix'),m.group('testtype'),m.group('date'))
 
-def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir=""):
+def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
+                        progress_update=terminal_progress_update
+                   ):
     '''
     Process rx and tx files for a two location test.
     
@@ -47,6 +49,8 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir=""):
     outdir : string, default=""
         Directory that contains the `data/` folder where data will be read from
         and written to.
+    progress_update : function, default=terminal_user
+        Function to call with updates on processing progress. 
         
     See Also
     --------
@@ -149,10 +153,10 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir=""):
         
         #rx_files is a dict with the delays as keys, and the rx path as values
         rx_files = {}
-        print(f'looking for rx files in \'{rx_dir}\'')
+        progress_update('status', 0, 0, msg=f'looking for rx files in \'{rx_dir}\'')
         #loop thru all rx files
         for rx_file_name in glob.glob(os.path.join(rx_dir,'*.wav')):
-            print(f'Looking at {rx_file_name}')
+            progress_update('status', 0, 0, msg=f'Looking at {rx_file_name}')
             #strip leading folders
             rx_basename=os.path.basename(rx_file_name)
             #split into parts
@@ -160,7 +164,7 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir=""):
             #validate that this is a correct rx file
             if rx_prefix != 'Rx_capture':
                 #give error
-                warn('Rx filename "%s" is not in the proper form. Can not determine Rx filename' %rx_file_name)
+                progress_update('warning', 0, 0, msg=f'Rx filename "{rx_basename}" is not in the proper form. Can not determine Rx filename')
                 #if not a correct rx file, skip this file and go to next one
                 continue
             rx_start_date=datetime.strptime(rx_date, '%d-%b-%Y_%H-%M-%S')
@@ -232,9 +236,19 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir=""):
         
         #write output header
         writer.writeheader()
+        
+        #get data from file
+        #NOTE : this may not work well for large files! but should, typically, be fine
+        rows = tuple(reader)
+        
+        #get total trials for progress
+        total_trials = len(rows)
     
         #loop thru all tx recordings
-        for trial,row in enumerate(reader):
+        for trial,row in enumerate(rows):
+            
+            progress_update('proc', total_trials, trial)
+            
             tx_rec_name = f'Rx{trial+1}_{row["Filename"]}.wav'
             full_tx_rec_name = os.path.join(tx_wav_path, tx_rec_name)
             tx_rec_fs, tx_rec_dat = mcvqoe.base.audio_read(full_tx_rec_name)
@@ -260,12 +274,12 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir=""):
             else:                
                 #grab the same type of timecode we used for Rx
                 tx_time_idx = tx_rec_chans.index(rx_tc_type)
-                
+
                 tx_rec_tca = tx_rec_dat[:,tx_time_idx]
-                
+
                 #extra channels
                 tx_extra_audio = np.remove(tx_rec_dat,tx_time_idx,1)
-                
+
                 #copy to new array without timecode channel
                 tx_extra_chans = tx_rec_chans.copy()
                 del tx_extra_chans[tx_time_idx]
@@ -308,7 +322,7 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir=""):
 
         
             if not np.all(np.logical_and(mfdr < (1+tc_warn_tol), mfdr>(1-tc_warn_tol))):
-                warn(f'Timecodes out of tolerence for trial {trial+1}. {mfdr}')  
+                progress_update('warning', total_trials, trial, f'Timecodes out of tolerence for trial {trial+1}. {mfdr}')  
             
             #calculate first rx sample to use
             first=mfr[0,1]-mfr[0,0]
