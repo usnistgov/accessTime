@@ -256,7 +256,6 @@ class ITSTest(unittest.TestCase):
         base_file = pkgutil.get_data("mcvqoe.audio_clips", "test.wav")
         base_file = io.BytesIO(base_file)
         base_fs, base_data = scipy.io.wavfile.read(base_file)
-        print(base_data.dtype)
         expected_speech_levels = {
             "amr-nb": -31.125858989851054,
             "amr-wb": -30.160492075065143,
@@ -267,7 +266,11 @@ class ITSTest(unittest.TestCase):
             chan_l = chan.load()
 
             chan_out = audio_channel_with_overplay(base_fs, base_data, chan_l)
+            print(chan_out.dtype)
+            print(np.max(chan_out))
             chan_out = mcvqoe.base.misc.audio_type(chan_out)
+            print(chan_out.dtype)
+            print(np.max(chan_out))
             self.assert_tol(
                 active_speech_level(chan_out, fs=base_fs),
                 expected_speech_levels[chan.name],
@@ -284,6 +287,7 @@ class ITSTest(unittest.TestCase):
             )
 
             chan_out = audio_channel_with_overplay(base_fs, audio_var_delay, chan_l)
+            chan_out = mcvqoe.base.misc.audio_type(chan_out)
             self.assert_tol(
                 active_speech_level(chan_out, fs=base_fs),
                 expected_speech_levels[chan.name],
