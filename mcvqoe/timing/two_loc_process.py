@@ -97,7 +97,7 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
     if extra_play < 0:
         raise ValueError("extra_play must be non negative")
 
-    #tolerence for timecode variation
+    #tolerance for timecode variation
     tc_warn_tol = 0.0001
 
     # --------------------------[Locate input data]--------------------------
@@ -244,7 +244,7 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
         #get total trials for progress
         total_trials = len(rows)
     
-        #loop thru all tx recordings
+        #loop through all tx recordings
         for trial,row in enumerate(rows):
             
             progress_update('proc', total_trials, trial)
@@ -294,13 +294,13 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
 
             for time,snum in zip(tx_time,tx_snum):
                 
-                #calculate diffrence from rx timecode
+                #calculate difference from rx timecode
                 time_diff = abs(rx_time - time)
                 
-                #find minimum diffrence
+                #find minimum difference
                 min_v = np.amin(time_diff)
 
-                #check that diffrence is small
+                #check that difference is small
                 if min_v < timedelta(seconds=0.5):
                     
                     #get matching index
@@ -313,7 +313,7 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
             #get matching frame start indicies
             mfr=np.column_stack((tx_match_samples, rx_match_samples))
             
-            #get diffrence between matching timecodes
+            #get difference between matching timecodes
             mfd=np.diff(mfr, axis=0)
 
             
