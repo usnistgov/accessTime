@@ -12,8 +12,8 @@ import numpy as np
 
 from .audio_chans import timecode_chans
 from datetime import datetime, timedelta
+from mcvqoe.base.terminal_user import terminal_progress_update
 from .timecode import time_decode
-from warnings import warn
 
 
 def test_name_parts(name):
@@ -25,7 +25,9 @@ def test_name_parts(name):
               )
     return (m.group('prefix'),m.group('testtype'),m.group('date'))
 
-def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=np.dtype('int16')):
+def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
+                        progress_update=terminal_progress_update
+                   ):
     '''
     Process rx and tx files for a two location test.
     
@@ -47,8 +49,8 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=
     outdir : string, default=""
         Directory that contains the `data/` folder where data will be read from
         and written to.
-    audio_type : np.dtype, default=np.dtype('int16')
-        Type of data to save .wav files as. 
+    progress_update : function, default=terminal_user
+        Function to call with updates on processing progress. 
         
     See Also
     --------
@@ -95,7 +97,7 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=
     if extra_play < 0:
         raise ValueError("extra_play must be non negative")
 
-    #tolerence for timecode variation
+    #tolerance for timecode variation
     tc_warn_tol = 0.0001
 
     # --------------------------[Locate input data]--------------------------
@@ -105,7 +107,14 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=
     
     indir=os.path.abspath(os.path.join(tx_fold,'..','..'))
     
-    rx_dir=os.path.join(indir,'data','2loc_rx-data')
+    #check if rx_name is a directory
+    if os.path.isdir(rx_name):
+        #use rx_name as dir
+        rx_dir = rx_name
+        #we don't have a specific name, clear rx_name
+        rx_name = None
+    else:
+        rx_dir=os.path.join(indir,'data','2loc_rx-data')
 
     # -----------------------[Setup Files and folders]-----------------------
 
@@ -144,10 +153,10 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=
         
         #rx_files is a dict with the delays as keys, and the rx path as values
         rx_files = {}
-        print(f'looking for rx files in \'{rx_dir}\'')
+        progress_update('status', 0, 0, msg=f'looking for rx files in \'{rx_dir}\'')
         #loop thru all rx files
         for rx_file_name in glob.glob(os.path.join(rx_dir,'*.wav')):
-            print(f'Looking at {rx_file_name}')
+            progress_update('status', 0, 0, msg=f'Looking at {rx_file_name}')
             #strip leading folders
             rx_basename=os.path.basename(rx_file_name)
             #split into parts
@@ -155,7 +164,7 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=
             #validate that this is a correct rx file
             if rx_prefix != 'Rx_capture':
                 #give error
-                warn('Rx filename "%s" is not in the proper form. Can not determine Rx filename' %rx_file_name)
+                progress_update('warning', 0, 0, msg=f'Rx filename "{rx_basename}" is not in the proper form. Can not determine Rx filename')
                 #if not a correct rx file, skip this file and go to next one
                 continue
             rx_start_date=datetime.strptime(rx_date, '%d-%b-%Y_%H-%M-%S')
@@ -217,7 +226,7 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=
     rx_time = np.array(rx_time)
 
     extra_samples = extra_play * rx_fs
-    with open(tx_name,'rt') as tx_csv_f, open(csv_out_name,'wt') as out_csv_f:
+    with open(tx_name,'rt') as tx_csv_f, open(csv_out_name,'wt',newline='') as out_csv_f:
         
         #create dict reader
         reader=csv.DictReader(tx_csv_f)
@@ -227,9 +236,19 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=
         
         #write output header
         writer.writeheader()
+        
+        #get data from file
+        #NOTE : this may not work well for large files! but should, typically, be fine
+        rows = tuple(reader)
+        
+        #get total trials for progress
+        total_trials = len(rows)
     
-        #loop thru all tx recordings
-        for trial,row in enumerate(reader):
+        #loop through all tx recordings
+        for trial,row in enumerate(rows):
+            
+            progress_update('proc', total_trials, trial)
+            
             tx_rec_name = f'Rx{trial+1}_{row["Filename"]}.wav'
             full_tx_rec_name = os.path.join(tx_wav_path, tx_rec_name)
             tx_rec_fs, tx_rec_dat = mcvqoe.base.audio_read(full_tx_rec_name)
@@ -255,12 +274,12 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=
             else:                
                 #grab the same type of timecode we used for Rx
                 tx_time_idx = tx_rec_chans.index(rx_tc_type)
-                
+
                 tx_rec_tca = tx_rec_dat[:,tx_time_idx]
-                
+
                 #extra channels
                 tx_extra_audio = np.remove(tx_rec_dat,tx_time_idx,1)
-                
+
                 #copy to new array without timecode channel
                 tx_extra_chans = tx_rec_chans.copy()
                 del tx_extra_chans[tx_time_idx]
@@ -275,13 +294,13 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=
 
             for time,snum in zip(tx_time,tx_snum):
                 
-                #calculate diffrence from rx timecode
+                #calculate difference from rx timecode
                 time_diff = abs(rx_time - time)
                 
-                #find minimum diffrence
+                #find minimum difference
                 min_v = np.amin(time_diff)
 
-                #check that diffrence is small
+                #check that difference is small
                 if min_v < timedelta(seconds=0.5):
                     
                     #get matching index
@@ -294,7 +313,7 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=
             #get matching frame start indicies
             mfr=np.column_stack((tx_match_samples, rx_match_samples))
             
-            #get diffrence between matching timecodes
+            #get difference between matching timecodes
             mfd=np.diff(mfr, axis=0)
 
             
@@ -303,7 +322,7 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="", audio_type=
 
         
             if not np.all(np.logical_and(mfdr < (1+tc_warn_tol), mfdr>(1-tc_warn_tol))):
-                warn(f'Timecodes out of tolerence for trial {trial+1}. {mfdr}')  
+                progress_update('warning', total_trials, trial, f'Timecodes out of tolerence for trial {trial+1}. {mfdr}')  
             
             #calculate first rx sample to use
             first=mfr[0,1]-mfr[0,0]
@@ -360,11 +379,28 @@ def main():
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("tx_name",type=str)
-    parser.add_argument("--extra-play", type=int, default=1)
-    parser.add_argument("--rx-name", type=str, default=None)
-    parser.add_argument("--outdir", type=str, default="")
-    parser.add_argument("--audio-type", type=int, default=32)
+    parser.add_argument("tx_name",
+                        type=str,
+                        help='Name of the Tx .csv file to process/'
+                        )
+    parser.add_argument("--extra-play",
+                        type=int,
+                        default=0,
+                        help='Duration of extra audio to add after tx clip '+
+                        'stopped. This mayb be used, in some cases, to correct '+
+                        'for data that was recorded with a poorly chosen overplay.'
+                        )
+    parser.add_argument("--rx-name",
+                        type=str,
+                        default=None,
+                        help='Filename of the rx file to use. If a directory '+
+                        'is given, it will be searched for files'
+                        )
+    parser.add_argument("--outdir",
+                        type=str,
+                        default="",
+                        help='Root of directory structure where data will be stored'
+                        )
 
     args = vars(parser.parse_args())
 

@@ -22,6 +22,11 @@ def terminal_progress_update(
             print(f'Starting Test of {num_trials} trials')
         if (current_trial % 10 == 0):
             print(f'-----Trial {current_trial} of {num_trials}')
+    elif (prog_type == 'compress'):
+        if (current_trial == 0):
+            print(f'Compressing {num_trials} audio files')
+        if (current_trial % 10 == 0):
+            print(f'Compressing trial {current_trial} of {num_trials}')
     elif (prog_type == 'warning'):
         warn(msg, stacklevel=2)
     elif (prog_type == 'check-fail'):

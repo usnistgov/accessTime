@@ -9,8 +9,7 @@ soft_time_fmt = "TM%j-%Y_%H-%M-%S.%f"
 def soft_time_decode(audio,fs):
     if len(audio.shape) != 1:
         raise ValueError("Input must be a numpy vector")
-    times = []
-
+    
     # Get prefix from time format
     prefix = soft_time_fmt[: soft_time_fmt.index("%")]
 
@@ -27,12 +26,23 @@ def soft_time_decode(audio,fs):
 
     # find where the window matches
     tc_idx = (audio[winIdx] == npPre).all(1).nonzero()[0]
+    
+    #initialize empty arrays
+    times = []
+    samples = []
 
-    for idx in tc_idx:
-        # get the index of the end of the timecode
-        end_idx = idx + min(np.where(audio[idx:] == 0)[0])
-        # get time string
-        tc_str = "".join([chr(c) for c in audio[idx:end_idx]])
+    for n,idx in enumerate(tc_idx):
+        #audio index of string
+        idx_str=idx
+        #initialize time str
+        tc_str = ''
+        #loop till end of string
+        while audio[idx_str] != 0:
+            #get char from string
+            tc_str += chr(audio[idx_str])
+            #next index
+            idx_str +=1
+        
         time = datetime.datetime.strptime(tc_str, soft_time_fmt)
         # append time and index to array
         times.append(time)

@@ -131,7 +131,7 @@ def ITS_delay_est(x_speech, y_speech, mode, fs=8000, dlyBounds=[np.NINF, np.inf]
         asl_x = active_speech_level(x_speech)
         asl_y = active_speech_level(y_speech)
     except ValueError:
-        warnings.warn('Input vector has no signal')
+        warnings.warn("Input vector has no signal")
         Delay_est = np.array([0, 0], ndmin=2)
 
         if ret_type == "single-value":
@@ -226,7 +226,7 @@ def ITS_delay_est(x_speech, y_speech, mode, fs=8000, dlyBounds=[np.NINF, np.inf]
         # The output [0 0] indicates no delay estimation was possible
         Delay_est = [0, 0]
     # convert to input sample rate and truncate to integer
-    Delay_est = (np.array(Delay_est, ndmin=2) * (fs / 8000)).astype(np.int)
+    Delay_est = (np.array(Delay_est, ndmin=2) * (fs / 8000)).astype(int)
 
     if ret_type == "single-value":
         # return results as a tuple of ints
@@ -531,17 +531,12 @@ def delay_tracking(x, y, active_wf, winlen, winstep, ran):
         if start - ran < 0 or min(nx, ny) < stop + ran:
             # Not enough samples to do delay estimation
             doable = False
-        elif (
-            np.std(y[start : stop + 1], ddof=1) == 0
-            or np.std(x[start - ran : stop + ran + 1], ddof=1) == 0
-        ):
+        elif np.std(y[start : stop + 1], ddof=1) == 0 or np.std(x[start - ran : stop + ran + 1], ddof=1) == 0:
             # No variation in samples
             doable = False
         if doable:
             # Perform direct-form cross correlation
-            xc, denom = non_fft_xc(
-                x[start - ran : stop + ran], y[start - ran : stop + ran], -ran, ran
-            )
+            xc, denom = non_fft_xc(x[start - ran : stop + ran], y[start - ran : stop + ran], -ran, ran)
             # Identify peak
             maxrho, index = np.max(xc), np.argmax(xc)
             # Calculate corresponding delay in samples
@@ -814,9 +809,7 @@ def delay_refine(SDVin, x_speech, y_speech, active_wf, ran, cor_th):
                     sstop = int(sstop)
                     # Perform direct-form cross correlation on appropriate
                     # portions of x_speech and y_speech
-                    un_corr, denom = non_fft_xc_all(
-                        x_speech[sstart : sstop + 1], y_speech[start : stop + 1]
-                    )
+                    un_corr, denom = non_fft_xc_all(x_speech[sstart : sstop + 1], y_speech[start : stop + 1])
                     # Locate peak in unnormalized correlation
                     peak = max(un_corr)
                     loc = np.argmax(un_corr)

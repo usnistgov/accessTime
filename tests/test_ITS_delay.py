@@ -141,9 +141,7 @@ class ITSTest(unittest.TestCase):
                     print(delay_calc)
                     raise e
 
-                audio_var_delay = np.concatenate(
-                    (base_data[: dly[0]], base_data[dly[0] + dly[1] :])
-                )
+                audio_var_delay = np.concatenate((base_data[: dly[0]], base_data[dly[0] + dly[1] :]))
                 chan_out = audio_channel_with_overplay(base_fs, audio_var_delay, chan)
                 delay_calc = mcvqoe.delay.ITS_delay_est(base_data, chan_out, "v", fs=base_fs)
 
@@ -229,9 +227,7 @@ class ITSTest(unittest.TestCase):
                     print(delay_calc)
                     raise e
 
-                audio_var_delay = np.concatenate(
-                    (base_data[: dly[0]], base_data[dly[0] + dly[1] :])
-                )
+                audio_var_delay = np.concatenate((base_data[: dly[0]], base_data[dly[0] + dly[1] :]))
                 chan_out = audio_channel_with_overplay(base_fs, audio_var_delay, chan)
                 delay_calc = mcvqoe.delay.ITS_delay_est(base_data, chan_out, "u", fs=base_fs)
 
@@ -251,36 +247,30 @@ class ITSTest(unittest.TestCase):
 
     def test_low_info(self):
         dir = os.path.dirname(__file__)
-        base_fs, tx_data = scipy.io.wavfile.read(
-            os.path.join(dir, "data/ITS_low_info/Tx_M3_n10_s1_c21.wav")
-        )
-        _, rx_data = scipy.io.wavfile.read(
-            os.path.join(dir, "data/ITS_low_info/Rx1_M3_n10_s1_c22.wav")
-        )
+        base_fs, tx_data = scipy.io.wavfile.read(os.path.join(dir, "data/ITS_low_info/Tx_M3_n10_s1_c21.wav"))
+        _, rx_data = scipy.io.wavfile.read(os.path.join(dir, "data/ITS_low_info/Rx1_M3_n10_s1_c22.wav"))
 
-        self.assertEqual(
-            mcvqoe.delay.ITS_delay_est(tx_data, rx_data, "f", fs=base_fs, min_corr=0.76), (0, 0)
-        )
+        self.assertEqual(mcvqoe.delay.ITS_delay_est(tx_data, rx_data, "f", fs=base_fs, min_corr=0.76), (0, 0))
 
     def test_active_speech_level(self):
         base_file = pkgutil.get_data("mcvqoe.audio_clips", "test.wav")
         base_file = io.BytesIO(base_file)
         base_fs, base_data = scipy.io.wavfile.read(base_file)
+        expected_speech_levels = {
+            "amr-nb": -31.125858989851054,
+            "amr-wb": -30.160492075065143,
+            "clean": -29.202315980890447,
+        }
 
-        expected_speech_levels = [
-            -29.202315980890447,
-            -31.125858989851054,
-            -30.160492075065143,
-        ]
         for i, chan in enumerate(channels):
-            chan = chan.load()
+            chan_l = chan.load()
 
-            chan_out = audio_channel_with_overplay(base_fs, base_data, chan)
+            chan_out = audio_channel_with_overplay(base_fs, base_data, chan_l)
             self.assert_tol(
                 active_speech_level(chan_out, fs=base_fs),
-                expected_speech_levels[i],
+                expected_speech_levels[chan.name],
                 tol=1e-6,
-                msg=f"{chan.__name__}, no delay",
+                msg=f"{chan.name}, no delay",
             )
 
             audio_var_delay = np.concatenate(
@@ -291,12 +281,12 @@ class ITSTest(unittest.TestCase):
                 )
             )
 
-            chan_out = audio_channel_with_overplay(base_fs, audio_var_delay, chan)
+            chan_out = audio_channel_with_overplay(base_fs, audio_var_delay, chan_l)
             self.assert_tol(
                 active_speech_level(chan_out, fs=base_fs),
-                expected_speech_levels[i],
+                expected_speech_levels[chan.name],
                 tol=0.1,
-                msg=f"{chan.__name__}, 20000 samples delay at position 100000",
+                msg=f"{chan.name}, 20000 samples delay at position 100000",
             )
 
 

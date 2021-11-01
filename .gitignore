@@ -11,7 +11,7 @@ mcvqoe/base/version.py
 .eggs/
 
 #ignore egg info
-mcvqoe_nist.egg-info/
+*.egg-info/
 
 #ignore __pycache__
 __pycache__/
