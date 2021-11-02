@@ -1002,3 +1002,18 @@ class ImpairmentParam:
         for k, v in kwargs.items():
             #set attribute, don't care if it exists
             setattr(self, k, v)
+
+class Impairment:
+    '''
+    Class used to define impairments.
+    
+    This is a good base class to make impairments that will be logged correctly. 
+    '''
+    def __init__(self, **kwargs):
+        self.arguments =  kwargs
+    
+    def __repr__(self):
+        return f'{type(self).__name__}('+', '.join([f'{k}={repr(v)}' for k, v in self.arguments.items()])+')'
+
+    def __call__(self, data, fs):
+        return self.impairment(data, fs, **self.arguments)
