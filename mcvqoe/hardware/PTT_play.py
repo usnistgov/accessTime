@@ -134,7 +134,9 @@ def main():
         help="Playback audio after it is recorded",
     )
     parser.add_argument(
-        "-o", "--output", default=None, type=str, help="Save the recording to a file"
+        "-o", "--output", default=None, type=str,
+        help="If given, the recorded audio will be saved into the filename provided." +
+        "This filename must have a .wav extension and must not point to an existing file."
     )
 
     # -----------------------------[Parse arguments]-----------------------------
