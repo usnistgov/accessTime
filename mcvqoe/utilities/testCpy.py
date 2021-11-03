@@ -426,16 +426,23 @@ def main():
     args_dict.pop('recursive')
 
     if args.recursive:
+        #keep track of how many directories we found
+        num_found = 0
+        num_success = 0
+        #get directory path
         out_dir = os.path.abspath(out_dir)
         for root, dirs, files in os.walk(out_dir, topdown=True):
             if args.dry_run:
                 print(f'Checking "{root}" for "{settings_name}"')
             #check for copy settings
             if settings_name in files:
+                num_found += 1
                 print('\n'+f'"{settings_name}" found syncing "{root}":')
                 try:
                     #settings found, copy files
                     copy_test_files(root,dry_run=args.dry_run, sync_dir=args.sync_dir)
+                    #no error, this was a success
+                    num_success += 1
                 except RuntimeError as e:
                     #print error and continue
                     print(f'Error while syncing : {str(e)}')
@@ -444,6 +451,11 @@ def main():
                 dirs.clear()
                 #print a blank line for readability
                 print()
+        #check if we found any files
+        if num_found:
+            print(f'{num_found} test directories found, {num_success} successfully synced')
+        else:
+            print('No test directories found. Has sync been set up? are you in the correct directory?')
     else:
         copy_test_files(out_dir,**args_dict)
 
