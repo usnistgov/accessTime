@@ -3,6 +3,7 @@
 import csv
 import glob
 import json
+import math
 import mcvqoe.base
 import os
 import re
@@ -25,8 +26,27 @@ def test_name_parts(name):
               )
     return (m.group('prefix'),m.group('testtype'),m.group('date'))
 
+def timedelta_total_seconds(time):
+    try:
+        #try it as if it's an array
+        return [timedelta_total_seconds(t) for t in time]
+    except TypeError:
+        #not an array, must be scalar time
+        return time.days*(24*60*60) + time.seconds + time.microseconds*1e-6
+
+#function to quickly find the index of the nearest value
+#from https://stackoverflow.com/a/26026189
+def find_nearest(array,value):
+    idx = np.searchsorted(array, value, side="left")
+    if idx > 0 and (idx == len(array) or math.fabs(value - array[idx-1]) < math.fabs(value - array[idx])):
+        return idx-1
+    else:
+        return idx
+
+
 def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
-                        progress_update=terminal_progress_update
+                        progress_update=terminal_progress_update,
+                        align_mode='interpolate',
                    ):
     '''
     Process rx and tx files for a two location test.
@@ -225,6 +245,14 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
     #make rx_time a numpy array
     rx_time = np.array(rx_time)
 
+    if align_mode == 'interpolate':
+        #we are interpolating, get reference time
+        ref_time =  rx_time[0]
+        #TESTING : print time
+        print(f'Reference time : {ref_time}')
+        #interpolate so we have intermediate values
+        rx_interp = np.interp(range(len(rx_dat)),rx_snum,timedelta_total_seconds(rx_time-ref_time))
+
     extra_samples = extra_play * rx_fs
     with open(tx_name,'rt') as tx_csv_f, open(csv_out_name,'wt',newline='') as out_csv_f:
         
@@ -287,49 +315,76 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
             #decode timecode
             tx_time, tx_snum = time_decode(rx_tc_type, tx_rec_tca, tx_rec_fs)
 
-            #array for matching sample numbers
-            tx_match_samples = []
-            rx_match_samples = []
+            if align_mode == 'fixed':
+                #array for matching sample numbers
+                tx_match_samples = []
+                rx_match_samples = []
 
 
-            for time,snum in zip(tx_time,tx_snum):
-                
-                #calculate difference from rx timecode
-                time_diff = abs(rx_time - time)
-                
-                #find minimum difference
-                min_v = np.amin(time_diff)
-
-                #check that difference is small
-                if min_v < timedelta(seconds=0.5):
+                for time,snum in zip(tx_time,tx_snum):
                     
-                    #get matching index
-                    idx=np.argmin(time_diff)
+                    #calculate difference from rx timecode
+                    time_diff = abs(rx_time - time)
                     
-                    #append sample number
-                    tx_match_samples.append(snum)
-                    rx_match_samples.append(rx_snum[idx])
+                    #find minimum difference
+                    min_v = np.amin(time_diff)
 
-            #get matching frame start indicies
-            mfr=np.column_stack((tx_match_samples, rx_match_samples))
-            
-            #get difference between matching timecodes
-            mfd=np.diff(mfr, axis=0)
+                    #check that difference is small
+                    if min_v < timedelta(seconds=0.5):
+
+                        #get matching index
+                        idx=np.argmin(time_diff)
+
+                        #append sample number
+                        tx_match_samples.append(snum)
+                        rx_match_samples.append(rx_snum[idx])
+
+                #get matching frame start indicies
+                mfr=np.column_stack((tx_match_samples, rx_match_samples))
+
+                #get difference between matching timecodes
+                mfd=np.diff(mfr, axis=0)
+
+
+                #get ratio of samples between matches
+                mfdr = mfd[:,0] / mfd[:,1]
 
             
-            #get ratio of samples between matches
-            mfdr = mfd[:,0] / mfd[:,1] 
+                if not np.all(np.logical_and(mfdr < (1+tc_warn_tol), mfdr>(1-tc_warn_tol))):
+                    progress_update('warning', total_trials, trial, f'Timecodes out of tolerence for trial {trial+1}. {mfdr}')
 
-        
-            if not np.all(np.logical_and(mfdr < (1+tc_warn_tol), mfdr>(1-tc_warn_tol))):
-                progress_update('warning', total_trials, trial, f'Timecodes out of tolerence for trial {trial+1}. {mfdr}')  
-            
-            #calculate first rx sample to use
-            first=mfr[0,1]-mfr[0,0]
-            
-            #calculate last rx sample to use
-            last=mfr[-1,1]+len(tx_rec_tca)-mfr[-1,0]+extra_samples - 1
-            
+                #calculate first rx sample to use
+                first=mfr[0,1]-mfr[0,0]
+
+                #calculate last rx sample to use
+                last=mfr[-1,1]+len(tx_rec_tca)-mfr[-1,0]+extra_samples - 1
+            elif align_mode == 'interpolate':
+                tx_tnum =timedelta_total_seconds(tx_time - ref_time)
+
+                #TESTING : print things
+                print(f'Tx tnum : {tx_tnum}')
+
+                #do a linear fit of the timecode data to get time vs index
+                fit = np.polyfit(tx_snum, tx_tnum, 1)
+                #TESTING : print things
+                print(f'timecode fit : {fit}')
+                #get model
+                tc_fun = np.poly1d(fit)
+
+                #get time of start and end of tx clip
+                tx_start_time = tc_fun(0)
+                tx_end_time = tc_fun(len(tx_rec_tca) + extra_samples - 1)
+
+                #get indices in the Rx array
+                first = find_nearest(rx_interp, tx_start_time)
+                last = find_nearest(rx_interp, tx_end_time)
+
+                #TESTING : print things
+                print(f'First : {first}')
+                print(f'Last : {last}')
+
+            else:
+                raise ValueError(f'Invalid value, \'{align_mode}\' for align_mode')
             #get rx recording data from big array
             rx_rec=rx_dat[first:last+1,:]
             #remove timecode
