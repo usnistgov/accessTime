@@ -46,7 +46,7 @@ def find_nearest(array,value):
 
 def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
                         progress_update=terminal_progress_update,
-                        align_mode='interpolate',
+                        align_mode='fit',
                    ):
     '''
     Process rx and tx files for a two location test.
@@ -248,10 +248,16 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
     if align_mode == 'interpolate':
         #we are interpolating, get reference time
         ref_time =  rx_time[0]
-        #TESTING : print time
-        print(f'Reference time : {ref_time}')
         #interpolate so we have intermediate values
         rx_interp = np.interp(range(len(rx_dat)),rx_snum,timedelta_total_seconds(rx_time-ref_time))
+    elif align_mode == 'fit':
+        #we are fitting, get reference time
+        ref_time =  rx_time[0]
+        #fit index vs time
+        #do a linear fit of the timecode data to get time vs index
+        rx_fit = np.polyfit(timedelta_total_seconds(rx_time-ref_time), rx_snum, 1)
+        #get model
+        rx_idx_fun = np.poly1d(rx_fit)
 
     extra_samples = extra_play * rx_fs
     with open(tx_name,'rt') as tx_csv_f, open(csv_out_name,'wt',newline='') as out_csv_f:
@@ -358,16 +364,11 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
 
                 #calculate last rx sample to use
                 last=mfr[-1,1]+len(tx_rec_tca)-mfr[-1,0]+extra_samples - 1
-            elif align_mode == 'interpolate':
+            elif align_mode == 'interpolate' or align_mode =='fit':
                 tx_tnum =timedelta_total_seconds(tx_time - ref_time)
 
-                #TESTING : print things
-                print(f'Tx tnum : {tx_tnum}')
-
-                #do a linear fit of the timecode data to get time vs index
+                #do a linear fit of the timecode data to get index vs time
                 fit = np.polyfit(tx_snum, tx_tnum, 1)
-                #TESTING : print things
-                print(f'timecode fit : {fit}')
                 #get model
                 tc_fun = np.poly1d(fit)
 
@@ -375,13 +376,13 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
                 tx_start_time = tc_fun(0)
                 tx_end_time = tc_fun(len(tx_rec_tca) + extra_samples - 1)
 
-                #get indices in the Rx array
-                first = find_nearest(rx_interp, tx_start_time)
-                last = find_nearest(rx_interp, tx_end_time)
-
-                #TESTING : print things
-                print(f'First : {first}')
-                print(f'Last : {last}')
+                if align_mode == 'interpolate':
+                    #get indices in the Rx array
+                    first = find_nearest(rx_interp, tx_start_time)
+                    last  = find_nearest(rx_interp, tx_end_time)
+                elif align_mode == 'fit':
+                    first = math.floor(rx_idx_fun(tx_start_time))
+                    last  = math.ceil(rx_idx_fun(tx_end_time))
 
             else:
                 raise ValueError(f'Invalid value, \'{align_mode}\' for align_mode')
