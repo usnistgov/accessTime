@@ -24,6 +24,8 @@ def test_name_parts(name):
                     '(?P<ext>\.\w+)?$',
                 name
               )
+    if not m:
+        raise RuntimeError(f'Unable to find test name parts from \'{name}\'')
     return (m.group('prefix'),m.group('testtype'),m.group('date'))
 
 def timedelta_total_seconds(time):
@@ -102,11 +104,17 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
    
     #-----------------------------Validate inputs-----------------------------
 
+    #normalize path
+    tx_name = os.path.normpath(tx_name)
+
     tx_wav_path=os.path.dirname(tx_name)
 
     #get folder name (just name, no path)
     tx_wav_fold =  os.path.basename(tx_wav_path)
-    
+
+    if not tx_wav_fold:
+        raise RuntimeError(f'unable to extract wav folder from \'{tx_name}\'')
+
     #extract parts of tx name for validation
     (tx_prefix,tx_tt,tx_date)=test_name_parts(tx_wav_fold)
     #check prefix
