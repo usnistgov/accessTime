@@ -51,15 +51,12 @@ def IRIGB_decode(tca, fs, tc_tol=0.05):
         Sample numbers that decoded times came from.
     '''
     
-    #validate inputs
-    #tca must contain only numbers, this will raise a ValueError otherwise
+    #make sure that time code input is a numpy array
     tca = np.array(tca, dtype="float64")
-    #fs must be a positive number
-    if not (isinstance(fs, (int, float)) and fs >= 0):
-        raise ValueError("Error with input fs")
-    #optional input tc_tol must be in [0, 0.5]
+
+    #tc_tol must be in [0, 0.5]
     if not (isinstance(tc_tol, (int, float)) and tc_tol >= 0 and tc_tol <= 0.5):
-        raise ValueError("Error with optional input")
+        raise ValueError(f'tc_tol must be > 0 and < 0.5. Got tc_tol = {tc_tol}')
 
     #calculate the upper envelope
     env = envelope(tca, 40)
