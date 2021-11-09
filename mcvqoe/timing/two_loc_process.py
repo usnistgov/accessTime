@@ -107,7 +107,21 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
     #normalize path
     tx_name = os.path.normpath(tx_name)
 
-    tx_wav_path=os.path.dirname(tx_name)
+    if os.path.isdir(tx_name):
+        #given directory, assume this is the .wav dir
+        tx_wav_path = tx_name
+        #find .csv files in the directory
+        csvs = glob.glob(os.path.join(tx_wav_path, '*.csv'))
+
+        if not csvs:
+            raise RuntimeError(f'No .csv files found in \'{tx_wav_path}\'')
+        elif len(csvs) > 1:
+            raise RuntimeError(f'More than one .csv file found in \'{tx_wav_path}\'')
+
+        tx_name = csvs[0]
+    else:
+        #get folder path from filename
+        tx_wav_path=os.path.dirname(tx_name)
 
     #get folder name (just name, no path)
     tx_wav_fold =  os.path.basename(tx_wav_path)
