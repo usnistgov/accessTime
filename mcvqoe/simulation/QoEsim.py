@@ -143,16 +143,12 @@ class QoEsim:
     def __init__(
         self,
         port=None,
-        debug=False,
-        fs=int(48e3),
-        blocksize=512,
-        buffersize=20,
-        overplay=1.0,
-        rec_chans={"rx_voice": 0},
-        playback_chans={"tx_voice": 0},
+        **kwargs
     ):
 
-        self.debug = debug
+        #values for RadioInterface
+        #NOTE : port, is added as an argument for compatibility, but is not used.
+        self.debug = False
         self.PTT_state = [
             False,
         ] * 2
@@ -163,13 +159,13 @@ class QoEsim:
             -1.0,
         ] * 2
         # values for AudioPlayer
-        self.sample_rate = fs
-        self.blocksize = blocksize
-        self.buffersize = buffersize
-        self.overplay = overplay
+        self.sample_rate = int(48e3)
+        self.blocksize = 512
+        self.buffersize = 20
+        self.overplay = 1.0
         self.device = __class__  # fake device name
-        self.rec_chans = rec_chans
-        self.playback_chans = playback_chans
+        self.rec_chans = {"rx_voice": 0}
+        self.playback_chans = {"tx_voice": 0}
         # channel variables
         self.channel_tech = "clean"
         self.channel_rate = None
@@ -188,6 +184,17 @@ class QoEsim:
         self.PTT_sig_freq = 409.6  # TODO : VERIFY!
         self.PTT_sig_amplitude = 0.7
         self.default_radio = 1
+
+        #get properties from kwargs
+        for k, v in kwargs.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+            #check if the 'fs' argument was given
+            elif k == 'fs':
+                #fs gets translated to sample_rate for legacy purposes
+                self.sample_rate = v
+            else:
+                raise TypeError(f"{k} is not a valid keyword argument")
 
     def __repr__(self):
         string_props=('sample_rate','overplay','rec_chans','playback_chans','channel_tech','channel_rate','m2e_latency','access_delay','device_delay','rec_snr')
