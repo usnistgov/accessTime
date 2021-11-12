@@ -830,7 +830,7 @@ class measure:
                             state = self.ri.waitState()
                             
                             # Depress the push to talk button
-                            self.ri.ptt(False, num=1)
+                            self.ri.ptt(False)
                             
                             # Check wait state to see if PTT was triggered properly
                             if (state == 'Idle'):
