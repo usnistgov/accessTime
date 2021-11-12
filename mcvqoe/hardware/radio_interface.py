@@ -177,6 +177,9 @@ class RadioInterface:
                     value[k] = None
             else:
                 value[k] = None
+            #if there was a problem, print response in debug mode
+            if value[k] is None and self.debug:
+                print(f'Could not parse line : \'{resp}\'')
 
         return value
 
