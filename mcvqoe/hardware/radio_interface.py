@@ -30,7 +30,7 @@ class RadioInterface:
         for k, v in kwargs.items():
             if hasattr(self, k):
                 #None value means keep defaults
-                if v is not None
+                if v is not None:
                     setattr(self, k, v)
             else:
                 raise TypeError(f"{k} is not a valid keyword argument")
