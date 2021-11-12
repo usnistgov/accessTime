@@ -20,9 +20,20 @@ class RadioInterface:
     _USB_VID = 0x2047 # RadioInterface Vendor ID (VID)
     _USB_PID = 0x0300 # RadioInterface Product ID (PID)
 
-    def __init__(self, port=None, debug=False):
+    def __init__(self, port=None, **kwargs):
 
-        self.debug = debug
+        #set default values
+        self.debug = False
+        self.default_radio = 1
+
+        #get properties from kwargs
+        for k, v in kwargs.items():
+            if hasattr(self, k):
+                #None value means keep defaults
+                if v is not None
+                    setattr(self, k, v)
+            else:
+                raise TypeError(f"{k} is not a valid keyword argument")
 
         if not port:
             ports = serial.tools.list_ports.comports()
@@ -61,7 +72,7 @@ class RadioInterface:
 
         return self
 
-    def ptt(self, state, num=1):
+    def ptt(self, state, num=None):
         """
             PTT - change the push-to-talk status of the radio interface
 
@@ -69,8 +80,11 @@ class RadioInterface:
         False then the radio is set to not transmit
 
         PTT(state,num) same as above but control the ptt of radio number num
-        instead of radio number 1
+        instead of the default radio.
         """
+
+        if num is None:
+            num = self.default_radio
 
         # check what the state is
         if state:
@@ -201,7 +215,7 @@ class RadioInterface:
             else:
                 raise RuntimeError(f"Unknown response '{resp}' received")
 
-    def ptt_delay(self, delay, num=1, use_signal=False):
+    def ptt_delay(self, delay, num=None, use_signal=False):
         """setup the radio interface to key the radio after a delay
 
         PTT_DELAY(dly) set the radio to be keyed in dly seconds.
@@ -210,12 +224,16 @@ class RadioInterface:
         after the start signal is detected.
 
         PTT_DELAY(dly,num=n,__) same as above but used key radio number n
-        instead of radio number one
+        instead of the default radio
 
         delay=PTT_DELAY(dly,__) same as above but return the actual delay set on
         the microcontroller. This is different because of rounding and limits on
         the possible delay
         """
+
+        if num is None:
+            # No radio number given, use default
+            num = self.default_radio
 
         # check which ptt command to use
         if use_signal:

@@ -187,6 +187,7 @@ class QoEsim:
         # PTT signal parameters
         self.PTT_sig_freq = 409.6  # TODO : VERIFY!
         self.PTT_sig_amplitude = 0.7
+        self.default_radio = 1
 
     def __repr__(self):
         string_props=('sample_rate','overplay','rec_chans','playback_chans','channel_tech','channel_rate','m2e_latency','access_delay','device_delay','rec_snr')
@@ -206,7 +207,7 @@ class QoEsim:
 
         return self
 
-    def ptt(self, state, num=1):
+    def ptt(self, state, num=None):
         """
         Change the push-to-talk status of the radio interface.
 
@@ -218,8 +219,8 @@ class QoEsim:
         ----------
         state : bool
             State to set PTT output to.
-        num : int, default=1
-            PTT output number to use.
+        num : int, default=None
+            PTT output number to use. If None, self.default_radio is used.
 
         See Also
         --------
@@ -233,6 +234,9 @@ class QoEsim:
         >>> sim_obj.ptt(True)  #key radio
         >>> sim_obj.ptt(False) #de-key radio
         """
+
+        if num is None:
+            num = self.default_radio
 
         self.PTT_state[num] = bool(state)
         # clear wait delay
@@ -409,7 +413,7 @@ class QoEsim:
         # TODO: do we need to simulate this better?
         return "Idle"
 
-    def ptt_delay(self, delay, num=1, use_signal=False):
+    def ptt_delay(self, delay, num=None, use_signal=False):
         """
         Set how far into the clip to key the fake radio.
 
@@ -422,9 +426,9 @@ class QoEsim:
         delay : float
             The number of seconds between the start of the clip and when the
             'access_delay' time starts counting.
-        num : int, default=1
-            The PTT output to use.
-        use_signal : bool, default=True
+        num : int, default=None
+            The PTT output to use. If None, use self.default_radio.
+        use_signal : bool, default=False
             For 'RadioInterface', this would control if the start signal is used
             to reference the 'delay' to the beginning of the clip. For simulation
             'delay' is always referenced to the beginning of the clip.
@@ -446,6 +450,9 @@ class QoEsim:
         >>> sim_obj.ptt_delay(1)
         >>> sim_obj.play_record(tx_voice,'test.wav')
         """
+
+        if num is None:
+            num = self.default_radio
 
         self.ptt_wait_delay[num] = delay
         # set state to true, this isn't 100% correct but the delay will be used
@@ -883,13 +890,13 @@ class QoEsim:
 
 
         # check if PTT was keyed during audio
-        if self.ptt_wait_delay[1] == -1:
+        if self.ptt_wait_delay[self.default_radio] == -1:
             # PTT wait not set, don't simulate access time
             ptt_st_dly_samples = 0
             access_delay_samples = 0
         else:
             access_delay_samples = self._get_delay_samples(self.access_delay,'Access Delay')
-            ptt_st_dly_samples = int(self.ptt_wait_delay[1] * self.sample_rate)
+            ptt_st_dly_samples = int(self.ptt_wait_delay[self.default_radio] * self.sample_rate)
 
         # mute portion of tx_data that occurs prior to triggering of PTT
         muted_samples = int(access_delay_samples + ptt_st_dly_samples)
