@@ -171,7 +171,7 @@ class RadioInterface:
             if m:
                 if m.group("on"):
                     value[k] = True
-                if m.group("off"):
+                elif m.group("off"):
                     value[k] = False
                 else:
                     value[k] = None
