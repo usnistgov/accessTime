@@ -3,7 +3,6 @@ import mcvqoe.delay
 import warnings
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 from scipy import signal
 from scipy.fft import fft
