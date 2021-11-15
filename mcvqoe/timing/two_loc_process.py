@@ -221,6 +221,9 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
         
         #find the file with the the smallest delay
         rx_name=rx_files[minDelay]
+
+        progress_update('status', 0, 0, msg=f'Loading {rx_name}')
+
         #read file
         rx_fs, rx_dat = mcvqoe.base.audio_read(rx_name)
     
