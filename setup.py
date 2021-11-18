@@ -41,6 +41,7 @@ setuptools.setup(
             "mcvqoe-test-play=mcvqoe.hardware.PTT_play:main",
             "mcvqoe-chan=mcvqoe.utilities.channelinfo:main",
             "mcvqoe-2loc-process=mcvqoe.timing.two_loc_process:main",
+            "mcvqoe-reprocess=mcvqoe.utilities.reprocess:main",
         ],
         "mcvqoe.channel": "clean=mcvqoe.simulation.cleanchan",
         "mcvqoe.impairment" : "probabilityiser=mcvqoe.simulation.pbiplugin",
