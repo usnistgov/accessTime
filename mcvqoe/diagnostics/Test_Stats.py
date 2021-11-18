@@ -10,8 +10,9 @@ import plotly.io as pio
 pio.renderers.default = 'browser'
 import plotly.express as px
 import math
+import re
 
-def Test_Stats(Wav_Dir,Rec = False,Progress = 500):
+def Test_Stats(Wav_Dir):
     '''
     Test_Stats Read in a directory of WAV files. 
     Use a-weight, FSF, and clipping checks to inform
@@ -43,13 +44,13 @@ def Test_Stats(Wav_Dir,Rec = False,Progress = 500):
         fs,y_rec = mcvqoe.base.audio_read(rx_path)
         rx_rec.append(y_rec[:,0])   
   
-    # Create bad trial list
-    bad_trial = []
+    # Create bad trial set
+    bad_trial = {''}
    
     
    
 #A-weight evaluation by rx recording
-def AW_Rec_Check(Trials, rx_rec,fs,all_wavs, bad_trial):
+def AW_Rec_Check(Trials, rx_rec,fs,all_wavs,bad_trial):
     # Create empty list for a-weight     
     A_Weight = []
       
@@ -87,23 +88,36 @@ def AW_Rec_Check(Trials, rx_rec,fs,all_wavs, bad_trial):
         # stand out by being a certain distance from the mean
         if abs(AW_lin[m]-AW_Mean) > AW_std:
             # Get the name of the wav file
-            clip_wav = all_wavs[m]
+            AWflag_wav = all_wavs[m]
             # Add it to the bad list
-            bad_trial.append(clip_wav)
+            bad_trial.add(AWflag_wav)
 
 
     # FSF
+def FSF_Rec_Check(Trials, rx_rec,fs,all_wavs,bad_trial):   
     # Calculate FSF scores, standard deviation.
     # Use this info to find trials that may have lost
     # audio.
     # Create empty list for a-weight     
     FSF_all = []
-      
     # Get FSF scores, plot trials
     print("Gathering Statistics and Creating Plots") 
     for k in range(0,Trials): 
         get_fsf = mcvqoe.base.fsf(rx_rec[k], fs)
         FSF_all.append(get_fsf)
+        
+        
+    # Gather metrics for FSF scores
+    FSF_Mean = round(statistics.mean(FSF_all),3)
+    FSF_std = round(statistics.stdev(FSF_all),3)
+    for m in range(0,Trials):
+        # Cycle through FSF scores, look for trials where the score
+        # stands out by being a certain distance from the mean
+        if abs(FSF_all[m]-FSF_Mean) > FSF_std:
+            # Get the name of the wav file
+            FSFflag_wav = all_wavs[m]
+            # Add it to the bad list
+            bad_trial.add(FSFflag_wav)     
 
 
 def Clip_Rec_Check(Trials, rx_rec, all_wavs,bad_trial):
@@ -122,10 +136,10 @@ def Clip_Rec_Check(Trials, rx_rec, all_wavs,bad_trial):
             # Get the name of the wav file
             clip_wav = all_wavs[n]
             # Add it to the bad list
-            bad_trial.append(clip_wav)
+            bad_trial.add(clip_wav)
     
     
-def Clip_Plot(rx_rec,Trials):   
+def Clip_Plot(rx_rec,Trials,fs):   
     # Plot audio recording
     # Create empty list for time (seconds)
     tsec = []
@@ -145,11 +159,18 @@ def Clip_Plot(rx_rec,Trials):
     fig.show()    
 
 # Handle bad trials 
-def problem_trials(bad_trial):
-    # Check if trial names repeat
-    # Warn user of problem trial recording names
+def Problem_Trials(bad_trial,clip_wav,AWflag_wav,FSFflag_wav):     
+    # Warn user of problem trial recording names 
+    np.disp('The following trials were flagged as potentially having issues')
+    np.disp(bad_trial)
+    np.disp('The following trials were flagged for clipping')
+    np.disp(clip_wav)
+    np.disp('The following trials were flagged for their a-weight')
+    np.disp(AWflag_wav)
+    np.disp('The following trials were flagged for their FSF scores')
+    np.disp(FSFflag_wav) 
 
-
+           
 def main():   
     # Input parsing
     parser = argparse.ArgumentParser()
@@ -161,24 +182,6 @@ def main():
         dest="Wav_Dir",
         help="Directory to test data wav files",
     )
-    
-    parser.add_argument(
-        "-r",
-        "--Rec",
-        action="store_true",
-        default=False,
-        dest="Rec",
-        help="Plot waveform recordings",
-    )
-    parser.add_argument(
-        "-p",
-        "--Progress",
-        type=int, 
-        nargs='+',
-        default=500,
-        dest="Progress",
-        help="Display progress every n trials"
-    )   
     # Parse input arguments
     args = parser.parse_args()
 
