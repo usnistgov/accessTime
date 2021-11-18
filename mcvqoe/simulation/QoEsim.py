@@ -143,16 +143,12 @@ class QoEsim:
     def __init__(
         self,
         port=None,
-        debug=False,
-        fs=int(48e3),
-        blocksize=512,
-        buffersize=20,
-        overplay=1.0,
-        rec_chans={"rx_voice": 0},
-        playback_chans={"tx_voice": 0},
+        **kwargs
     ):
 
-        self.debug = debug
+        #values for RadioInterface
+        #NOTE : port, is added as an argument for compatibility, but is not used.
+        self.debug = False
         self.PTT_state = [
             False,
         ] * 2
@@ -163,13 +159,13 @@ class QoEsim:
             -1.0,
         ] * 2
         # values for AudioPlayer
-        self.sample_rate = fs
-        self.blocksize = blocksize
-        self.buffersize = buffersize
-        self.overplay = overplay
+        self.sample_rate = int(48e3)
+        self.blocksize = 512
+        self.buffersize = 20
+        self.overplay = 1.0
         self.device = __class__  # fake device name
-        self.rec_chans = rec_chans
-        self.playback_chans = playback_chans
+        self.rec_chans = {"rx_voice": 0}
+        self.playback_chans = {"tx_voice": 0}
         # channel variables
         self.channel_tech = "clean"
         self.channel_rate = None
@@ -187,6 +183,18 @@ class QoEsim:
         # PTT signal parameters
         self.PTT_sig_freq = 409.6  # TODO : VERIFY!
         self.PTT_sig_amplitude = 0.7
+        self.default_radio = 1
+
+        #get properties from kwargs
+        for k, v in kwargs.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+            #check if the 'fs' argument was given
+            elif k == 'fs':
+                #fs gets translated to sample_rate for legacy purposes
+                self.sample_rate = v
+            else:
+                raise TypeError(f"{k} is not a valid keyword argument")
 
     def __repr__(self):
         string_props=('sample_rate','overplay','rec_chans','playback_chans','channel_tech','channel_rate','m2e_latency','access_delay','device_delay','rec_snr')
@@ -206,7 +214,7 @@ class QoEsim:
 
         return self
 
-    def ptt(self, state, num=1):
+    def ptt(self, state, num=None):
         """
         Change the push-to-talk status of the radio interface.
 
@@ -218,8 +226,8 @@ class QoEsim:
         ----------
         state : bool
             State to set PTT output to.
-        num : int, default=1
-            PTT output number to use.
+        num : int, default=None
+            PTT output number to use. If None, self.default_radio is used.
 
         See Also
         --------
@@ -233,6 +241,9 @@ class QoEsim:
         >>> sim_obj.ptt(True)  #key radio
         >>> sim_obj.ptt(False) #de-key radio
         """
+
+        if num is None:
+            num = self.default_radio
 
         self.PTT_state[num] = bool(state)
         # clear wait delay
@@ -409,7 +420,7 @@ class QoEsim:
         # TODO: do we need to simulate this better?
         return "Idle"
 
-    def ptt_delay(self, delay, num=1, use_signal=False):
+    def ptt_delay(self, delay, num=None, use_signal=False):
         """
         Set how far into the clip to key the fake radio.
 
@@ -422,9 +433,9 @@ class QoEsim:
         delay : float
             The number of seconds between the start of the clip and when the
             'access_delay' time starts counting.
-        num : int, default=1
-            The PTT output to use.
-        use_signal : bool, default=True
+        num : int, default=None
+            The PTT output to use. If None, use self.default_radio.
+        use_signal : bool, default=False
             For 'RadioInterface', this would control if the start signal is used
             to reference the 'delay' to the beginning of the clip. For simulation
             'delay' is always referenced to the beginning of the clip.
@@ -446,6 +457,9 @@ class QoEsim:
         >>> sim_obj.ptt_delay(1)
         >>> sim_obj.play_record(tx_voice,'test.wav')
         """
+
+        if num is None:
+            num = self.default_radio
 
         self.ptt_wait_delay[num] = delay
         # set state to true, this isn't 100% correct but the delay will be used
@@ -883,13 +897,13 @@ class QoEsim:
 
 
         # check if PTT was keyed during audio
-        if self.ptt_wait_delay[1] == -1:
+        if self.ptt_wait_delay[self.default_radio] == -1:
             # PTT wait not set, don't simulate access time
             ptt_st_dly_samples = 0
             access_delay_samples = 0
         else:
             access_delay_samples = self._get_delay_samples(self.access_delay,'Access Delay')
-            ptt_st_dly_samples = int(self.ptt_wait_delay[1] * self.sample_rate)
+            ptt_st_dly_samples = int(self.ptt_wait_delay[self.default_radio] * self.sample_rate)
 
         # mute portion of tx_data that occurs prior to triggering of PTT
         muted_samples = int(access_delay_samples + ptt_st_dly_samples)
@@ -1002,3 +1016,18 @@ class ImpairmentParam:
         for k, v in kwargs.items():
             #set attribute, don't care if it exists
             setattr(self, k, v)
+
+class Impairment:
+    '''
+    Class used to define impairments.
+    
+    This is a good base class to make impairments that will be logged correctly. 
+    '''
+    def __init__(self, **kwargs):
+        self.arguments =  kwargs
+    
+    def __repr__(self):
+        return f'{type(self).__name__}('+', '.join([f'{k}={repr(v)}' for k, v in self.arguments.items()])+')'
+
+    def __call__(self, data, fs):
+        return self.impairment(data, fs, **self.arguments)

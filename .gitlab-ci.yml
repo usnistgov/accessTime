@@ -1,31 +1,40 @@
 stages:
+  - build-deps
   - build
   - test
   - test-downstream
   - deploy
 
 variables:
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  IMAGE_MCVQOE_BASE: $CI_REGISTRY_IMAGE/mcvqoe-base:$CI_COMMIT_REF_SLUG
+  IMAGE_MCVQOE_BASE_RELEASE: $CI_REGISTRY_IMAGE/mcvqoe-base:latest
 
-image: python:3.8
+default:
+  image: $IMAGE_MCVQOE_BASE
+  tags:
+    - docker
 
-cache:
-  paths:
-    - venv/
+build:amrchan:
+  stage: build-deps
+  trigger:
+    project: PSCR/MCV/channel-plugins/amrchan
+    strategy: depend
 
-before_script:
-  - source venv/bin/activate
-
-build:
+build:docker:
   stage: build
-  before_script:
-    - python -V
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
   script:
-    - pip install virtualenv
-    - virtualenv --clear venv
-    - source venv/bin/activate
-    - pip install --upgrade .
-    - pip install unittest-xml-reporting
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD} | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+    - >-
+      /kaniko/executor
+      --context $CI_PROJECT_DIR
+      --dockerfile $CI_PROJECT_DIR/Dockerfile
+      --destination $IMAGE_MCVQOE_BASE
+      --build-arg ACCESS_TOKEN_NAME=gitlab-ci-token
+      --build-arg ACCESS_TOKEN=$CI_JOB_TOKEN
 
 test-math:
   stage: test
@@ -37,6 +46,7 @@ test-math:
       - math-tests.xml
     reports:
       junit: math-tests.xml
+
 
 test-log:
   stage: test
@@ -80,6 +90,29 @@ test-mouth2ear:
   trigger:
     project: PSCR/MCV/device-tst
     strategy: depend
+
+release:pypi:
+  stage: deploy
+  image: python:3.8
+  script:
+    - pip install twine
+    - python setup.py bdist_wheel
+    - TWINE_PASSWORD=${CI_JOB_TOKEN} TWINE_USERNAME=gitlab-ci-token python -m twine upload --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi --skip-existing dist/*
+
+release:docker:
+  stage: deploy
+  image:
+    name: gcr.io/go-containerregistry/crane:debug
+    entrypoint: [""]
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - crane auth login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - crane cp $IMAGE_MCVQOE_BASE $IMAGE_MCVQOE_BASE_RELEASE
+  rules:
+    - if : '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH'
+      changes:
+        - Dockerfile
 
 pages:
   stage: deploy
