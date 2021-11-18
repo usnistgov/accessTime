@@ -266,10 +266,15 @@ class ITSTest(unittest.TestCase):
             chan_l = chan.load()
 
             chan_out = audio_channel_with_overplay(base_fs, base_data, chan_l)
+            print(chan_out.dtype)
+            print(np.max(chan_out))
+            chan_out = mcvqoe.base.misc.audio_type(chan_out)
+            print(chan_out.dtype)
+            print(np.max(chan_out))
             self.assert_tol(
                 active_speech_level(chan_out, fs=base_fs),
                 expected_speech_levels[chan.name],
-                tol=1e-6,
+                tol=0.1,
                 msg=f"{chan.name}, no delay",
             )
 
@@ -282,6 +287,7 @@ class ITSTest(unittest.TestCase):
             )
 
             chan_out = audio_channel_with_overplay(base_fs, audio_var_delay, chan_l)
+            chan_out = mcvqoe.base.misc.audio_type(chan_out)
             self.assert_tol(
                 active_speech_level(chan_out, fs=base_fs),
                 expected_speech_levels[chan.name],
