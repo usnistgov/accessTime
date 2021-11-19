@@ -17,6 +17,10 @@ measurement_dir_modules = {
     'Intelligibility' : 'mcvqoe.intelligibility',
     'Mouth_2_Ear' : 'mcvqoe.mouth2ear',
     'PSuD' : 'mcvqoe.psud',
+
+    #alternate names
+    'Access-Time' : 'mcvqoe.accesstime',
+    'mouth2ear' : 'mcvqoe.mouth2ear',
 }
 
 def make_parser():
