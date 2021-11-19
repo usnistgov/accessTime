@@ -47,7 +47,19 @@ def Test_Stats(Wav_Dir):
     # Create bad trial set
     bad_trial = {''}
    
-    
+    # Find all the Tx files in the wav_dir, strip 
+    # the Tx...wav off and then use 
+    #if stripped_tx_name in rx_name
+    TX_names = 'Tx*'
+    TX_obj = fnmatch.filter(Dir_Files, TX_names)
+    TX_filename =fnmatch.filter(TX_obj, '*.wav')
+    # Create empty list for tx wavs 
+    tx_wavs = []
+    # Cycle through and get all the TX files
+    for k in range(0,len(TX_filename)):
+       tx_path = Wav_Dir + '/' + TX_filename[k]
+       fs,tx_wavfile = mcvqoe.base.audio_read(tx_path)
+       tx_wavs.append(tx_wavfile)
    
 #A-weight evaluation by rx recording
 def AW_Rec_Check(Trials, rx_rec,fs,all_wavs,bad_trial):
@@ -94,18 +106,28 @@ def AW_Rec_Check(Trials, rx_rec,fs,all_wavs,bad_trial):
 
 
     # FSF
-def FSF_Rec_Check(Trials, rx_rec,fs,all_wavs,bad_trial):   
+def FSF_Rec_Check(TX_filename,tx_wavs,Trials, rx_rec,fs,all_wavs,bad_trial):   
     # Calculate FSF scores, standard deviation.
     # Use this info to find trials that may have lost
     # audio.
-    # Create empty list for a-weight     
+    # Create empty list for FSF scores     
     FSF_all = []
     # Get FSF scores, plot trials
-    print("Gathering Statistics and Creating Plots") 
+    print("Gathering FSF data") 
+    # cycle through, match RX names to tx names
+    # Get just the names of tx files 
+    filename = []
+    for n in range(0,len(TX_filename)):
+        tx_justname = re.sub('\.wav$', '', TX_filename[n])
+        filename.append(tx_justname)
+    # Find RX files with the matching tx name
+   
+    # Get the associated file for that name wav, both TX and RX  
+    
+    # Get FSF scores for each tx-rx pair
     for k in range(0,Trials): 
-        get_fsf = mcvqoe.base.fsf(rx_rec[k], fs)
-        FSF_all.append(get_fsf)
-        
+        get_fsf = mcvqoe.base.fsf(rx_rec[k],tx_wavs[0], fs)
+        FSF_all.append(get_fsf)   
         
     # Gather metrics for FSF scores
     FSF_Mean = round(statistics.mean(FSF_all),3)
