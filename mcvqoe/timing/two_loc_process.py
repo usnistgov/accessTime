@@ -11,10 +11,12 @@ import shutil
 
 import numpy as np
 
+
 from .audio_chans import timecode_chans
 from datetime import datetime, timedelta
 from mcvqoe.base.terminal_user import terminal_progress_update
 from .timecode import time_decode
+from ..utilities.reprocess import get_module, reprocess_file
 
 
 def test_name_parts(name):
@@ -49,6 +51,7 @@ def find_nearest(array,value):
 def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
                         progress_update=terminal_progress_update,
                         align_mode='fit',
+                        **kwargs       #get kwargs to accept arbitrary arguments
                    ):
     '''
     Process rx and tx files for a two location test.
@@ -453,6 +456,8 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
             #copy file
             shutil.copyfile(name,destname)
 
+    #return output filename
+    return csv_out_name
 
 
 def main():
@@ -482,10 +487,32 @@ def main():
                         default="",
                         help='Root of directory structure where data will be stored'
                         )
+    parser.add_argument('-m', '--measurement',
+                        type=str,
+                        default=None,
+                        metavar='M',
+                        help='measurement to use to do reprocessing'
+                        )
 
-    args = vars(parser.parse_args())
+    args = parser.parse_args()
 
-    twoloc_process(**args)
+    #try to load measurement class
+    try:
+        measurement_class = get_module(module_name=args.measurement, datafile=args.tx_name)
+    except (RuntimeError,KeyError) as e:
+        terminal_progress_update('warning', 0, 0, msg=f'Unable to determine measurement. Output file will not be processed')
+        #set measurement class for later
+        measurement_class = None
+
+    out_name = twoloc_process(**vars(args))
+
+    if measurement_class:
+        #create test obj to reprocess with
+        test_obj=measurement_class()
+
+        reprocess_file(test_obj, out_name, out_name)
+
+        print(f'Reprocessing complete for \'{out_name}\'')
 
 if __name__ == '__main__':
     main()
