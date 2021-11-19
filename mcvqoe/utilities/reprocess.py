@@ -76,13 +76,21 @@ def get_module(module_name=None, datafile=None):
 
 def reprocess_file(test_obj, datafile, out_name, **kwargs):
 
-        print(f'Loading test data from \'{datafile}\'', file=sys.stderr)
-        #read in test data
-        test_dat=test_obj.load_test_data(datafile, **kwargs)
+    if not out_name:
+        #split data file path into parts
+        d,n=os.path.split(datafile)
+        #construct new name for file
+        out_name=os.path.join(d,'R'+n)
 
-        print(f'Reprocessing test data to \'{out_name}\'', file=sys.stderr)
+    print(f'Loading test data from \'{datafile}\'', file=sys.stderr)
+    #read in test data
+    test_dat=test_obj.load_test_data(datafile, **kwargs)
 
-        test_obj.post_process(test_dat, out_name, test_obj.audio_path)
+    print(f'Reprocessing test data to \'{out_name}\'', file=sys.stderr)
+
+    test_obj.post_process(test_dat, out_name, test_obj.audio_path)
+
+    return out_name
 
 
 def main():
@@ -113,24 +121,19 @@ def main():
             #print results, don't save file
             out_name=os.path.join(tmp_dir,'tmp.csv')
             print_outf=True
-        elif(args.outfile):
+        else:
             out_name=args.outfile
             print_outf=False
-        else:
-            #split data file path into parts
-            d,n=os.path.split(args.datafile)
-            #construct new name for file
-            out_name=os.path.join(d,'R'+n)
-            print_outf=False
 
-        reprocess_file(test_obj, args.datafile, out_name, audio_path=args.audio_path)
+        out_name = reprocess_file(test_obj, args.datafile, out_name, audio_path=args.audio_path)
 
         if(print_outf):
             with open(out_name,'rt') as out_file:
                 dat=out_file.read()
             print(dat)
-
-        print(f'Reprocessing complete for \'{out_name}\'', file=sys.stderr)
+            print(f'Reprocessing complete', file=sys.stderr)
+        else:
+            print(f'Reprocessing complete for \'{out_name}\'', file=sys.stderr)
 
 
 #main function
