@@ -10,7 +10,7 @@ import sys
 import tempfile
 
 #expected path components for csv files
-csv_path_names = ('csv','data')
+csv_path_names = (('csv','2loc_tx-data'),('data'))
 
 measurement_dir_modules = {
     'Access_Time' : 'mcvqoe.accesstime',
@@ -44,19 +44,31 @@ def get_module(module_name=None, datafile=None):
         #no name given, see if we can find one
 
         #get absolute path to .csv file
-        abs_csv_path = os.path.abspath(datafile)
+        abs_dat_path = os.path.abspath(datafile)
 
-        #split once to remove filename
-        path_extra, fname = os.path.split(abs_csv_path)
+        curr_path = abs_dat_path
 
-        for expected_name in csv_path_names:
-            path_extra, fold = os.path.split(path_extra)
+        measurement_dir = None
 
-            if fold != expected_name:
-                raise RuntimeError(f'Unexpected directory \'{fold}\', unable to determine measurement.')
+        for split_count in range(3):
 
-        #get the name of the data directory
-        measurement_dir = os.path.basename(path_extra)
+            path_extra = curr_path
+
+            for expected_name in csv_path_names:
+                path_extra, fold = os.path.split(path_extra)
+
+                if fold not in expected_name:
+                    break
+            else:
+                #loop ran to completion, measurement found!
+                #get the name of the data directory
+                measurement_dir = os.path.basename(path_extra)
+                break
+            #remove another layer
+            curr_path, fname = os.path.split(curr_path)
+
+        if not measurement_dir:
+            raise RuntimeError(f'Unexpected directory \'{fold}\', unable to determine measurement.')
 
         #get module name, will fail if incorrect
         module_name = measurement_dir_modules[measurement_dir]
