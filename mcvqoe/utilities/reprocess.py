@@ -67,7 +67,7 @@ def get_module(module_name=None, datafile=None):
         module_name = module_name.lower()
 
         #check if full import path was given
-        if module_name.startswith('mcvqoe.') :
+        if not module_name.startswith('mcvqoe.') :
             #add mcvqoe to the module include
             module_name = 'mcvqoe.' + module_name
 
