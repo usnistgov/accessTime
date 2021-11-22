@@ -407,7 +407,8 @@ class RadioInterface:
         # buffer serial data
         self.textin = io.TextIOWrapper(io.BufferedReader(self.sobj))
 
-        self.connPort = port
+        #save the name of the open port so it can be used later
+        self.port_name = port
 
     def _command(self, cmd):
         """low level command function to send command to the MSP430"""
