@@ -117,6 +117,24 @@ class RadioInterface:
             # open port
             self._openPort(port)
 
+    def __repr__(self):
+        string_props=('default_radio',)
+
+        if hasattr(self, "sobj"):
+            # check if port is open
+            if self.sobj:
+                #get the currently open port
+                props=[f'port = {repr(self.port_name)}']
+
+                for prop in string_props:
+                    props.append(f'{prop} = {repr(getattr(self, prop))}')
+
+                return f'{type(self).__name__}({", ".join(props)})'
+
+        #otherwise port is not open give some sort of an indication
+        return f'<inactive {type(self).__name__}>'
+
+
     def __enter__(self):
 
         return self
