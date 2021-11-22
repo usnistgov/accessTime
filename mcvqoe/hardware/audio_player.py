@@ -305,23 +305,30 @@ class AudioPlayer:
 
     def __init__(
         self,
-        fs=int(48e3),
-        blocksize=512,
-        buffersize=20,
-        overplay=1.0,
-        rec_chans={"rx_voice": 0},
-        playback_chans={"tx_voice": 0},
-        rec_stop=DefaultRecStop(),
         device_str="UMC",
+        **kwargs
     ):
 
-        self.sample_rate = fs
-        self.blocksize = blocksize
-        self.buffersize = buffersize
-        self.overplay = overplay
-        self.rec_chans = rec_chans
-        self.playback_chans = playback_chans
-        self.rec_stop = rec_stop
+        self.sample_rate = int(48e3)
+        self.blocksize = 512
+        self.buffersize = 20
+        self.overplay = 1.0
+        self.rec_chans = {"rx_voice": 0}
+        self.playback_chans = {"tx_voice": 0}
+        self.rec_stop = DefaultRecStop()
+
+
+        #get properties from kwargs
+        for k, v in kwargs.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+            #check if the 'fs' argument was given
+            elif k == 'fs':
+                #fs gets translated to sample_rate for legacy purposes
+                self.sample_rate = v
+            else:
+                raise TypeError(f"{k} is not a valid keyword argument")
+
         try:
             self.device = self.find_device(device_str)
         except RuntimeError:
