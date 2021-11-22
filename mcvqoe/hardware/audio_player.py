@@ -350,6 +350,16 @@ class AudioPlayer:
         else:
             raise RuntimeError('No suitable audio interfaces found')
 
+    def __repr__(self):
+        string_props=('device','sample_rate','overplay','rec_chans','playback_chans')
+
+        props=[]
+
+        for prop in string_props:
+            props.append(f'{prop} = {repr(getattr(self, prop))}')
+
+        return f'{type(self).__name__}({", ".join(props)})'
+
     def record(self, filename):
         """
         Record audio based on rec_chans.
