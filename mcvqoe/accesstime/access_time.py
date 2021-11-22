@@ -919,7 +919,7 @@ class measure:
                                     raise SystemExit()
                                 
                                 # Save bad audiofile
-                                wav_name = f"Bad{clip_count}_r{retries}_{clip_names[clip]}"
+                                wav_name = f"Bad{clip_count}_r{retries}_{clip_names[clip]}.wav"
                                 wav_name = os.path.join(wavdir, wav_name)
                                 #rename file to save it and record again
                                 os.rename(audioname, wav_name)
