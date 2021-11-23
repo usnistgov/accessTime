@@ -166,7 +166,7 @@ def log_update(log_in_name, log_out_name, dryRun=False):
 
         # check if we have more data from the input file
         if in_dat:
-            
+
             if not dryRun:
                 #copy file to new location
                 shutil.copy(log_in_name,log_out_name)
@@ -182,37 +182,155 @@ def log_update(log_in_name, log_out_name, dryRun=False):
     # print success message
     print(f"Log updated successfully to {log_out_name}\n")
 
+def load_settings_file(file):
+    with open(file, "rt") as fp_set:
+        set_dict = json.load(fp_set)
+
+    if "Direct" not in set_dict:
+        # default direct to False
+        set_dict["Direct"] = False
+
+    if set_dict["Direct"]:
+        set_dict['prefix'] = ""
+    else:
+        drives = list_drives()
+
+        drive_info = next(
+            (item for item in drives if item["serial"] == set_dict["DriveSerial"]),
+            None,
+        )
+
+        if not drive_info:
+            raise RuntimeError(
+                f'Could not find drive with serial {set_dict["DriveSerial"]}'
+            )
+
+        # create drive prefix, add slash for path concatenation
+        set_dict['prefix'] = drive_info["drive"] + os.sep
+
+    return set_dict
+
+def create_new_settings(direct, dest_dir, cname):
+    if direct:
+        prefix = ""
+        rel_path = dest_dir
+        drive_ser = None
+    else:
+        # split drive from path
+        (prefix, rel_path) = os.path.splitdrive(dest_dir)
+
+        # get serial number for drive
+        drive_ser = get_drive_serial(prefix)
+
+        # add slash for path concatenation
+        prefix = prefix + os.sep
+
+    # create dictionary of options, normalize paths
+    set_dict = {
+        "ComputerName": os.path.normpath(cname),
+        "DriveSerial": drive_ser,
+        "Path": os.path.normpath(rel_path),
+        "Direct": direct,
+        "prefix": prefix,
+    }
+
+    return set_dict
+
+def write_settings(set_dict, file):
+    save_keys = ("ComputerName", "DriveSerial", "Path", "Direct")
+
+    #filter dictionary to contain only the specivied keys
+    out_dict = {k : v for k,v in set_dict.items()}
+
+    #write out new dict
+    json.dump(out_dict, file)
+
+
+def input_log_name(d):
+    return os.path.join(d, "tests.log")
+
+def output_log_name(set_dict):
+    return os.path.join(
+                        set_dict['prefix'],
+                        set_dict["Path"],
+                        set_dict["ComputerName"] + "-tests.log"
+                    )
+
+def update_sync(set_dict, sync_dir=None, dry_run=False):
+    if sync_dir is None:
+        sync_dir = os.path.join(set_dict['prefix'], "sync")
+
+    SyncScript = os.path.join(sync_dir, "sync.py")
+    sync_ver_path = os.path.join(sync_dir, "version.txt")
+
+    sync_update = False
+
+    if not os.path.exists(SyncScript):
+        sync_update = True
+        # print message
+        print("Sync directory not found, updating")
+
+    if not sync_update:
+
+        if os.path.exists(sync_ver_path):
+            # read version from file
+            with open(sync_ver_path, "r") as f:
+                sync_ver = pkg_resources.parse_version(f.read())
+
+            # get version from package
+            qoe_ver = pkg_resources.parse_version(mcvqoe.base.version)
+
+            # we need to update if sync version is older than mcvqoe version
+            sync_update = qoe_ver > sync_ver
+
+            if sync_update:
+                print("Sync version old, updating")
+
+        else:
+            sync_update = True
+            print("Sync version missing, updating")
+
+    if sync_update and not dry_run:
+        # there is no sync script
+        # make sync dir
+        os.makedirs(sync_dir, exist_ok=True)
+        # copy sync script
+        with open(SyncScript, "wb") as f:
+            f.write(pkgutil.get_data("mcvqoe.utilities", "sync.py"))
+
+        with open(sync_ver_path, "w") as f:
+            f.write(mcvqoe.base.version)
+
+    return SyncScript
+
+def run_drive_sync(script, out_dir, dest_dir, dry_run=False):
+    # try to get path to python
+    py_path = sys.executable
+
+    if not py_path:
+        # couldn't get path, try 'python' and hope for the best
+        py_path = "python"
+
+    syncCmd = [py_path, script, "--import", out_dir, dest_dir, "--cull"]
+
+    if dry_run:
+        print("Calling sync command:\n\t" + " ".join(syncCmd))
+    else:
+        stat = subprocess.run(syncCmd)
+
+        if stat.returncode:
+            raise RuntimeError(
+                f"Failed to run sync script exit status {stat.returncode}"
+            )
+
 def copy_test_files(out_dir, dest_dir=None, cname=None, sync_dir=None, dry_run=False, force=False, direct=False):
     set_file = os.path.join(out_dir, settings_name)
 
-    log_in_name = os.path.join(out_dir, "tests.log")
+    log_in_name = input_log_name(out_dir)
 
     if os.path.exists(set_file):
 
-        with open(set_file, "rt") as fp_set:
-            set_dict = json.load(fp_set)
-
-        if "Direct" not in set_dict:
-            # default direct to False
-            set_dict["Direct"] = False
-
-        if set_dict["Direct"]:
-            dest_drive_prefix = ""
-        else:
-            drives = list_drives()
-
-            drive_info = next(
-                (item for item in drives if item["serial"] == set_dict["DriveSerial"]),
-                None,
-            )
-
-            if not drive_info:
-                raise RuntimeError(
-                    f'Could not find drive with serial {set_dict["DriveSerial"]}'
-                )
-
-            # create drive prefix, add slash for path concatenation
-            dest_drive_prefix = drive_info["drive"] + os.sep
+        set_dict = load_settings_file(set_file)
 
     else:
         if not cname:
@@ -225,27 +343,7 @@ def copy_test_files(out_dir, dest_dir=None, cname=None, sync_dir=None, dry_run=F
 
         # TODO : check for questionable names in path?
 
-        if direct:
-            dest_drive_prefix = ""
-            rel_path = dest_dir
-            drive_ser = None
-        else:
-            # split drive from path
-            (dest_drive_prefix, rel_path) = os.path.splitdrive(dest_dir)
-
-            # get serial number for drive
-            drive_ser = get_drive_serial(dest_drive_prefix)
-
-            # add slash for path concatenation
-            dest_drive_prefix = dest_drive_prefix + os.sep
-
-        # create dictionary of options, normalize paths
-        set_dict = {
-            "ComputerName": os.path.normpath(cname),
-            "DriveSerial": drive_ser,
-            "Path": os.path.normpath(rel_path),
-            "Direct": direct,
-        }
+        set_dict = create_new_settings(direct, dest_dir, cname)
 
     with (
         os.fdopen(os.dup(sys.stdout.fileno()), "w")
@@ -254,84 +352,21 @@ def copy_test_files(out_dir, dest_dir=None, cname=None, sync_dir=None, dry_run=F
     ) as sf:
         if dry_run:
             print("Settings file:")
-        json.dump(set_dict, sf)
+        write_settings(set_dict, sf)
 
     # file name for output log file
-    log_out_name = os.path.join(
-        dest_drive_prefix, set_dict["Path"], set_dict["ComputerName"] + "-tests.log"
-    )
+    log_out_name = output_log_name(set_dict)
 
     log_update(log_in_name, log_out_name, dry_run)
 
-    print("Prefix : " + dest_drive_prefix)
-
     # create destination path
-    destDir = os.path.join(dest_drive_prefix, set_dict["Path"])
+    destDir = os.path.join(set_dict['prefix'], set_dict["Path"])
 
     if not set_dict["Direct"]:
+        #update the sync script on the drive
+        sync_script = update_sync(set_dict, sync_dir=sync_dir, dry_run=dry_run)
 
-        if sync_dir is None:
-            sync_dir = os.path.join(dest_drive_prefix, "sync")
-
-        SyncScript = os.path.join(sync_dir, "sync.py")
-        sync_ver_path = os.path.join(sync_dir, "version.txt")
-
-        sync_update = False
-
-        if not os.path.exists(SyncScript):
-            sync_update = True
-            # print message
-            print("Sync directory not found, updating")
-
-        if not sync_update:
-
-            if os.path.exists(sync_ver_path):
-                # read version from file
-                with open(sync_ver_path, "r") as f:
-                    sync_ver = pkg_resources.parse_version(f.read())
-
-                # get version from package
-                qoe_ver = pkg_resources.parse_version(mcvqoe.base.version)
-
-                # we need to update if sync version is older than mcvqoe version
-                sync_update = qoe_ver > sync_ver
-
-                if sync_update:
-                    print("Sync version old, updating")
-
-            else:
-                sync_update = True
-                print("Sync version missing, updating")
-
-        if sync_update and not dry_run:
-            # there is no sync script
-            # make sync dir
-            os.makedirs(sync_dir, exist_ok=True)
-            # copy sync script
-            with open(SyncScript, "wb") as f:
-                f.write(pkgutil.get_data("mcvqoe.utilities", "sync.py"))
-
-            with open(sync_ver_path, "w") as f:
-                f.write(mcvqoe.base.version)
-
-        # try to get path to python
-        py_path = sys.executable
-
-        if not py_path:
-            # couldn't get path, try 'python' and hope for the best
-            py_path = "python"
-
-        syncCmd = [py_path, SyncScript, "--import", out_dir, destDir, "--cull"]
-
-        if dry_run:
-            print("Calling sync command:\n\t" + " ".join(syncCmd))
-        else:
-            stat = subprocess.run(syncCmd)
-
-            if stat.returncode:
-                raise RuntimeError(
-                    f"Failed to run sync script exit status {stat.returncode}"
-                )
+        run_drive_sync(sync_script, out_dir, destDir, dry_run=dry_run)
     else:
         # direct sync, use library version
         from .sync import sync_files
