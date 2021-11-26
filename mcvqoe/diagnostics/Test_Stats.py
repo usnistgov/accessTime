@@ -68,7 +68,6 @@ def Test_Stats(Wav_Dir):
        fs,tx_wavfile = mcvqoe.base.audio_read(tx_path)
        tx_wavs.append(tx_wavfile)
    
-#A-weight evaluation by rx recording
 def AW_Rec_Check(Trials, rx_rec,fs,all_wavs,bad_trial):
     """
     Calculates the a-weight (dBA) of each trial. Plot these  
@@ -95,6 +94,7 @@ def AW_Rec_Check(Trials, rx_rec,fs,all_wavs,bad_trial):
     """
     # Create empty list for a-weight     
     A_Weight = []
+    AW_flag = {''}
       
     # Get A-weight
     print("Gathering Statistics and Creating Plots") 
@@ -134,14 +134,14 @@ def AW_Rec_Check(Trials, rx_rec,fs,all_wavs,bad_trial):
             AWflag_wav = all_wavs[m]
             # Add it to the bad list
             bad_trial.add(AWflag_wav)
+            AW_flag.add(AWflag_wav)
         # Add a flag if the a-weight is below -60 dBA
         if AW_lin[m] < AW_low:
            # Get the name of the wav file
            AWflag_wav = all_wavs[m]
            # Add it to the bad list
-           bad_trial.add(AWflag_wav)
+           AW_flag.add(AWflag_wav)
 
-    # FSF
 def FSF_Rec_Check(TX_filename,tx_wavs,Trials, rx_rec,fs,all_wavs,bad_trial):   
     """
     Calculate FSF scores, standard deviation. Use this info to find trials that may have lost
@@ -175,28 +175,20 @@ def FSF_Rec_Check(TX_filename,tx_wavs,Trials, rx_rec,fs,all_wavs,bad_trial):
     # cycle through, match RX names to tx names
     # Get just the names of tx files, remove the Tx and .wav 
     tx_base_name = []
-    for n in TX_filename:
+    for n in range(0,len(TX_filename)):
         tx_justname = re.sub('\.wav$', '', TX_filename[n])
         tx_justname = tx_justname[3:]
         tx_base_name.append(tx_justname)   
    # Get just the names of rx files, remove the Rx and .wav 
    rx_base_name = []
-   for n in all_wavs:
+   for n in range(0,len(all_wavs)):
        rx_justname = re.sub('\.wav$', '', all_wavs[n])
        rx_justname = rx_justname[3:]
        rx_base_name.append(rx_justname)
     
     # Find RX files with the matching tx name LEFT OFF HERE
-    regex = r"rx_base_name
-    test_str = tx_base_name
-    matches = re.finditer(regex, test_str, re.MULTILINE | re.IGNORECASE)
-
-    for matchNum, match in enumerate(matches, start=1):
-        print ("Match {matchNum} was found at {start}-{end}: {match}".format(matchNum = matchNum, start = match.start(), end = match.end(), match = match.group()))
     
-    for groupNum in range(0, len(match.groups())):
-        groupNum = groupNum + 1
-        print ("Group {groupNum} found at {start}-{end}: {group}".format(groupNum = groupNum, start = match.start(groupNum), end = match.end(groupNum), group = match.group(groupNum)))
+    
     for j in all_wavs: 
         for m in tx_base_name:
            # Get the associated file for that name wav, both TX and RX 
@@ -324,7 +316,7 @@ def Problem_Trials(bad_trial,clip_wav,AWflag_wav,FSFflag_wav):
     np.disp('The following trials were flagged for clipping')
     np.disp(clip_wav)
     np.disp('The following trials were flagged for their a-weight')
-    np.disp(AWflag_wav)
+    np.disp(AW_flag)
     np.disp('The following trials were flagged for their FSF scores')
     np.disp(FSFflag_wav) 
 
