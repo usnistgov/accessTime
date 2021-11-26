@@ -13,15 +13,22 @@ import math
 import re
 
 def Test_Stats(Wav_Dir):
-    '''
+    """
     Test_Stats Read in a directory of WAV files. 
     Use a-weight, FSF, and clipping checks to inform
-    user of potential problems in collected data. Use 
-    various measurements to detect trials that may
-    have problems, such as clipping, dropped audio, 
-    distortion
-    '''
+    user of potential problems in collected data. Flags
+    trials that may require further investigation.
+    
+    Parameters
+    ----------
+    Wav_Dir : string
+        directory of WAV files
 
+    Returns
+    -------
+    bad_trial :        
+
+    """
     # Get trial recordings
     print("Loading recordings")
     # Get all the Rx wav files 
@@ -42,7 +49,7 @@ def Test_Stats(Wav_Dir):
         rx_name = [s for s in all_wavs if start in s]
         rx_path = Wav_Dir + '/' + rx_name[0]
         fs,y_rec = mcvqoe.base.audio_read(rx_path)
-        rx_rec.append(y_rec[:,0])   
+        rx_rec.append(y_rec[:])   
   
     # Create bad trial set
     bad_trial = {''}
@@ -63,17 +70,40 @@ def Test_Stats(Wav_Dir):
    
 #A-weight evaluation by rx recording
 def AW_Rec_Check(Trials, rx_rec,fs,all_wavs,bad_trial):
+    """
+    Calculates the a-weight (dBA) of each trial. Plot these  
+    values. Check for trials with a dBA less than - 60 dBA.
+    Check for trials with a dBA a certain distance from the mean.
+    
+    Parameters
+    ----------
+    Trials : int
+        number of trials 
+    rx_rec : list 
+        audio for rx recordings   
+    fs : int 
+        sampling rate of rx recordings       
+    all_wavs : list
+        names of rx recordings   
+    bad_trial : set
+        names of trials flagged for potential problems
+
+    Returns
+    -------
+    bad_trial : 
+         Aw value and stats, bad_trial, AW bad trials?    
+    """
     # Create empty list for a-weight     
     A_Weight = []
       
-    # Get A-weight, plot recordings and periodogram if desired
+    # Get A-weight
     print("Gathering Statistics and Creating Plots") 
     for k in range(0,Trials): 
-        # Calculate the A-Weighted power of each recording 
+        # Calculate the A-weighted power of each recording 
         aw = mcvqoe.base.a_weighted_power(rx_rec[k], fs) 
         A_Weight.append(aw)
 
-    # A-Weight plot
+    # Plot values 
     A_Weight = np.asarray(A_Weight)  
     dfAW = pd.DataFrame({
       "A-Weight": A_Weight})  
@@ -89,10 +119,11 @@ def AW_Rec_Check(Trials, rx_rec,fs,all_wavs,bad_trial):
     fig.update_yaxes(title_text='A-Weight (dBA)')
     fig.show() 
 
-    # Calculate average a-weight, standard deviation.
+    # Calculate mean a-weight, standard deviation.
     # Use this info to find trials that may have lost
     # audio. 
     AW_lin = 10**(A_Weight/20)
+    AW_low = 10**(-60/20)
     AW_Mean = round(statistics.mean(AW_lin),3)
     AW_std = round(statistics.stdev(AW_lin),3)
     for m in range(0,Trials):
@@ -103,36 +134,93 @@ def AW_Rec_Check(Trials, rx_rec,fs,all_wavs,bad_trial):
             AWflag_wav = all_wavs[m]
             # Add it to the bad list
             bad_trial.add(AWflag_wav)
-
+        # Add a flag if the a-weight is below -60 dBA
+        if AW_lin[m] < AW_low:
+           # Get the name of the wav file
+           AWflag_wav = all_wavs[m]
+           # Add it to the bad list
+           bad_trial.add(AWflag_wav)
 
     # FSF
 def FSF_Rec_Check(TX_filename,tx_wavs,Trials, rx_rec,fs,all_wavs,bad_trial):   
-    # Calculate FSF scores, standard deviation.
-    # Use this info to find trials that may have lost
-    # audio.
+    """
+    Calculate FSF scores, standard deviation. Use this info to find trials that may have lost
+    audio.
+    
+    Parameters
+    ----------
+    TX_filename : list
+        names of tx audio files
+    tx_wavs   :  list
+        audio for tx audio
+    Trials : int
+        number of trials 
+    rx_rec : list 
+        audio for rx recordings   
+    fs : int 
+        sampling rate of rx recordings       
+    all_wavs : list
+        names of rx recordings   
+    bad_trial : set
+        names of trials flagged for potential problems
+
+    Returns
+    -------
+    
+    """
     # Create empty list for FSF scores     
     FSF_all = []
     # Get FSF scores, plot trials
     print("Gathering FSF data") 
     # cycle through, match RX names to tx names
-    # Get just the names of tx files 
-    filename = []
-    for n in range(0,len(TX_filename)):
+    # Get just the names of tx files, remove the Tx and .wav 
+    tx_base_name = []
+    for n in TX_filename:
         tx_justname = re.sub('\.wav$', '', TX_filename[n])
-        filename.append(tx_justname)
-    # Find RX files with the matching tx name
-   
-    # Get the associated file for that name wav, both TX and RX  
+        tx_justname = tx_justname[3:]
+        tx_base_name.append(tx_justname)   
+   # Get just the names of rx files, remove the Rx and .wav 
+   rx_base_name = []
+   for n in all_wavs:
+       rx_justname = re.sub('\.wav$', '', all_wavs[n])
+       rx_justname = rx_justname[3:]
+       rx_base_name.append(rx_justname)
+    
+    # Find RX files with the matching tx name LEFT OFF HERE
+    regex = r"rx_base_name
+    test_str = tx_base_name
+    matches = re.finditer(regex, test_str, re.MULTILINE | re.IGNORECASE)
+
+    for matchNum, match in enumerate(matches, start=1):
+        print ("Match {matchNum} was found at {start}-{end}: {match}".format(matchNum = matchNum, start = match.start(), end = match.end(), match = match.group()))
+    
+    for groupNum in range(0, len(match.groups())):
+        groupNum = groupNum + 1
+        print ("Group {groupNum} found at {start}-{end}: {group}".format(groupNum = groupNum, start = match.start(groupNum), end = match.end(groupNum), group = match.group(groupNum)))
+    for j in all_wavs: 
+        for m in tx_base_name:
+           # Get the associated file for that name wav, both TX and RX 
+           if m in j:
+               
+               #Pull the associated file names and wavs and list them
+               indexTest = all_wavs.index(tx_base_name)
+               # then i want these to be linked
+               dfTxRx= pd.DataFrame({"RX_name":all_wavs, 
+                                     "RX_dat":rx_rec[j],
+                                     "TX_name":filename,
+                                     "TX_dat":tx_wavs[m]})
+      
+    
     
     # Get FSF scores for each tx-rx pair
-    for k in range(0,Trials): 
+    for k in Trials: 
         get_fsf = mcvqoe.base.fsf(rx_rec[k],tx_wavs[0], fs)
         FSF_all.append(get_fsf)   
         
     # Gather metrics for FSF scores
     FSF_Mean = round(statistics.mean(FSF_all),3)
     FSF_std = round(statistics.stdev(FSF_all),3)
-    for m in range(0,Trials):
+    for m in Trials:
         # Cycle through FSF scores, look for trials where the score
         # stands out by being a certain distance from the mean
         if abs(FSF_all[m]-FSF_Mean) > FSF_std:
@@ -143,7 +231,23 @@ def FSF_Rec_Check(TX_filename,tx_wavs,Trials, rx_rec,fs,all_wavs,bad_trial):
 
 
 def Clip_Rec_Check(Trials, rx_rec, all_wavs,bad_trial):
-    # Recordings and clip check
+    """
+    Cycle through all rx recordings and check if any clipped.
+    Parameters
+    ----------
+    Trials : int
+        number of trials 
+    rx_rec : list 
+        audio for rx recordings         
+    all_wavs : list
+        names of rx recordings   
+    bad_trial : set
+        names of trials flagged for potential problems
+
+    Returns
+    -------
+   
+    """
     # Set up warning threshold
     vol_high = -1
     # Create empty list for peak volume    
@@ -161,20 +265,35 @@ def Clip_Rec_Check(Trials, rx_rec, all_wavs,bad_trial):
             bad_trial.add(clip_wav)
     
     
-def Clip_Plot(rx_rec,Trials,fs):   
-    # Plot audio recording
+def Wav_Plot(rx_rec,Trials,fs):
+    """
+    Plot rx trial audio recordings
+    
+    Parameters
+    ----------
+    Trials : int
+        number of trials 
+    rx_rec : list 
+        audio for rx recordings   
+    fs : int 
+        sampling rate of rx recordings       
+
+    Returns
+    -------
+ 
+    """
     # Create empty list for time (seconds)
     tsec = []
     # Prepare time info for plotting
     for k in range(0,Trials):
-        t = len(rx_rec[k])/fs
+        t = len(rx_rec[0])/fs
         ts = np.arange(0,t,1/fs)
         tsec.append(ts)
         # Plot recording
-        dfTest= pd.DataFrame({"test":ts, 
-                        "audio":rx_rec[:,0]})
-    dfTest.set_index('test')
-    fig = px.line(dfTest, y='audio',x='test')
+        dfTest= pd.DataFrame({"time":ts, 
+                        "audio":rx_rec[0]})
+    dfTest.set_index('time')
+    fig = px.line(dfTest, y='audio',x='time')
     fig.update_layout(title_text='Trial Recordings')
     fig.update_xaxes(title_text='Time (s)')
     fig.update_yaxes(title_text='Amplitude')
@@ -182,7 +301,24 @@ def Clip_Plot(rx_rec,Trials,fs):
 
 # Handle bad trials 
 def Problem_Trials(bad_trial,clip_wav,AWflag_wav,FSFflag_wav):     
-    # Warn user of problem trial recording names 
+    """
+    Warn user of problem trial recording names 
+    
+    Parameters
+    ----------
+    bad_trial : set
+        names of trials flagged for potential problems
+    clip_wav : set    
+        names of trials flagged for clipping
+    AWflag_wav : set
+        names of trials flagged for their dBA values
+    FSFflag_wav : set     
+        names of trials flagged for their FSF scores   
+
+    Returns
+    -------
+
+    """
     np.disp('The following trials were flagged as potentially having issues')
     np.disp(bad_trial)
     np.disp('The following trials were flagged for clipping')
@@ -194,6 +330,21 @@ def Problem_Trials(bad_trial,clip_wav,AWflag_wav,FSFflag_wav):
 
            
 def main():   
+    """
+    Read in a directory of WAV files. 
+    Use a-weight, FSF, and clipping checks to inform
+    user of potential problems in collected data. Flags
+    trials that may require further investigation.
+
+    Parameters
+    ----------
+    Wav_Dir : string
+        directory of WAV files
+
+    Returns
+    -------
+
+    """
     # Input parsing
     parser = argparse.ArgumentParser()
     parser.add_argument(
