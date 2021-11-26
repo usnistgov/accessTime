@@ -369,7 +369,7 @@ def copy_test_files(out_dir, dest_dir=None, cname=None, sync_dir=None, dry_run=F
         run_drive_sync(sync_script, out_dir, destDir, dry_run=dry_run)
     else:
         # direct sync, use library version
-        from .sync import sync_files
+        from .sync import import_sync
 
         if dry_run:
             print(
@@ -377,7 +377,7 @@ def copy_test_files(out_dir, dest_dir=None, cname=None, sync_dir=None, dry_run=F
                 + f"sync.sync_files({repr(out_dir)}, {repr(destDir)}, bd=False, cull=True, sunset=30)"
             )
         else:
-            sync_files(out_dir, destDir, bd=False, cull=True, sunset=30)
+            import_sync(out_dir, destDir, bd=False, cull=True, sunset=30)
 
 # main function
 def main():
