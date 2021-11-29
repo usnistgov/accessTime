@@ -15,6 +15,8 @@ import pkg_resources
 import mcvqoe
 import mcvqoe.base
 
+from .sync import terminal_progress_update
+
 #name for saved settings file
 settings_name = "CopySettings.json"
 
@@ -323,7 +325,14 @@ def run_drive_sync(script, out_dir, dest_dir, dry_run=False):
                 f"Failed to run sync script exit status {stat.returncode}"
             )
 
-def copy_test_files(out_dir, dest_dir=None, cname=None, sync_dir=None, dry_run=False, force=False, direct=False):
+def copy_test_files(out_dir, dest_dir=None, cname=None, sync_dir=None, dry_run=False, force=False, direct=False, progress_update=None):
+
+    if progress_update:
+        force_lib_sync = True
+    else:
+        force_lib_sync = False
+        progress_update=terminal_progress_update
+
     set_file = os.path.join(out_dir, settings_name)
 
     log_in_name = input_log_name(out_dir)
@@ -366,6 +375,7 @@ def copy_test_files(out_dir, dest_dir=None, cname=None, sync_dir=None, dry_run=F
         #update the sync script on the drive
         sync_script = update_sync(set_dict, sync_dir=sync_dir, dry_run=dry_run)
 
+    if not set_dict["Direct"] and not force_lib_sync:
         run_drive_sync(sync_script, out_dir, destDir, dry_run=dry_run)
     else:
         # direct sync, use library version
@@ -377,7 +387,7 @@ def copy_test_files(out_dir, dest_dir=None, cname=None, sync_dir=None, dry_run=F
                 + f"sync.sync_files({repr(out_dir)}, {repr(destDir)}, bd=False, cull=True, sunset=30)"
             )
         else:
-            import_sync(out_dir, destDir, bd=False, cull=True, sunset=30)
+            import_sync(out_dir, destDir, bd=False, cull=True, sunset=30, progress_update=progress_update)
 
 # main function
 def main():
