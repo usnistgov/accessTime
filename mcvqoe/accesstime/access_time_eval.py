@@ -8,6 +8,7 @@ Created on Wed Sep  8 14:26:30 2021
 # Import statements
 # =============================================================================
 import argparse
+import os
 import warnings
 
 import pandas as pd
@@ -30,13 +31,27 @@ class AccessData(object):
 
     def _get_data(self, session_names, session_dir):
         try:
-            dat = [pd.read_csv(session_dir + session, skiprows=3) for session in session_names]
-            header_dat = [pd.read_csv(session_dir + session, sep='=', nrows=2,
-                                      header=None, usecols=[1]) for session in session_names]
-            header_dat = [hd.transpose() for hd in header_dat]
-            for hd in header_dat:
-                hd.columns=["Wav file", "fs"]
-            return (dat, header_dat)
+            dat = []
+            header = []
+            for session in session_names:
+                sesh_name = os.path.join(session_dir, session)
+                # Grab main data, skipping extra header info
+                dat.append(pd.read_csv(sesh_name, skiprows=3))
+                # Grab extra header info
+                header_dat = pd.read_csv(sesh_name,
+                                         sep='=',
+                                         nrows=2,
+                                         header=None,
+                                         usecols=[1]).transpose()
+                header_dat.columns = ['Wav file', 'fs']
+                header.append(header_dat)
+            # dat = [pd.read_csv(session_dir + session, skiprows=3) for session in session_names]
+            # header_dat = [pd.read_csv(session_dir + session, sep='=', nrows=2,
+            #                           header=None, usecols=[1]) for session in session_names]
+            # header_dat = [hd.transpose() for hd in header_dat]
+            # for hd in header_dat:
+            #     hd.columns=["Wav file", "fs"]
+            return dat, header
         except(FileNotFoundError) as err:
             print(f"Session files can not be found. {err}")
 
