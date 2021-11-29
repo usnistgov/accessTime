@@ -42,6 +42,7 @@ def Test_Stats(Wav_Dir):
     print(Trials)
     # Create empty list for rx recordings 
     rx_rec = []
+    rx_dat = []
 
     # Cycle through, in order
     for n in range(1,Trials+1):
@@ -49,7 +50,8 @@ def Test_Stats(Wav_Dir):
         rx_name = [s for s in all_wavs if start in s]
         rx_path = Wav_Dir + '/' + rx_name[0]
         fs,y_rec = mcvqoe.base.audio_read(rx_path)
-        rx_rec.append(y_rec[:])   
+        rx_rec.append(y_rec[:]) 
+        rx_dat.append(rx_name[0])
   
     # Create bad trial set
     bad_trial = {''}
@@ -68,7 +70,7 @@ def Test_Stats(Wav_Dir):
        fs,tx_wavfile = mcvqoe.base.audio_read(tx_path)
        tx_wavs.append(tx_wavfile)
    
-def AW_Rec_Check(Trials, rx_rec,fs,all_wavs,bad_trial):
+def AW_Rec_Check(Trials, rx_rec,fs,rx_dat,bad_trial):
     """
     Calculates the a-weight (dBA) of each trial. Plot these  
     values. Check for trials with a dBA less than - 60 dBA.
@@ -82,7 +84,7 @@ def AW_Rec_Check(Trials, rx_rec,fs,all_wavs,bad_trial):
         audio for rx recordings   
     fs : int 
         sampling rate of rx recordings       
-    all_wavs : list
+    rx_dat : list
         names of rx recordings   
     bad_trial : set
         names of trials flagged for potential problems
@@ -131,18 +133,18 @@ def AW_Rec_Check(Trials, rx_rec,fs,all_wavs,bad_trial):
         # stand out by being a certain distance from the mean
         if abs(AW_lin[m]-AW_Mean) > AW_std:
             # Get the name of the wav file
-            AWflag_wav = all_wavs[m]
+            AWflag_wav = rx_dat[m]
             # Add it to the bad list
             bad_trial.add(AWflag_wav)
             AW_flag.add(AWflag_wav)
         # Add a flag if the a-weight is below -60 dBA
         if AW_lin[m] < AW_low:
            # Get the name of the wav file
-           AWflag_wav = all_wavs[m]
+           AWflag_wav = rx_dat[m]
            # Add it to the bad list
            AW_flag.add(AWflag_wav)
 
-def FSF_Rec_Check(TX_filename,tx_wavs,Trials, rx_rec,fs,all_wavs,bad_trial):   
+def FSF_Rec_Check(TX_filename,tx_wavs,Trials, rx_rec,fs,rx_dat,bad_trial):   
     """
     Calculate FSF scores, standard deviation. Use this info to find trials that may have lost
     audio.
@@ -159,7 +161,7 @@ def FSF_Rec_Check(TX_filename,tx_wavs,Trials, rx_rec,fs,all_wavs,bad_trial):
         audio for rx recordings   
     fs : int 
         sampling rate of rx recordings       
-    all_wavs : list
+    rx_dat : list
         names of rx recordings   
     bad_trial : set
         names of trials flagged for potential problems
@@ -174,55 +176,52 @@ def FSF_Rec_Check(TX_filename,tx_wavs,Trials, rx_rec,fs,all_wavs,bad_trial):
     print("Gathering FSF data") 
     # cycle through, match RX names to tx names
     # Get just the names of tx files, remove the Tx and .wav 
-    tx_base_name = []
+    tx_base = []
     for n in range(0,len(TX_filename)):
         tx_justname = re.sub('\.wav$', '', TX_filename[n])
         tx_justname = tx_justname[3:]
-        tx_base_name.append(tx_justname)   
-   # Get just the names of rx files, remove the Rx and .wav 
-   rx_base_name = []
-   for n in range(0,len(all_wavs)):
-       rx_justname = re.sub('\.wav$', '', all_wavs[n])
-       rx_justname = rx_justname[3:]
-       rx_base_name.append(rx_justname)
-    
-    # Find RX files with the matching tx name LEFT OFF HERE
-    
-    
-    for j in all_wavs: 
-        for m in tx_base_name:
-           # Get the associated file for that name wav, both TX and RX 
-           if m in j:
-               
-               #Pull the associated file names and wavs and list them
-               indexTest = all_wavs.index(tx_base_name)
-               # then i want these to be linked
-               dfTxRx= pd.DataFrame({"RX_name":all_wavs, 
-                                     "RX_dat":rx_rec[j],
-                                     "TX_name":filename,
-                                     "TX_dat":tx_wavs[m]})
-      
-    
-    
-    # Get FSF scores for each tx-rx pair
-    for k in Trials: 
-        get_fsf = mcvqoe.base.fsf(rx_rec[k],tx_wavs[0], fs)
+        tx_base.append(tx_justname)   
+
+    for j in range(0,Trials): 
+        # Find RX files with the matching tx name, create groups 
+        match_wavs = re.match(r'(Rx\d+_(?P<tx_base_name>[^.]+))',rx_dat[j])
+        # find the index of the TX and RX clips to match with the lists of 
+        # wav data
+        TX_idx = tx_base.index(match_wavs.group('tx_base_name'))
+        TX_wav = tx_wavs[TX_idx]
+        RX_wav = rx_rec[j]
+        # Get FSF scores for each tx-rx pair
+        get_fsf = mcvqoe.base.fsf(RX_wav,TX_wav,fs)
         FSF_all.append(get_fsf)   
         
     # Gather metrics for FSF scores
     FSF_Mean = round(statistics.mean(FSF_all),3)
     FSF_std = round(statistics.stdev(FSF_all),3)
-    for m in Trials:
+    for m in range(0,Trials):
         # Cycle through FSF scores, look for trials where the score
         # stands out by being a certain distance from the mean
         if abs(FSF_all[m]-FSF_Mean) > FSF_std:
             # Get the name of the wav file
-            FSFflag_wav = all_wavs[m]
+            FSFflag_wav = rx_dat[m]
             # Add it to the bad list
             bad_trial.add(FSFflag_wav)     
+    # Plot FSF values 
+    FSF_Scores = np.asarray(FSF_all)  
+    dfFSF = pd.DataFrame({
+      "FSF Score": FSF_Scores})  
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+        y = dfFSF['FSF Score'],
+        mode = 'markers'
+        )
+    )    
+    fig.update_layout(title_text='FSF Score of Received Audio')
+    fig.update_xaxes(title_text='Trial Number')
+    fig.update_yaxes(title_text='FSF Score')
+    fig.show()
 
-
-def Clip_Rec_Check(Trials, rx_rec, all_wavs,bad_trial):
+def Clip_Rec_Check(Trials, rx_rec, rx_dat,bad_trial):
     """
     Cycle through all rx recordings and check if any clipped.
     Parameters
@@ -231,7 +230,7 @@ def Clip_Rec_Check(Trials, rx_rec, all_wavs,bad_trial):
         number of trials 
     rx_rec : list 
         audio for rx recordings         
-    all_wavs : list
+    rx_dat : list
         names of rx recordings   
     bad_trial : set
         names of trials flagged for potential problems
@@ -252,7 +251,7 @@ def Clip_Rec_Check(Trials, rx_rec, all_wavs,bad_trial):
         # If approaching clipping, flag as a bad trial
         if peak_dbfs[n] > vol_high :
             # Get the name of the wav file
-            clip_wav = all_wavs[n]
+            clip_wav = rx_dat[n]
             # Add it to the bad list
             bad_trial.add(clip_wav)
     
