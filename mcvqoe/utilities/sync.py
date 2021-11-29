@@ -502,7 +502,7 @@ def export_sync(config_name, progress_update=terminal_progress_update, **kwargs)
 
 def import_sync(src, dest, progress_update=terminal_progress_update, **kwargs):
     #create a sync object
-    sync_obj = TestSyncer(**kwargs)
+    sync_obj = TestSyncer(progress_update=progress_update, **kwargs)
     # print message
     progress_update('main-srcdest', 0, 0, src=src, dest=dest)
     # call sync function, don't copy data in the revers direction
