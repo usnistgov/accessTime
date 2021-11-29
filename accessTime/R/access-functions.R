@@ -612,8 +612,13 @@ read_accessData <- function(sessionFiles, cutFiles){
   # Parse audio file and sampling rate from header info
   dat_clip <- sapply(
     datFiles_headerInfo,
-    function(x){basename(x$V2[1])}
+    function(x){
+      bname <- basename(x$V2[1])
+      bname_no_space <- gsub(" ", "", bname)
+      return(bname_no_space)
+      }
     )
+
   dat_fs <- sapply(
     datFiles_headerInfo,
     function(x){x$V2[2]}

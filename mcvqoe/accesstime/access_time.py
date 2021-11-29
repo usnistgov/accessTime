@@ -2,6 +2,7 @@ import abcmrt
 import argparse
 import csv
 import datetime
+import glob
 import mcvqoe.base
 import os
 import pkg_resources
@@ -10,6 +11,7 @@ import scipy.interpolate
 import scipy.signal
 import time
 import timeit
+import zipfile
 
 from .version import version
 from fractions import Fraction
@@ -145,6 +147,9 @@ class measure:
     split_audio_dest : str, default=None
         Location to store split audio. Intended for (yet to be completed)
         reprocess.
+    zip_audio : bool, default=True
+        If true, after the test is complete, all recorded audio will be zipped
+        into 'audio.zip' and placed in the wav directory in it's place.
 
     Methods
     -------
@@ -224,6 +229,7 @@ class measure:
         self.split_audio_dest = None
         self.save_tx_audio = True
         self.save_audio = True
+        self.zip_audio = True
 
         for k, v in kwargs.items():
             if hasattr(self, k):
@@ -495,33 +501,43 @@ class measure:
         #-----------------------[Do more recovery things]-----------------------
 
         if recovery:
-            # Boolean array to see which files to copy to new name
-            copy_files = np.full(len(temp_data_filenames), False)
             # Save old names to copy to new names
             old_filenames = self.rec_file['temp_data_filenames']
             # Save old .wav folder
             old_wavdir = self.rec_file['wavdir']
             # Save old bad file name
             old_bad_name = self.rec_file['bad_name']
+            #count the number of files loaded
+            load_count = 0
+            # List of tuples of filenames to copy
+            copy_files = []
+            #check if bad file exists
+            if os.path.exists(old_bad_name):
+                #add to list
+                copy_files.append((old_bad_name, bad_name))
 
-            for k in range(len(temp_data_filenames)):
-                save_dat = self.load_dat(old_filenames[k])
+            for k, (new_name, old_name) in enumerate(zip(temp_data_filenames,old_filenames)):
+                save_dat = self.load_dat(old_name)
                 if not save_dat:
                     self.progress_update(
                                 'status',
                                 len(temp_data_filenames),
                                 k,
-                                f"No data file found for {old_filenames[k]}"
+                                f"No data file found for {name}"
                             )
+                    #if file exists, we have a problem, throw an error
+                    if os.path.exists(old_name):
+                        raise RuntimeError(f'Problem loading data in \'{old_name}\'')
                 else:
                     self.progress_update(
                                 'status',
                                 len(temp_data_filenames),
                                 k,
-                                f"initializing with data from {old_filenames[k]}"
+                                f"initializing with data from {old_name}"
                             )
-                    # File is good, need to copy to new name
-                    copy_files[k] = True
+                    #file found, increment count
+                    load_count += 1
+                    copy_files.append((old_name, new_name))
                     # Get number of "rows" from CSV
                     clen = len(save_dat)
                     # Initialize success with zeros
@@ -556,6 +572,34 @@ class measure:
                         kk_start = 0
                     else:
                         kk_start = ((clen-1) % self.ptt_rep)
+
+            #check that we loaded some data
+            if load_count == 0:
+                raise RuntimeError('Could not find files to load')
+
+
+            wav_list = os.listdir(old_wavdir)
+            num_files = len(wav_list)
+            for n, file in enumerate(wav_list):
+                self.progress_update(
+                                'status',
+                                num_files,
+                                n+1,
+                                f"Coppying old test audio : {file}"
+                            )
+                new_name=os.path.join(wavdir, file)
+                old_name=os.path.join(old_wavdir, file)
+                shutil.copyfile(old_name, new_name)
+
+            for n, (old_name, new_name) in enumerate(copy_files):
+                self.progress_update(
+                                    'status',
+                                    len(copy_files),
+                                    n+1,
+                                    f"Coppying old test csvs : {old_name}"
+                                )
+                shutil.copyfile(old_name, new_name)
+
 
         #---------[Write Transmit Audio File(s) and cutpoint File(s)]----------
 
@@ -786,7 +830,7 @@ class measure:
                             state = self.ri.waitState()
                             
                             # Depress the push to talk button
-                            self.ri.ptt(False, num=1)
+                            self.ri.ptt(False)
                             
                             # Check wait state to see if PTT was triggered properly
                             if (state == 'Idle'):
@@ -815,7 +859,28 @@ class measure:
                             
                             #-------------------------[Data Processing]---------------------------
                             
-                            data = self.process_audio(clip,audioname,rec_names,dly_st_idx)
+                            def warn_user( warn_str):
+                                '''
+                                Function to send a warning to the user.
+
+                                Defined here so that we know the current trial
+                                and trial count.
+                                '''
+                                if(not self.progress_update(
+                                                'warning',
+                                                total_trials,
+                                                trial_count,
+                                                msg = warn_str,
+                                    )):
+                                    raise SystemExit()
+
+                            data = self.process_audio(
+                                                        clip,
+                                                        audioname,
+                                                        rec_names,
+                                                        dly_st_idx,
+                                                        warn_func = warn_user,
+                                                    )
                             
                             #TODO : intelligibility for autostop
                             success[0, clip_count-1] = data['P1Int']
@@ -854,7 +919,7 @@ class measure:
                                     raise SystemExit()
                                 
                                 # Save bad audiofile
-                                wav_name = f"Bad{clip_count}_r{retries}_{clip_names[clip]}"
+                                wav_name = f"Bad{clip_count}_r{retries}_{clip_names[clip]}.wav"
                                 wav_name = os.path.join(wavdir, wav_name)
                                 #rename file to save it and record again
                                 os.rename(audioname, wav_name)
@@ -993,7 +1058,32 @@ class measure:
                                 new_file=self.data_filenames[k],
                             )
                 os.rename(temp_data_filenames[k], self.data_filenames[k])
+
+            #------------------------[Zip audio data]--------------------------
+
+            if self.save_audio and self.zip_audio:
+                with zipfile.ZipFile(
+                        os.path.join(wavdir,'audio.zip'),
+                        mode='w',
+                        compression=zipfile.ZIP_LZMA,
+                    ) as audio_zip:
+                    #find all the rx wav files
+                    rx_wavs = glob.glob(os.path.join(wavdir,'Rx*.wav'))
+                    #fid all bad files
+                    bad_wavs = glob.glob(os.path.join(wavdir,'Bad*.wav'))
+                    #zip bad files and Rx files
+                    zip_wavs = rx_wavs + bad_wavs
+                    #get number of files
+                    num_zip_files = len(zip_wavs)
+                    for n, name in enumerate(zip_wavs):
+                        bname =  os.path.basename(name)
+                        self.progress_update('compress',num_zip_files,n)
+                        audio_zip.write(name,arcname=bname)
                 
+                #zip file has been written, delete files
+                self.progress_update('status',num_zip_files,num_zip_files,msg='Deleting compressed audio...')
+                for name in zip_wavs:
+                    os.remove(name)
             #----------------------[Delete recovery file]----------------------
             
             os.remove(recovery_file)
@@ -1007,7 +1097,7 @@ class measure:
             #finish log entry
             mcvqoe.base.post(outdir=self.outdir, info=info)
 
-    def process_audio(self,clip_index,fname,rec_chans,dly_st_idx):
+    def process_audio(self, clip_index, fname, rec_chans, dly_st_idx, warn_func = lambda s: None):
     
         #-----------------------[Load in recorded audio]-----------------------
  
@@ -1055,7 +1145,7 @@ class measure:
         
         #--------------------------[Compute ptt_time]--------------------------
         
-        data['PTTstart'] = self.process_ptt(psig_dat)
+        data['PTTstart'] = self.process_ptt(psig_dat, warn_func = warn_func)
         
         # Get ptt time. Subtract nominal play/record delay
         # (can be seen in PTT Gate data)
@@ -1108,7 +1198,7 @@ class measure:
         
         return data
         
-    def process_ptt(self,signal):
+    def process_ptt(self, signal, warn_func=lambda s: None):
         '''
         Compute PTT time from ptt signal.
         
@@ -1123,7 +1213,10 @@ class measure:
             The time, in seconds from the start of the clip, that the PTT was
             pushed at.
         '''
-        
+
+        #no warning, empty string
+        warn_text = ''
+
         # Extract push to talk signal (getting envelope)
         ptt_sig = scipy.signal.filtfilt(
                             ptt_filt,
@@ -1136,15 +1229,9 @@ class measure:
         
         # Check levels
         if(ptt_max < 0.25):
-            if(not self.progress_update(
-                        'warning',
-                        total_trials,
-                        trial_count,
-                        msg='Low PTT signal values. Check levels',
-                    )):
-                raise SystemExit()
+            #set warning text
+            warn_text = 'Low PTT signal values. Check levels'
 
-            
         # Normalize levels
         ptt_sig = ((ptt_sig*np.sqrt(2))/ptt_max)
         
@@ -1157,7 +1244,13 @@ class measure:
             
         except IndexError:
             st = np.nan
-        
+            #overwrite warning text (was probably set earlier)
+            warn_text = 'Unable to detect PTT start. Check levels'
+
+        if warn_text:
+            #warn user of issues
+            warn_func(warn_text)
+
         # Return when the ptt was pushed    
         return st
             
