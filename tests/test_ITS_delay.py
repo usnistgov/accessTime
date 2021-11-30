@@ -132,7 +132,7 @@ class ITSTest(unittest.TestCase):
         self.assertLessEqual(x, y + tol, msg)
 
     def test_basic_no_delay(self):
-        for audio_file in os.scandir("./data/ITS_general"):
+        for audio_file in os.scandir(os.path.join(os.path.dirname(__file__), "data/ITS_general")):
             base_fs, base_data = scipy.io.wavfile.read(audio_file)
 
             for chan in channels:
@@ -151,7 +151,7 @@ class ITSTest(unittest.TestCase):
         for chan in channels:
             chan = chan.load()
 
-            for i, audio_file in enumerate(os.scandir("./data/ITS_general")):
+            for i, audio_file in enumerate(os.scandir(os.path.join(os.path.dirname(__file__), "data/ITS_general"))):
                 base_fs, base_data = scipy.io.wavfile.read(audio_file)
                 base_data = mcvqoe.base.misc.audio_float(base_data)
 
@@ -203,7 +203,7 @@ class ITSTest(unittest.TestCase):
         for chan in channels:
             chan = chan.load()
 
-            for i, audio_file in enumerate(os.scandir("./data/ITS_general")):
+            for i, audio_file in enumerate(os.scandir(os.path.join(os.path.dirname(__file__), "data/ITS_general"))):
                 base_fs, base_data = scipy.io.wavfile.read(audio_file)
                 base_data = mcvqoe.base.misc.audio_float(base_data)
 
@@ -237,7 +237,7 @@ class ITSTest(unittest.TestCase):
         for chan in channels:
             chan = chan.load()
 
-            for i, audio_file in enumerate(os.scandir("./data/ITS_general")):
+            for i, audio_file in enumerate(os.scandir(os.path.join(os.path.dirname(__file__), "data/ITS_general"))):
                 base_fs, base_data = scipy.io.wavfile.read(audio_file)
                 base_data = mcvqoe.base.misc.audio_float(base_data)
 
