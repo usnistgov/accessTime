@@ -23,10 +23,12 @@ def Test_Stats(Wav_Dir):
     ----------
     Wav_Dir : string
         directory of WAV files
-
+        
     Returns
     -------
-    bad_trial :        
+    bad_trial : set
+        Names of all trials that set off any of the flags for 
+        potential problems
 
     """
     # Get trial recordings
@@ -43,7 +45,6 @@ def Test_Stats(Wav_Dir):
     # Create empty list for rx recordings 
     rx_rec = []
     rx_dat = []
-
     # Cycle through, in order
     for n in range(1,Trials+1):
         start = 'Rx'+str(n)+'_'
@@ -52,13 +53,10 @@ def Test_Stats(Wav_Dir):
         fs,y_rec = mcvqoe.base.audio_read(rx_path)
         rx_rec.append(y_rec[:]) 
         rx_dat.append(rx_name[0])
-  
     # Create bad trial set
     bad_trial = {''}
-   
     # Find all the Tx files in the wav_dir, strip 
-    # the Tx...wav off and then use 
-    #if stripped_tx_name in rx_name
+    # the Tx and .wav off 
     TX_names = 'Tx*'
     TX_obj = fnmatch.filter(Dir_Files, TX_names)
     TX_filename =fnmatch.filter(TX_obj, '*.wav')
@@ -87,14 +85,19 @@ def AW_Rec_Check(Trials, rx_rec,fs,rx_dat,bad_trial):
     rx_dat : list
         names of rx recordings   
     bad_trial : set
-        names of trials flagged for potential problems
+        Names of all trials that set off any of the flags for 
+        potential problems
 
     Returns
     -------
-    bad_trial : 
-         Aw value and stats, bad_trial, AW bad trials?    
+    bad_trial : set
+        Names of all trials that set off any of the flags for 
+        potential problems      
+    AW_flag : set
+        Trials that have low dBA values (and likely lost audio)
+        or otherwise deviate from the patterns of the dataset 
     """
-    # Create empty list for a-weight     
+    # Create empty list, set for a-weight values and flag     
     A_Weight = []
     AW_flag = {''}
       
@@ -105,18 +108,20 @@ def AW_Rec_Check(Trials, rx_rec,fs,rx_dat,bad_trial):
         aw = mcvqoe.base.a_weighted_power(rx_rec[k], fs) 
         A_Weight.append(aw)
 
-    # Plot values 
+    # Plot a-weighted power for all trials  
     A_Weight = np.asarray(A_Weight)  
-    dfAW = pd.DataFrame({
-      "A-Weight": A_Weight})  
+    x_axis = list(range(1,Trials+1))
+    dfAW = pd.DataFrame({"A-Weight": A_Weight,
+                         "Trials": x_axis})  
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(
-        y = dfAW['A-Weight'],
-        mode = 'markers'
+            x = dfAW['Trials'], 
+            y = dfAW['A-Weight'],
+            mode = 'markers'
         )
     )    
-    fig.update_layout(title_text='A_Weighted Power of Received Audio')
+    fig.update_layout(title_text='A-Weighted Power of Received Audio')
     fig.update_xaxes(title_text='Trial Number')
     fig.update_yaxes(title_text='A-Weight (dBA)')
     fig.show() 
@@ -131,7 +136,7 @@ def AW_Rec_Check(Trials, rx_rec,fs,rx_dat,bad_trial):
     for m in range(0,Trials):
         # Cycle through AW values, look for trials where the values
         # stand out by being a certain distance from the mean
-        if abs(AW_lin[m]-AW_Mean) > AW_std:
+        if abs(AW_lin[m]-AW_Mean) > 2*AW_std:
             # Get the name of the wav file
             AWflag_wav = rx_dat[m]
             # Add it to the bad list
@@ -164,17 +169,25 @@ def FSF_Rec_Check(TX_filename,tx_wavs,Trials, rx_rec,fs,rx_dat,bad_trial):
     rx_dat : list
         names of rx recordings   
     bad_trial : set
-        names of trials flagged for potential problems
+        Names of all trials that set off any of the flags for 
+        potential problems
 
     Returns
     -------
-    
+    FSF_flag : set
+        Trials that have low FSF scores or otherwise deviate 
+        from the patterns of the dataset 
+    bad_trial : set
+        Names of all trials that set off any of the flags for 
+        potential problems
     """
-    # Create empty list for FSF scores     
+    # Create empty list,set for FSF scores and flag    
     FSF_all = []
+    FSF_flag = {''}
+    
     # Get FSF scores, plot trials
     print("Gathering FSF data") 
-    # cycle through, match RX names to tx names
+    # Cycle through, match RX names to tx names
     # Get just the names of tx files, remove the Tx and .wav 
     tx_base = []
     for n in range(0,len(TX_filename)):
@@ -200,22 +213,32 @@ def FSF_Rec_Check(TX_filename,tx_wavs,Trials, rx_rec,fs,rx_dat,bad_trial):
     for m in range(0,Trials):
         # Cycle through FSF scores, look for trials where the score
         # stands out by being a certain distance from the mean
-        if abs(FSF_all[m]-FSF_Mean) > FSF_std:
+        if abs(FSF_all[m]-FSF_Mean) > 2*FSF_std:
             # Get the name of the wav file
             FSFflag_wav = rx_dat[m]
             # Add it to the bad list
-            bad_trial.add(FSFflag_wav)     
+            bad_trial.add(FSFflag_wav)
+            FSF_flag.add(FSFflag_wav)
+        # Add a flag for low FSF scores that may be a sign of 
+        # dropped audio
+        if FSF_all[m] < 0.3:
+            # Add it to the bad list
+            bad_trial.add(FSFflag_wav)
+            FSF_flag.add(FSFflag_wav)
+            
     # Plot FSF values 
     FSF_Scores = np.asarray(FSF_all)  
-    dfFSF = pd.DataFrame({
-      "FSF Score": FSF_Scores})  
+    x_axis = list(range(1,Trials+1))
+    dfFSF = pd.DataFrame({"FSF Score": FSF_Scores,
+                          "Trial": x_axis})  
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(
+        x = dfFSF['Trial'],    
         y = dfFSF['FSF Score'],
         mode = 'markers'
         )
-    )    
+    ) 
     fig.update_layout(title_text='FSF Score of Received Audio')
     fig.update_xaxes(title_text='Trial Number')
     fig.update_yaxes(title_text='FSF Score')
@@ -233,16 +256,22 @@ def Clip_Rec_Check(Trials, rx_rec, rx_dat,bad_trial):
     rx_dat : list
         names of rx recordings   
     bad_trial : set
-        names of trials flagged for potential problems
+        Names of all trials that set off any of the flags for 
+        potential problems
 
     Returns
     -------
-   
+    Clip_flag : set
+        Trials that clipped 
+    bad_trial : set
+        Names of all trials that set off any of the flags for 
+        potential problems
     """
     # Set up warning threshold
     vol_high = -1
-    # Create empty list for peak volume    
+    # Create empty list, set for peak volume and flag    
     peak_dbfs = []
+    Clip_flag = {''}
     for n in range(0,Trials):
         # check for positive and negative clipping
         peak = max(abs(rx_rec[n]))
@@ -254,6 +283,7 @@ def Clip_Rec_Check(Trials, rx_rec, rx_dat,bad_trial):
             clip_wav = rx_dat[n]
             # Add it to the bad list
             bad_trial.add(clip_wav)
+            Clip_flag.add(clip_wav)
     
     
 def Wav_Plot(rx_rec,Trials,fs):
@@ -281,29 +311,29 @@ def Wav_Plot(rx_rec,Trials,fs):
         ts = np.arange(0,t,1/fs)
         tsec.append(ts)
         # Plot recording
-        dfTest= pd.DataFrame({"time":ts, 
+        dfWavs= pd.DataFrame({"time":ts, 
                         "audio":rx_rec[0]})
-    dfTest.set_index('time')
-    fig = px.line(dfTest, y='audio',x='time')
+    dfWavs.set_index('time')
+    fig = px.line(dfWavs, y='audio',x='time')
     fig.update_layout(title_text='Trial Recordings')
     fig.update_xaxes(title_text='Time (s)')
     fig.update_yaxes(title_text='Amplitude')
     fig.show()    
-
-# Handle bad trials 
-def Problem_Trials(bad_trial,clip_wav,AWflag_wav,FSFflag_wav):     
+ 
+def Problem_Trials(bad_trial,Clip_flag,AW_flag,FSF_flag):     
     """
     Warn user of problem trial recording names 
     
     Parameters
     ----------
     bad_trial : set
-        names of trials flagged for potential problems
-    clip_wav : set    
+        Names of all trials that set off any of the flags for 
+        potential problems
+    Clip_flag : set    
         names of trials flagged for clipping
-    AWflag_wav : set
+    AW_flag : set
         names of trials flagged for their dBA values
-    FSFflag_wav : set     
+    FSF_flag : set     
         names of trials flagged for their FSF scores   
 
     Returns
@@ -312,12 +342,15 @@ def Problem_Trials(bad_trial,clip_wav,AWflag_wav,FSFflag_wav):
     """
     np.disp('The following trials were flagged as potentially having issues')
     np.disp(bad_trial)
-    np.disp('The following trials were flagged for clipping')
-    np.disp(clip_wav)
-    np.disp('The following trials were flagged for their a-weight')
-    np.disp(AW_flag)
-    np.disp('The following trials were flagged for their FSF scores')
-    np.disp(FSFflag_wav) 
+    if Clip_flag:
+        np.disp('The following trials were flagged for clipping')
+        np.disp(Clip_flag)  
+    if AW_flag:    
+        np.disp('The following trials were flagged for their a-weight')
+        np.disp(AW_flag)
+    if FSF_flag:    
+        np.disp('The following trials were flagged for their FSF scores')
+        np.disp(FSF_flag) 
 
            
 def main():   
