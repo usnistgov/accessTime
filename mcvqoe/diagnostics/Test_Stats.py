@@ -54,7 +54,7 @@ def Test_Stats(Wav_Dir):
         rx_rec.append(y_rec[:]) 
         rx_dat.append(rx_name[0])
     # Create bad trial set
-    bad_trial = {''}
+    bad_trial = set()
     # Find all the Tx files in the wav_dir, strip 
     # the Tx and .wav off 
     TX_names = 'Tx*'
@@ -99,7 +99,7 @@ def AW_Rec_Check(Trials, rx_rec,fs,rx_dat,bad_trial):
     """
     # Create empty list, set for a-weight values and flag     
     A_Weight = []
-    AW_flag = {''}
+    AW_flag = set()
       
     # Get A-weight
     print("Gathering Statistics and Creating Plots") 
@@ -183,7 +183,7 @@ def FSF_Rec_Check(TX_filename,tx_wavs,Trials, rx_rec,fs,rx_dat,bad_trial):
     """
     # Create empty list,set for FSF scores and flag    
     FSF_all = []
-    FSF_flag = {''}
+    FSF_flag = set()
     
     # Get FSF scores, plot trials
     print("Gathering FSF data") 
@@ -271,7 +271,7 @@ def Clip_Rec_Check(Trials, rx_rec, rx_dat,bad_trial):
     vol_high = -1
     # Create empty list, set for peak volume and flag    
     peak_dbfs = []
-    Clip_flag = {''}
+    Clip_flag = set()
     for n in range(0,Trials):
         # check for positive and negative clipping
         peak = max(abs(rx_rec[n]))
