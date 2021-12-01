@@ -11,6 +11,7 @@ pio.renderers.default = 'browser'
 import plotly.express as px
 import math
 import re
+import json
 
 def Test_Stats(Wav_Dir):
     """
@@ -352,7 +353,36 @@ def Problem_Trials(bad_trial,Clip_flag,AW_flag,FSF_flag):
         np.disp('The following trials were flagged for their FSF scores')
         np.disp(FSF_flag) 
 
-           
+def Gather_Diagnostics(rx_dat,A_Weight,FSF_all,peak_dbfs):
+    """
+    Create a dataframe of all diagnostic data. A-weight,
+    FSF scores, max clip amplitude. Convert to json
+    
+    Parameters
+    ----------
+    rx_dat : list
+        Names of all RX trials
+    A_Weight : list    
+        A-Weight across all RX trials 
+    FSF_all : list
+        FSF scores across all RX trials
+    peak_dbfs : list     
+        Peak amplitude across all RX trials   
+
+    Returns
+    -------
+    diagnostics_dat : json 
+        Dataframe containing all the dat for diagnostics
+   """
+   # Create dataframe of info
+    df_Diagnostics = pd.DataFrame({"RX_Name":rx_dat, 
+                    "A_Weight":A_Weight,
+                    "FSF_Scores":FSF_all,
+                    "Amplitude":peak_dbfs})
+    # Creat json file
+    diagnostics = df_Diagnostics.to_json
+    diagnostics_dat = json.dumps(diagnostics)
+    
 def main():   
     """
     Read in a directory of WAV files. 
