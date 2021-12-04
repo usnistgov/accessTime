@@ -111,8 +111,6 @@ release:docker:
     - crane cp $IMAGE_MCVQOE_BASE $IMAGE_MCVQOE_BASE_RELEASE
   rules:
     - if : '$CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH'
-      changes:
-        - Dockerfile
 
 pages:
   stage: deploy
