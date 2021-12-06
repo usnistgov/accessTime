@@ -27,10 +27,21 @@ def Test_Stats(Wav_Dir):
         
     Returns
     -------
+    TX_filename : list
+        names of tx audio files
+    tx_wavs   :  list
+        audio for tx audio
+    Trials : int
+        number of trials 
+    rx_rec : list 
+        audio for rx recordings   
+    fs : int 
+        sampling rate of rx recordings       
+    rx_dat : list
+        names of rx recordings   
     bad_trial : set
         Names of all trials that set off any of the flags for 
         potential problems
-
     """
     # Get trial recordings
     print("Loading recordings")
@@ -69,7 +80,9 @@ def Test_Stats(Wav_Dir):
        fs,tx_wavfile = mcvqoe.base.audio_read(tx_path)
        tx_wavs.append(tx_wavfile)
    
-def AW_Rec_Check(Trials, rx_rec,fs,rx_dat,bad_trial):
+    return TX_filename, tx_wavs, Trials, rx_rec, fs, rx_dat, bad_trial
+    
+def AW_Rec_Check(Trials, rx_rec, fs, rx_dat, bad_trial):
     """
     Calculates the a-weight (dBA) of each trial. Plot these  
     values. Check for trials with a dBA less than - 60 dBA.
@@ -91,6 +104,8 @@ def AW_Rec_Check(Trials, rx_rec,fs,rx_dat,bad_trial):
 
     Returns
     -------
+    A_Weight : array
+        A_Weight of every trial 
     bad_trial : set
         Names of all trials that set off any of the flags for 
         potential problems      
@@ -150,6 +165,8 @@ def AW_Rec_Check(Trials, rx_rec,fs,rx_dat,bad_trial):
            # Add it to the bad list
            AW_flag.add(AWflag_wav)
 
+    return A_Weight, AW_flag, bad_trial
+
 def FSF_Rec_Check(TX_filename,tx_wavs,Trials, rx_rec,fs,rx_dat,bad_trial):   
     """
     Calculate FSF scores, standard deviation. Use this info to find trials that may have lost
@@ -206,7 +223,8 @@ def FSF_Rec_Check(TX_filename,tx_wavs,Trials, rx_rec,fs,rx_dat,bad_trial):
         RX_wav = rx_rec[j]
         # Get FSF scores for each tx-rx pair
         get_fsf = mcvqoe.base.fsf(RX_wav,TX_wav,fs)
-        FSF_all.append(get_fsf)   
+        # Get just the FSF score
+        FSF_all.append(get_fsf[0])   
         
     # Gather metrics for FSF scores
     FSF_Mean = round(statistics.mean(FSF_all),3)
@@ -380,7 +398,7 @@ def Gather_Diagnostics(rx_dat,A_Weight,FSF_all,peak_dbfs):
                     "FSF_Scores":FSF_all,
                     "Amplitude":peak_dbfs})
     # Creat json file
-    diagnostics = df_Diagnostics.to_json
+    diagnostics = df_Diagnostics.to_json()
     diagnostics_dat = json.dumps(diagnostics)
     
 def main():   
