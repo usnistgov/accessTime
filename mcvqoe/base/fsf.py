@@ -26,6 +26,8 @@ def fsf(tx_data, rx_data, fs=48E3):
     -------
     score : double
         FSF score.
+    delay_samples : tuple or int
+        M2E latency.
 
     """
     
@@ -46,7 +48,7 @@ def fsf(tx_data, rx_data, fs=48E3):
         
     score = np.true_divide(rx_slope, tx_slope)
     
-    return score
+    return score, delay_samples
     
 def calc_slope(wav_data):
     """
