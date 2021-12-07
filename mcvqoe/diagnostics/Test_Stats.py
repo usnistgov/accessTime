@@ -167,7 +167,7 @@ def AW_Rec_Check(Trials, rx_rec, fs, rx_dat, bad_trial):
 
     return A_Weight, AW_flag, bad_trial
 
-def FSF_Rec_Check(TX_filename,tx_wavs,Trials, rx_rec,fs,rx_dat,bad_trial):   
+def FSF_Rec_Check(TX_filename, tx_wavs, Trials, rx_rec, fs, rx_dat, bad_trial):   
     """
     Calculate FSF scores, standard deviation. Use this info to find trials that may have lost
     audio.
@@ -192,12 +192,14 @@ def FSF_Rec_Check(TX_filename,tx_wavs,Trials, rx_rec,fs,rx_dat,bad_trial):
 
     Returns
     -------
-    FSF_flag : set
-        Trials that have low FSF scores or otherwise deviate 
-        from the patterns of the dataset 
     bad_trial : set
         Names of all trials that set off any of the flags for 
         potential problems
+    FSF_all : list
+       FSF scores of every trial 
+    FSF_flag : set
+        Trials that have low FSF scores or otherwise deviate 
+        from the patterns of the dataset     
     """
     # Create empty list,set for FSF scores and flag    
     FSF_all = []
@@ -263,7 +265,9 @@ def FSF_Rec_Check(TX_filename,tx_wavs,Trials, rx_rec,fs,rx_dat,bad_trial):
     fig.update_yaxes(title_text='FSF Score')
     fig.show()
 
-def Clip_Rec_Check(Trials, rx_rec, rx_dat,bad_trial):
+    return bad_trial, FSF_all, FSF_flag
+
+def Clip_Rec_Check(Trials, rx_rec, rx_dat, bad_trial):
     """
     Cycle through all rx recordings and check if any clipped.
     Parameters
@@ -279,7 +283,10 @@ def Clip_Rec_Check(Trials, rx_rec, rx_dat,bad_trial):
         potential problems
 
     Returns
-    -------
+    ------- 
+    peak_dbfs : list
+        peak amplitude of each trial, dB relative to full 
+        scale 
     Clip_flag : set
         Trials that clipped 
     bad_trial : set
@@ -292,7 +299,7 @@ def Clip_Rec_Check(Trials, rx_rec, rx_dat,bad_trial):
     peak_dbfs = []
     Clip_flag = set()
     for n in range(0,Trials):
-        # check for positive and negative clipping
+        # Check for positive and negative clipping
         peak = max(abs(rx_rec[n]))
         peak_db = round(20 * math.log10(peak), 2)
         peak_dbfs.append(peak_db)
@@ -304,8 +311,9 @@ def Clip_Rec_Check(Trials, rx_rec, rx_dat,bad_trial):
             bad_trial.add(clip_wav)
             Clip_flag.add(clip_wav)
     
+    return peak_dbfs, Clip_flag, bad_trial        
     
-def Wav_Plot(rx_rec,Trials,fs):
+def Wav_Plot(rx_rec, Trials, fs):
     """
     Plot rx trial audio recordings
     
@@ -337,9 +345,10 @@ def Wav_Plot(rx_rec,Trials,fs):
     fig.update_layout(title_text='Trial Recordings')
     fig.update_xaxes(title_text='Time (s)')
     fig.update_yaxes(title_text='Amplitude')
-    fig.show()    
+    fig.show()  
+    
  
-def Problem_Trials(bad_trial,Clip_flag,AW_flag,FSF_flag):     
+def Problem_Trials(bad_trial, Clip_flag, AW_flag, FSF_flag):     
     """
     Warn user of problem trial recording names 
     
