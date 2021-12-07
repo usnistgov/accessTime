@@ -34,6 +34,7 @@ class AccessData:
                  test_names,
                  test_path='',
                  wav_dirs=[],
+                 use_reprocess=True,
                  ):
         # self.dat, self.header_dat = self._get_data(test_names, test_path)
         # self.cut_points = self._get_cut_points(cut_names, cut_dir)
@@ -41,7 +42,7 @@ class AccessData:
         # self.audio_clips = self._get_audio_clips()
         # self.speaker_word = self._get_speaker_word()
         
-        
+        self.use_reprocess = use_reprocess
         
         if isinstance(test_names, str):
             test_names = [test_names]
@@ -74,7 +75,7 @@ class AccessData:
                 cp_path = os.path.join(test_path, 'wav')
             else:
                 cp_path = os.path.join(os.path.dirname(dat_path), 'wav')
-                dat_file = tn
+                dat_file = [tn]
             
             # Check if we were given an explicit wav directory
             if wd:
@@ -89,6 +90,7 @@ class AccessData:
                 # Remove possible R in t_name
                 wt_name = t_name.replace('Rcapture', 'capture')
                 cp_path = os.path.join(cp_path, wt_name)
+            
             self.test_info[t_name] = {'data_path': dat_path,
                                      'data_file': dat_file,
                                      'cp_path': cp_path}
@@ -96,7 +98,82 @@ class AccessData:
             self.data, self.cps = self.load_sessions()
             
     def load_sessions(self):
-        return None, None
+        """
+        Load access time sessions and associated cutpoints files
+
+        Returns
+        -------
+        tests : TYPE
+            DESCRIPTION.
+        tests_cp : TYPE
+            DESCRIPTION.
+
+        """
+        
+        tests = pd.DataFrame()
+        tests_cp = {}
+        for session, sesh_info in self.test_info.items():
+            for word_csv in sesh_info['data_file']:
+                fname = os.path.join(sesh_info['data_path'], word_csv)
+                if self.use_reprocess:
+                    # Look for reprocessed file if it exists
+                    fname = self.check_reprocess(fname)
+                
+                test = pd.read_csv(fname, skiprows=3)
+                
+                # Store test name as column in test
+                test['name'] = session
+                
+                # Extract talker word combo from file name
+                tw_search_str = r'(?:'+ session + '_)' + r'([FM]\d)(?:_b\d{1,2}_w\d_)(\w+)(?:.csv)'
+                tw_search_var = re.compile(tw_search_str)
+                tw_search = tw_search_var.search(word_csv)
+                talker, word = tw_search.groups()
+                talker_word = talker + ' ' +  word
+                # Store as column
+                test['talker_word'] = talker_word
+                
+                tests = tests.append(test)
+                
+                # Load cutpoints, store in dict
+                cp_name = 'Tx' + word_csv.replace(session, '')
+                cp_path = os.path.join(sesh_info['cp_path'], cp_name)
+                tests_cp[talker_word] = pd.read_csv(cp_path)
+        
+        return tests, tests_cp
+    
+    def check_reprocess(self, fname):
+        """
+        Look for a reprocessed data file in same path as fname.
+
+        Searches for a reprocessed data file in same path as fname.
+        Reprocessed data always starts as 'Rcapture', where original data
+        starts with 'capture'. Returns reprocessed file name if it exists,
+        otherwise returns original file name.
+
+        Parameters
+        ----------
+        fname : str
+            Path to a session csv file.
+
+        Returns
+        -------
+        str:
+            Path to reprocessed file if it exits, otherwise returns fname
+
+        """
+        dat_path, name = os.path.split(fname)
+        if 'Rcapture' not in name:
+            reprocess_fname = os.path.join(dat_path, 'R{}'.format(name))
+            if os.path.exists(reprocess_fname):
+                out_name = reprocess_fname
+            else:
+                out_name = fname
+        else:
+            out_name = fname
+
+        return out_name
+
 
     def _get_data(self, test_names, test_path, wav_dirs):
         
