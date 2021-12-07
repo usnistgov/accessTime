@@ -160,7 +160,7 @@ def main():
 
     with mcvqoe.hardware.RadioInterface(args.radioport) as ri:
 
-        print(f"RadioInterface opened successfully on {ri.connPort}!")
+        print(f"RadioInterface opened successfully on {ri.port_name}!")
 
         # --------------------------------[Key radio]--------------------------------
 

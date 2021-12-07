@@ -3,7 +3,7 @@
 import unittest
 import tempfile
 import os
-import mcvqoe.utilities.testCpy as testCpy
+import mcvqoe.utilities.test_copy as testCpy
 
 # get the location of test files
 test_dat = os.path.join(os.path.dirname(__file__), "testCpy_files")

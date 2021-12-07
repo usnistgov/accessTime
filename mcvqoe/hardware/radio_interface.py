@@ -13,7 +13,43 @@ class CommandError(Exception):
 
 
 class RadioInterface:
+    """
+    Class to talk to a radio interface board.
     
+    Attributes
+    ----------
+    debug : bool, default=False
+        If true, print extra info useful for debugging.
+    default_radio : int, default=1
+
+    See Also
+    --------
+    mcvqoe.simulation.QoEsim : Pretend to key fake radios.
+
+    Examples
+    --------
+    Note that for these examples to work, you will need to have a radio interface
+    plugged in.
+
+    Create a radio interface object. This will search for a device on all serial
+    ports on the machine.
+    >>> ri = RadioInterface()
+
+    Turn on an LED.
+    >>> ri.led(1,'on')
+
+    Key attached radio.
+    >>> ri.ptt(True)
+
+    Un-key attached radio.
+    >>> ri.ptt(False)
+
+    Turn off LED.
+    >>> ri.led(1, 'off')
+
+    If the serial port of the device is known it can be passed to the constructor.
+    >>> ri = RadioInterface(port='COM12')
+    """
     #USB PID/VID to use in search. Devices matching this PID/VID will be checked
     #This is a generic TI PID/VID that could get used by other things
     #TODO : do we want our own?
@@ -21,6 +57,19 @@ class RadioInterface:
     _USB_PID = 0x0300 # RadioInterface Product ID (PID)
 
     def __init__(self, port=None, **kwargs):
+        """
+        Create a new RadioInterface object.
+
+        to set class attributes, they can be specified with kwargs.
+
+        Parameters
+        ----------
+        port : str, default=None
+            Serial port to open to talk to radio interface hardware. If None is
+            passed, all serial ports are searched for a device that seems to be
+            connected to radio interface hardware. If a serial port string is
+            given, it is used without sending any commands to it.
+        """
 
         #set default values
         self.debug = False
@@ -68,19 +117,55 @@ class RadioInterface:
             # open port
             self._openPort(port)
 
+    def __repr__(self):
+        string_props=('default_radio',)
+
+        if hasattr(self, "sobj"):
+            # check if port is open
+            if self.sobj:
+                #get the currently open port
+                props=[f'port = {repr(self.port_name)}']
+
+                for prop in string_props:
+                    props.append(f'{prop} = {repr(getattr(self, prop))}')
+
+                return f'{type(self).__name__}({", ".join(props)})'
+
+        #otherwise port is not open give some sort of an indication
+        return f'<inactive {type(self).__name__}>'
+
+
     def __enter__(self):
 
         return self
 
     def ptt(self, state, num=None):
         """
-            PTT - change the push-to-talk status of the radio interface
+        Change the push-to-talk status of the radio interface.
 
-            PTT(state) if state is true then the PTT is set to transmit. if state is
-        False then the radio is set to not transmit
+        This will send a command to the radio interface to immediately change the
+        status of the chosen PTT output.
 
-        PTT(state,num) same as above but control the ptt of radio number num
-        instead of the default radio.
+        Parameters
+        ----------
+        state : bool
+            If state is true then the radio will be keyed (transmitting). If
+            state is False then the radio will not be keyed (not transmitting).
+        num : int, default=None
+            PTT output number to use. If None, self.default_radio is used.
+
+        See Also
+        --------
+        mcvqoe.hardware.RadioInterface.ptt_wait : Key radios after a delay.
+
+        Examples
+        --------
+
+        Key the default radio.
+        >>> ri.ptt(True)
+
+        Un-key radio number 1.
+        >>> ri.ptt(False,num=1)
         """
 
         if num is None:
@@ -340,7 +425,8 @@ class RadioInterface:
         # buffer serial data
         self.textin = io.TextIOWrapper(io.BufferedReader(self.sobj))
 
-        self.connPort = port
+        #save the name of the open port so it can be used later
+        self.port_name = port
 
     def _command(self, cmd):
         """low level command function to send command to the MSP430"""

@@ -51,26 +51,21 @@ def IRIGB_decode(tca, fs, tc_tol=0.05):
         Sample numbers that decoded times came from.
     '''
     
-    #validate inputs
-    #tca must contain only numbers, this will raise a ValueError otherwise
+    #make sure that time code input is a numpy array
     tca = np.array(tca, dtype="float64")
-    #fs must be a positive number
-    if not (isinstance(fs, (int, float)) and fs >= 0):
-        raise ValueError("Error with input fs")
-    #optional input tc_tol must be in [0, 0.5]
+
+    #tc_tol must be in [0, 0.5]
     if not (isinstance(tc_tol, (int, float)) and tc_tol >= 0 and tc_tol <= 0.5):
-        raise ValueError("Error with optional input")
+        raise ValueError(f'tc_tol must be > 0 and < 0.5. Got tc_tol = {tc_tol}')
 
     #calculate the upper envelope
     env = envelope(tca, 40)
 
     #use kmeans to threshold the envelope into 2 clusters
-    #for the initial guesses of center locations, use: mean +/- stdv
-    envMean = np.mean(env)
-    envStdv = np.std(env)
-    init = np.linspace(envMean - envStdv, envMean + envStdv, 2)
-    #take the cluster indices, the first item returned by kmeans
-    env_th = kmeans2(env, init)[1]
+    #use 0 and max as the starting centroids
+    init = (0, 1)
+    #take the cluster indices, raise an error if we don't have 2 centroids
+    _, env_th = kmeans2(env, init, missing='raise')
 
     #find edges assume that signal starts high so that we see the first real
     edges = np.append([0], 1+np.nonzero(np.diff(env_th))[0])

@@ -26,10 +26,13 @@ def fsf(tx_data, rx_data, fs=48E3):
     -------
     score : double
         FSF score.
+    dly_samples : tuple or int
+        M2E latency.
 
     """
     
     _, delay_samples = mcvqoe.delay.ITS_delay_est(rx_data, tx_data, mode='f', fs=48000)
+    dly_samples = delay_samples
     if delay_samples < 0:
         #raise ValueError('Negative delay detected.')
         warnings.warn('Negative delay detected. Setting delay to zero.')
@@ -46,7 +49,7 @@ def fsf(tx_data, rx_data, fs=48E3):
         
     score = np.true_divide(rx_slope, tx_slope)
     
-    return score
+    return score, dly_samples
     
 def calc_slope(wav_data):
     """

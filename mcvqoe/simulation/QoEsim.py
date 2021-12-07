@@ -164,6 +164,7 @@ class QoEsim:
         self.buffersize = 20
         self.overplay = 1.0
         self.device = __class__  # fake device name
+        self.port_name = 'SIM'   # fake serial port
         self.rec_chans = {"rx_voice": 0}
         self.playback_chans = {"tx_voice": 0}
         # channel variables
