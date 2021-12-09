@@ -437,7 +437,7 @@ class TestSyncer:
 def export_sync(config_name, progress_update=terminal_progress_update, **kwargs):
 
     #don't allow cull to be used here
-    if self.cull in kwargs and kwargs['cull']:
+    if 'cull' in kwargs and kwargs['cull']:
         raise TypeError('cull is not supported for export_sync')
 
    # create a config parser
