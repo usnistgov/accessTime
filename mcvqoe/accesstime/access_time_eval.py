@@ -92,8 +92,7 @@ class AccessData:
                 # Use given path
                 cp_path = wd
                 # get test name from wav path
-                # Normalize path first to remave a possible trailing slash
-                t_name = os.path.basename(os.path.normpath(wd))
+                
             else:
                 # Otherwise get path to the wav dir
                 

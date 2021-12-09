@@ -60,4 +60,14 @@ if __name__ == '__main__':
     # Can you do non-specific wav paths with specific csv paths?
     
     # TODO: None of these test wav_path separately...
+    # Test explicit wav paths
+    test_wav_path = os.path.join(wav_path, ptt_session)
+    cp_names = os.listdir(test_wav_path)
+    cp_paths = [os.path.join(test_wav_path, x) for x in cp_names]
+    
+    # x1w = access.AccessData(ptt_session, test_path=data_path, wav_dirs=cp_paths)
+    # x2w = access.AccessData(test_names=sesh_csvs, test_path=data_path, wav_dirs=cp_paths)
+    x3w = access.AccessData(test_names=sesh_paths,
+                            wav_dirs=len(sesh_paths) * [test_wav_path],
+                            )
 
