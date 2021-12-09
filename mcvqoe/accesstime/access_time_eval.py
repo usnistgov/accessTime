@@ -27,21 +27,45 @@ def find_session_csvs(session_id, data_path):
 # =============================================================================
 # Class definitions
 # =============================================================================
-class AccessData:
-    # TODO: I don't love this layout...can we leverage data storage better as a default and resort to explicit paths only when necessary?
-    # TODO: Look deeper into how PSuD does this, I forget...
+class AccessData():
+    """
+
+        Parameters
+        ----------
+        test_names : TYPE
+            DESCRIPTION.
+        test_path : TYPE, optional
+            DESCRIPTION. The default is ''.
+        wav_dirs : TYPE, optional
+            DESCRIPTION. The default is [].
+        use_reprocess : TYPE, optional
+            DESCRIPTION. The default is True.
+         : TYPE
+            DESCRIPTION.
+            
+        Attributes
+        ----------
+        data : pd.DataFrame
+            DESCRIPTION
+        test_names : list
+            DESCRIPTION
+        test_info : dict
+            DESCRIPTION
+        cps : dict
+            DESCRIPTION
+
+        Returns
+        -------
+        None.
+
+    """
     def __init__(self,
                  test_names,
                  test_path='',
                  wav_dirs=[],
                  use_reprocess=True,
                  ):
-        # self.dat, self.header_dat = self._get_data(test_names, test_path)
-        # self.cut_points = self._get_cut_points(cut_names, cut_dir)
-        # self.sampling_frequency = self._get_sampling_frequency()
-        # self.audio_clips = self._get_audio_clips()
-        # self.speaker_word = self._get_speaker_word()
-        
+       
         self.use_reprocess = use_reprocess
         
         if isinstance(test_names, str):
@@ -151,13 +175,31 @@ class AccessData:
                 # Store as column
                 test['talker_word'] = talker_word
                 
-                tests = tests.append(test)
                 
                 # Load cutpoints, store in dict
                 cp_name = 'Tx_' + talker + bw_index + word + '.csv'
                 cp_path = os.path.join(sesh_info['cp_path'], cp_name)
                 
                 tests_cp[talker_word] = pd.read_csv(cp_path)
+                
+                
+                with open(fname) as head_file:
+                    audio_files = head_file.readline()
+                    sample_rate = head_file.readline()
+                
+                fs_search_var = re.compile(r'\d+')
+                fs_search = fs_search_var.search(sample_rate)
+                if fs_search is not None:
+                    fs = int(fs_search.group())
+                else:
+                    raise RuntimeError(f'No valid sample rate found in session header\n{fname}')
+                
+                # Determine length of T from cutpoints
+                T = tests_cp[talker_word].loc[0]['End']/fs
+                
+                # Store PTT time relative to start of P1 
+                test['time_to_P1'] = T - test['PTT_time']
+                tests = tests.append(test)
         
         return tests, tests_cp
     
