@@ -55,6 +55,9 @@ if __name__ == '__main__':
     
     # TODO:
     # Test specific csv file names with no test_path
-    
+    sesh_paths = [os.path.join(csv_path, x) for x in sesh_csvs]
+    x3 = access.AccessData(test_names=sesh_paths)
     # Can you do non-specific wav paths with specific csv paths?
+    
+    # TODO: None of these test wav_path separately...
 
