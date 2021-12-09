@@ -1,24 +1,12 @@
 #!/usr/bin/env python
 
-# file operations and directory listing
-import os
-
-# used for * filename expansions
-import glob
-
-# used for copy function
-import shutil
-
-# argument parsing
 import argparse
-
-# file time parsing
 import datetime
-
-# for configuration file reading
 import configparser
-
+import glob
+import os
 import re
+import shutil
 
 # prefix to show that this path needs sub folders copied
 recur_prefix = "*"
