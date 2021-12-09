@@ -36,6 +36,7 @@ def terminal_progress_update(
         'log' : 1,
         'subsub' : 2,
         'skip' : 1,
+        'supdate' : 0,
         }
 
     split_type = prog_type.split('-')
@@ -61,6 +62,13 @@ def terminal_progress_update(
         print(indent+f'processing directory {current} of {total}')
     if prog_type == 'main-section' :
         print(indent+f'Running section {kwargs["sect"]}')
+    if prog_type == 'log-complete':
+        if kwargs['lines']:
+            print(f'{kwargs["lines"]} lines copied')
+        else:
+            print("Log files are identical, no lines copied")
+        # print success message
+        print(f'Log updated successfully to {kwargs["file"]}\n')
     elif prog_type == 'sub' :
         print(indent+f'processing subdirectory {current} of {total}')
     #common things
@@ -106,6 +114,12 @@ def terminal_progress_update(
     elif prog_type == 'skip-start' :
         #ignore indent here, this will be done at the end
         print(f'Copying skipped {kwargs["ext"]} files')
+    elif prog_type == 'supdate-old':
+        print("Sync version old, updating")
+    elif prog_type == 'supdate-vmissing':
+        print("Sync version missing, updating")
+    elif prog_type == 'supdate-missing':
+        print("Sync directory not found, updating")
 
 # data directory names
 data_dirs = (
