@@ -18,6 +18,8 @@ import datetime
 # for configuration file reading
 import configparser
 
+import re
+
 # prefix to show that this path needs sub folders copied
 recur_prefix = "*"
 
@@ -108,6 +110,8 @@ def terminal_progress_update(
         print(indent + f'Deleting old directory \'{kwargs["file"]}\'')
     elif prog_type == 'cull-baddate' :
         print(indent + f'Unable to parse date in file \'{kwargs["file"]}\'')
+    elif prog_type == 'cull-badname' :
+        print(indent + f'Unable to parse filename \'{kwargs["file"]}\'')
     #skipping things
     elif prog_type == 'skip-later' :
         print(indent+f'Skipping {kwargs["file"]} for later')
@@ -403,25 +407,22 @@ class TestSyncer:
                     # find old files and delete them
                     for n, f in enumerate(sset):
                         self.progress_update('cull-update', cnum, n)
-                        # strip extension off of name
-                        name, ext = os.path.splitext(f)
-                        # split name into parts
-                        parts = name.split("_")
-                        num_pts = len(parts)
-                        # check extension
-                        if ext == ".mat":
-                            if parts[-1] in ("ERROR", "TEMP"):
-                                date_slice = slice(num_pts - 3, num_pts - 1)
-                            elif parts[-2] == "of":
-                                date_slice = slice(num_pts - 5, num_pts - 3)
-                            else:
-                                date_slice = slice(num_pts - 2, num_pts)
-                        elif ext == ".csv":
-                            date_slice = slice(num_pts - 6, num_pts - 4)
-                        else:
-                            date_slice = date_slice = slice(num_pts - 2, num_pts)
-                        # grab date from filename
-                        dstr = "_".join(parts[date_slice])
+
+                        #big nasty regex to detect all the parts
+                        fp_re = r'[A-z0-9]+_(?P<type>.*)' \
+                                r'_(?P<date>\d{2}-[A-z][a-z]{2}-\d{2,4})' \
+                                r'_(?P<time>\d{2}-\d{2}-\d{2})' \
+                                r'(?:_(?P<word>[MF]\d_b\d+_w\d_[a-z]+))?' \
+                                r'(?:_(?P<suffix>BAD|TEMP))?'
+                        m = re.match(fp_re, f)
+
+                        if not m:
+                            self.progress_update('cull-badname', cnum, n, file=os.path.join(src, f))
+                            #nothing more to do here
+                            continue;
+
+                        # grab date/time from filename
+                        dstr = "_".join(m.group('date','time'))
                         try:
                             # parse string
                             f_date = datetime.datetime.strptime(dstr, "%d-%b-%Y_%H-%M-%S")
