@@ -74,8 +74,18 @@ class AccessData:
                                               )
                 cp_path = os.path.join(test_path, 'wav')
             else:
-                cp_path = os.path.join(os.path.dirname(dat_path), 'wav')
-                dat_file = [tn]
+                
+                if test_path == '':
+                    # Assume full path given
+                    dat_file = [tn]
+                    cp_path = os.path.join(os.path.dirname(dat_path), 'wav')
+                    dat_path = ''
+                    
+                else:
+                    # Assume we are supposed to use test path too
+                    dat_file = [os.path.join(test_path, 'csv', tn)]
+                    cp_path = os.path.join(test_path, os.path.dirname(dat_path), 'wav')
+                    
             
             # Check if we were given an explicit wav directory
             if wd:
@@ -89,7 +99,11 @@ class AccessData:
                 
                 # Remove possible R in t_name
                 wt_name = t_name.replace('Rcapture', 'capture')
-                cp_path = os.path.join(cp_path, wt_name)
+                
+                sesh_search_str = re.compile('(capture_.+_\d{2}-\w{3}-\d{4}_\d{2}-\d{2}-\d{2})')
+                sesh_search = sesh_search_str.search(wt_name)
+                sesh_id = sesh_search.groups()[0]
+                cp_path = os.path.join(cp_path, sesh_id)
             
             self.test_info[t_name] = {'data_path': dat_path,
                                      'data_file': dat_file,
@@ -122,13 +136,18 @@ class AccessData:
                 test = pd.read_csv(fname, skiprows=3)
                 
                 # Store test name as column in test
-                test['name'] = session
+                sesh_search_str = re.compile('(capture_.+_\d{2}-\w{3}-\d{4}_\d{2}-\d{2}-\d{2})')
+                sesh_search = sesh_search_str.search(session)
+                sesh_id = sesh_search.groups()[0]
+                test['name'] = sesh_id
                 
                 # Extract talker word combo from file name
-                tw_search_str = r'(?:'+ session + '_)' + r'([FM]\d)(?:_b\d{1,2}_w\d_)(\w+)(?:.csv)'
+                tw_search_str = r'([FM]\d)(_b\d{1,2}_w\d_)(\w+)(?:.csv)'
                 tw_search_var = re.compile(tw_search_str)
                 tw_search = tw_search_var.search(word_csv)
-                talker, word = tw_search.groups()
+                if tw_search is None:
+                    import pdb; pdb.set_trace()
+                talker, bw_index, word = tw_search.groups()
                 talker_word = talker + ' ' +  word
                 # Store as column
                 test['talker_word'] = talker_word
@@ -136,8 +155,9 @@ class AccessData:
                 tests = tests.append(test)
                 
                 # Load cutpoints, store in dict
-                cp_name = 'Tx' + word_csv.replace(session, '')
+                cp_name = 'Tx_' + talker + bw_index + word + '.csv'
                 cp_path = os.path.join(sesh_info['cp_path'], cp_name)
+                
                 tests_cp[talker_word] = pd.read_csv(cp_path)
         
         return tests, tests_cp
