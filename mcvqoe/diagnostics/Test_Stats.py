@@ -407,9 +407,13 @@ def Gather_Diagnostics(rx_dat,A_Weight,FSF_all,peak_dbfs):
                     "FSF_Scores":FSF_all,
                     "Amplitude":peak_dbfs})
     # Creat json file
-    diagnostics = df_Diagnostics.to_json()
-    diagnostics_dat = json.dumps(diagnostics)
+    diagnostics_json = df_Diagnostics.to_json()
+    Test_Dir = 'C:/Users/cjg2/Documents/MCV'
+    with open(os.path.join(Test_Dir,'diagnostics_json.json'),'w') as f:
+        f.write(diagnostics_json)      
     
+    return diagnostics_json    
+
 def main():   
     """
     Read in a directory of WAV files. 
