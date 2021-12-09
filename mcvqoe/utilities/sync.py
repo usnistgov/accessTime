@@ -450,7 +450,7 @@ def export_sync(config_name, progress_update=terminal_progress_update, **kwargs)
         raise ValueError(f"Configuration file not found at {config_name}.")
 
     # find configuration file location, all paths are relative to this
-    config_fold = os.path.dirname(os.path.abspath(args.config))
+    config_fold = os.path.dirname(os.path.abspath(config_name))
 
     #create a sync object
     sync_obj = TestSyncer(**kwargs)
