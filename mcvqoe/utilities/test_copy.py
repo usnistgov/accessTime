@@ -127,7 +127,7 @@ else:
         raise RuntimeError("Only Windows is supported at this time")
 
 
-def log_update(log_in_name, log_out_name, dryRun=False):
+def log_update(log_in_name, log_out_name, dryRun=False, progress_update=terminal_progress_update):
     with open(log_in_name, "rt") as fin:
         # will hold extra chars from input file
         # used to allow for partial line matches
@@ -174,15 +174,16 @@ def log_update(log_in_name, log_out_name, dryRun=False):
                 shutil.copy(log_in_name,log_out_name)
 
             print(f"{len(in_dat.splitlines())} lines copied")
-
+            progress_update('log-complete',0 ,0, lines=len(in_dat.splitlines()), file=log_out_name)
         else:
             if out_dat:
                 raise RuntimeError("Input file is shorter than output")
             else:
                 print("Log files are identical, no lines copied")
+                progress_update('log-complete',0 ,0, lines=0, file=log_out_name)
 
     # print success message
-    print(f"Log updated successfully to {log_out_name}\n")
+    #print(f"Log updated successfully to {log_out_name}\n")
 
 def load_settings_file(file):
     with open(file, "rt") as fp_set:
@@ -258,7 +259,7 @@ def output_log_name(set_dict):
                         set_dict["ComputerName"] + "-tests.log"
                     )
 
-def update_sync(set_dict, sync_dir=None, dry_run=False):
+def update_sync(set_dict, sync_dir=None, dry_run=False, progress_update=terminal_progress_update):
     if sync_dir is None:
         sync_dir = os.path.join(set_dict['prefix'], "sync")
 
@@ -270,7 +271,7 @@ def update_sync(set_dict, sync_dir=None, dry_run=False):
     if not os.path.exists(SyncScript):
         sync_update = True
         # print message
-        print("Sync directory not found, updating")
+        progress_update('supdate-missing', 0, 2)
 
     if not sync_update:
 
@@ -286,22 +287,26 @@ def update_sync(set_dict, sync_dir=None, dry_run=False):
             sync_update = qoe_ver > sync_ver
 
             if sync_update:
-                print("Sync version old, updating")
+                progress_update('supdate-old', 0, 2)
 
         else:
             sync_update = True
-            print("Sync version missing, updating")
+            progress_update('supdate-vmissing', 0, 2)
 
     if sync_update and not dry_run:
         # there is no sync script
         # make sync dir
         os.makedirs(sync_dir, exist_ok=True)
+        #update progress
+        progress_update('supdate-write', 1, 2)
         # copy sync script
         with open(SyncScript, "wb") as f:
             f.write(pkgutil.get_data("mcvqoe.utilities", "sync.py"))
 
         with open(sync_ver_path, "w") as f:
             f.write(mcvqoe.base.version)
+    else:
+        progress_update('supdate-skip', 1, 2)
 
     return SyncScript
 
@@ -325,6 +330,14 @@ def run_drive_sync(script, out_dir, dest_dir, dry_run=False):
                 f"Failed to run sync script exit status {stat.returncode}"
             )
 
+test_cpy_steps = {
+                    'settings':'save settings',
+                    'log':'copy log',
+                    'supdate':'update sync',
+                    'sync':'sync files',
+                 }
+
+
 def copy_test_files(out_dir, dest_dir=None, cname=None, sync_dir=None, dry_run=False, force=False, direct=False, progress_update=None):
 
     if progress_update:
@@ -337,57 +350,99 @@ def copy_test_files(out_dir, dest_dir=None, cname=None, sync_dir=None, dry_run=F
 
     log_in_name = input_log_name(out_dir)
 
-    if os.path.exists(set_file):
+    num_steps = len(test_cpy_steps)
 
-        set_dict = load_settings_file(set_file)
+    for n, (step, name) in enumerate(test_cpy_steps.items()):
 
-    else:
-        if not cname:
-            raise RuntimeError(
-                f"--computer-name not given and '{set_file}' does not exist"
-            )
+        progress_update('main-update', num_steps, n, step_name=name)
 
-        if not dest_dir:
-            raise RuntimeError(f"--dest-dir not given and '{set_file}' does not exist")
+        if step == 'settings':
+            if os.path.exists(set_file):
 
-        # TODO : check for questionable names in path?
+                set_dict = load_settings_file(set_file)
 
-        set_dict = create_new_settings(direct, dest_dir, cname)
+            else:
+                if not cname:
+                    raise RuntimeError(
+                        f"--computer-name not given and '{set_file}' does not exist"
+                    )
 
-    with (
-        os.fdopen(os.dup(sys.stdout.fileno()), "w")
-        if dry_run
-        else open(set_file, "w")
-    ) as sf:
+                if not dest_dir:
+                    raise RuntimeError(f"--dest-dir not given and '{set_file}' does not exist")
+
+                # TODO : check for questionable names in path?
+
+                set_dict = create_new_settings(direct, dest_dir, cname)
+
+            with (
+                os.fdopen(os.dup(sys.stdout.fileno()), "w")
+                if dry_run
+                else open(set_file, "w")
+            ) as sf:
+                if dry_run:
+                    print("Settings file:")
+                write_settings(set_dict, sf)
+        elif step == 'log':
+            # file name for output log file
+            log_out_name = output_log_name(set_dict)
+
+            log_update(log_in_name, log_out_name, dry_run, progress_update=progress_update)
+
+            # create destination path
+            destDir = os.path.join(set_dict['prefix'], set_dict["Path"])
+
+        elif step == 'supdate':
+            if not set_dict["Direct"]:
+                #update the sync script on the drive
+                sync_script = update_sync(
+                                            set_dict,
+                                            sync_dir=sync_dir,
+                                            dry_run=dry_run,
+                                            progress_update=progress_update
+                                          )
+        elif step == 'sync':
+            if not set_dict["Direct"] and not force_lib_sync:
+                run_drive_sync(sync_script, out_dir, destDir, dry_run=dry_run)
+            else:
+                # direct sync, use library version
+                from .sync import import_sync
+
+                if dry_run:
+                    print(
+                        "Calling sync command:\n\t"
+                        + f"sync.sync_files({repr(out_dir)}, {repr(destDir)}, bd=False, cull=True, sunset=30)"
+                    )
+                else:
+                    import_sync(out_dir, destDir, bd=False, cull=True, sunset=30, progress_update=progress_update)
+
+def recursive_sync(out_dir, dry_run=False, sync_dir=None, progress_update=terminal_progress_update):
+    #keep track of how many directories we found
+    num_found = 0
+    num_success = 0
+    #get directory path
+    out_dir = os.path.abspath(out_dir)
+    for root, dirs, files in os.walk(out_dir, topdown=True):
         if dry_run:
-            print("Settings file:")
-        write_settings(set_dict, sf)
-
-    # file name for output log file
-    log_out_name = output_log_name(set_dict)
-
-    log_update(log_in_name, log_out_name, dry_run)
-
-    # create destination path
-    destDir = os.path.join(set_dict['prefix'], set_dict["Path"])
-
-    if not set_dict["Direct"]:
-        #update the sync script on the drive
-        sync_script = update_sync(set_dict, sync_dir=sync_dir, dry_run=dry_run)
-
-    if not set_dict["Direct"] and not force_lib_sync:
-        run_drive_sync(sync_script, out_dir, destDir, dry_run=dry_run)
-    else:
-        # direct sync, use library version
-        from .sync import import_sync
-
-        if dry_run:
-            print(
-                "Calling sync command:\n\t"
-                + f"sync.sync_files({repr(out_dir)}, {repr(destDir)}, bd=False, cull=True, sunset=30)"
-            )
-        else:
-            import_sync(out_dir, destDir, bd=False, cull=True, sunset=30, progress_update=progress_update)
+            print(f'Checking "{root}" for "{settings_name}"')
+        #check for copy settings
+        if settings_name in files:
+            num_found += 1
+            print('\n'+f'"{settings_name}" found syncing "{root}":')
+            try:
+                #settings found, copy files
+                copy_test_files(root,dry_run=dry_run, sync_dir=sync_dir, progress_update=progress_update)
+                #no error, this was a success
+                num_success += 1
+            except RuntimeError as e:
+                #print error and continue
+                print(f'Error while syncing : {str(e)}')
+            #remove directories from dirs
+            #this will skip all directories
+            dirs.clear()
+            #print a blank line for readability
+            print()
+    #return stats
+    return num_found, num_success
 
 # main function
 def main():
@@ -471,31 +526,7 @@ def main():
     args_dict.pop('recursive')
 
     if args.recursive:
-        #keep track of how many directories we found
-        num_found = 0
-        num_success = 0
-        #get directory path
-        out_dir = os.path.abspath(out_dir)
-        for root, dirs, files in os.walk(out_dir, topdown=True):
-            if args.dry_run:
-                print(f'Checking "{root}" for "{settings_name}"')
-            #check for copy settings
-            if settings_name in files:
-                num_found += 1
-                print('\n'+f'"{settings_name}" found syncing "{root}":')
-                try:
-                    #settings found, copy files
-                    copy_test_files(root,dry_run=args.dry_run, sync_dir=args.sync_dir)
-                    #no error, this was a success
-                    num_success += 1
-                except RuntimeError as e:
-                    #print error and continue
-                    print(f'Error while syncing : {str(e)}')
-                #remove directories from dirs
-                #this will skip all directories
-                dirs.clear()
-                #print a blank line for readability
-                print()
+        num_found, num_success = recursive_sync(out_dir, dry_run=args.dry_run, sync_dir=args.sync_dir)
         #check if we found any files
         if num_found:
             print(f'{num_found} test directories found, {num_success} successfully synced')
