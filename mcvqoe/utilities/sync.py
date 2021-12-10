@@ -14,6 +14,76 @@ recur_prefix = "*"
 # prefix to show not to backup sync folder
 noback_prefix = "-"
 
+def prog_str(prog_type, **kwargs):
+
+    split_type = prog_type.split('-')
+
+    major_type = split_type[0]
+
+    if len(split_type) > 1:
+        minor_type = split_type[1]
+    else:
+        #no minor type
+        minor_type = None
+
+    progress_str = ''
+
+    if prog_type == 'main-section' :
+        progress_str = f'Running section {kwargs["sect"]}'
+    elif prog_type == 'log-complete':
+        if kwargs['lines']:
+            progress_str = f'{kwargs["lines"]} lines copied'
+        else:
+            progress_str = "Log files are identical, no lines copied"
+        # print success message
+        progress_str = f'Log updated successfully to {kwargs["file"]}\n'
+    #common things
+    elif minor_type == 'dir':
+        if major_type == 'log':
+            progress_str = f'Finding Log files in \'{kwargs["dir"]}\''
+        else:
+            progress_str = f'Checking directory \'{kwargs["dir"]}\' for new files'
+    elif minor_type == 'skip':
+        if 'dir' in kwargs:
+            progress_str = f'No new files found to copy to \'{kwargs["dir"]}\''
+        else:
+            progress_str = 'Up to date'
+    elif minor_type == 'backup':
+        progress_str = f'Backing files up from \'{kwargs["dest"]}\' to \'{kwargs["src"]}\''
+    elif minor_type == 'invalid':
+        progress_str = f'Skipping \'{kwargs["dir"]}\' it is not a directory or .zip file'
+    elif minor_type == 'new':
+        progress_str = f'Creating folder \'{kwargs["dir"]}\''
+    elif minor_type == 'temp':
+        progress_str = f'Skipping \'{kwargs["file"]}\''
+    elif minor_type == 'skipdir':
+        progress_str = f'Skipping Directory \'{kwargs["dir"]}\''
+    elif minor_type == 'srcdest':
+        progress_str = f'Copying \'{kwargs["src"]}\' to \'{kwargs["dest"]}\''
+    #cull things
+    elif prog_type == 'cull-deldir':
+        progress_str = f'Deleting old directory \'{kwargs["dir"]}\''
+    elif prog_type == 'cull-delfile':
+        progress_str = f'Deleting old directory \'{kwargs["file"]}\''
+    elif prog_type == 'cull-baddate' :
+        progress_str = f'Unable to parse date in file \'{kwargs["file"]}\''
+    elif prog_type == 'cull-badname' :
+        progress_str = f'Unable to parse filename \'{kwargs["file"]}\''
+    #skipping things
+    elif prog_type == 'skip-later' :
+        progress_str = f'Skipping {kwargs["file"]} for later'
+    elif prog_type == 'skip-start' :
+        #ignore indent here, this will be done at the end
+        progress_str = f'Copying skipped {kwargs["ext"]} files'
+    elif prog_type == 'supdate-old':
+        progress_str = "Sync version old, updating"
+    elif prog_type == 'supdate-vmissing':
+        progress_str = "Sync version missing, updating"
+    elif prog_type == 'supdate-missing':
+        progress_str = "Sync directory not found, updating"
+
+    return progress_str, major_type, minor_type
+
 def terminal_progress_update(
             prog_type,
             total,
@@ -29,15 +99,7 @@ def terminal_progress_update(
         'supdate' : 0,
         }
 
-    split_type = prog_type.split('-')
-
-    major_type = split_type[0]
-
-    if len(split_type) > 1:
-        minor_type = split_type[1]
-    else:
-        #no minor type
-        minor_type = None
+    p_str, major_type, minor_type  = prog_str(prog_type, **kwargs)
 
     if major_type in indents:
         num = indents[major_type]
@@ -48,70 +110,19 @@ def terminal_progress_update(
     else:
         indent = ''
 
-    if prog_type == 'main' :
-        print(indent+f'processing directory {current} of {total}')
-    if prog_type == 'main-section' :
-        print(indent+f'Running section {kwargs["sect"]}')
-    if prog_type == 'log-complete':
-        if kwargs['lines']:
-            print(f'{kwargs["lines"]} lines copied')
-        else:
-            print("Log files are identical, no lines copied")
-        # print success message
-        print(f'Log updated successfully to {kwargs["file"]}\n')
-    elif prog_type == 'sub' :
-        print(indent+f'processing subdirectory {current} of {total}')
-    #common things
+    if p_str:
+        print(indent+p_str)
+    elif prog_type == 'main' :
+        print(indent + f'processing directory {current} of {total}')
     elif minor_type == 'start':
-        print(indent+f'Found {total} files to copy')
+        print(indent + f'Found {total} files to copy')
     elif minor_type == 'update':
         #only update terminal for subsub
         if major_type == 'subsub' :
             if current % 100 ==0:
-                print(indent+f'copying file {current} of {total}')
-    elif minor_type == 'dir':
-        if major_type == 'log':
-            print(indent+f'Finding Log files in \'{kwargs["dir"]}\'')
-        else:
-            print(indent+f'Checking directory \'{kwargs["dir"]}\' for new files')
-    elif minor_type == 'skip':
-        if 'dir' in kwargs:
-            print(indent + f'No new files found to copy to \'{kwargs["dir"]}\'')
-        else:
-            print(indent + 'Up to date')
-    elif minor_type == 'backup':
-        print(indent + f'Backing files up from \'{kwargs["dest"]}\' to \'{kwargs["src"]}\'')
-    elif minor_type == 'invalid':
-        print(indent + f'Skipping \'{kwargs["dir"]}\' it is not a directory or .zip file')
-    elif minor_type == 'new':
-        print(indent+f'Creating folder \'{kwargs["dir"]}\'')
-    elif minor_type == 'temp':
-        print(indent+f'Skipping \'{kwargs["file"]}\'')
-    elif minor_type == 'skipdir':
-        print(indent+f'Skipping Directory \'{kwargs["dir"]}\'')
-    elif minor_type == 'srcdest':
-        print(indent + f'Copying \'{kwargs["src"]}\' to \'{kwargs["dest"]}\'')
-    #cull things
-    elif prog_type == 'cull-deldir':
-        print(indent + f'Deleting old directory \'{kwargs["dir"]}\'')
-    elif prog_type == 'cull-delfile':
-        print(indent + f'Deleting old directory \'{kwargs["file"]}\'')
-    elif prog_type == 'cull-baddate' :
-        print(indent + f'Unable to parse date in file \'{kwargs["file"]}\'')
-    elif prog_type == 'cull-badname' :
-        print(indent + f'Unable to parse filename \'{kwargs["file"]}\'')
-    #skipping things
-    elif prog_type == 'skip-later' :
-        print(indent+f'Skipping {kwargs["file"]} for later')
-    elif prog_type == 'skip-start' :
-        #ignore indent here, this will be done at the end
-        print(f'Copying skipped {kwargs["ext"]} files')
-    elif prog_type == 'supdate-old':
-        print("Sync version old, updating")
-    elif prog_type == 'supdate-vmissing':
-        print("Sync version missing, updating")
-    elif prog_type == 'supdate-missing':
-        print("Sync directory not found, updating")
+                print(f'copying file {current} of {total}')
+    elif prog_type == 'sub' :
+        print(indent+f'processing subdirectory {current} of {total}')
 
 # data directory names
 data_dirs = (
