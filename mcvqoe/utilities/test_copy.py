@@ -173,13 +173,11 @@ def log_update(log_in_name, log_out_name, dryRun=False, progress_update=terminal
                 #copy file to new location
                 shutil.copy(log_in_name,log_out_name)
 
-            print(f"{len(in_dat.splitlines())} lines copied")
             progress_update('log-complete',0 ,0, lines=len(in_dat.splitlines()), file=log_out_name)
         else:
             if out_dat:
                 raise RuntimeError("Input file is shorter than output")
             else:
-                print("Log files are identical, no lines copied")
                 progress_update('log-complete',0 ,0, lines=0, file=log_out_name)
 
     # print success message
@@ -421,13 +419,13 @@ def recursive_sync(out_dir, dry_run=False, sync_dir=None, progress_update=termin
     num_success = 0
     #get directory path
     out_dir = os.path.abspath(out_dir)
-    for root, dirs, files in os.walk(out_dir, topdown=True):
+    for n, (root, dirs, files) in enumerate(os.walk(out_dir, topdown=True)):
         if dry_run:
             print(f'Checking "{root}" for "{settings_name}"')
         #check for copy settings
         if settings_name in files:
             num_found += 1
-            print('\n'+f'"{settings_name}" found syncing "{root}":')
+            progress_update('recur-found', 0, n, dir=root)
             try:
                 #settings found, copy files
                 copy_test_files(root,dry_run=dry_run, sync_dir=sync_dir, progress_update=progress_update)
@@ -435,12 +433,10 @@ def recursive_sync(out_dir, dry_run=False, sync_dir=None, progress_update=termin
                 num_success += 1
             except RuntimeError as e:
                 #print error and continue
-                print(f'Error while syncing : {str(e)}')
+                progress_update('recur-error', 0, n, err=str(e))
             #remove directories from dirs
             #this will skip all directories
             dirs.clear()
-            #print a blank line for readability
-            print()
     #return stats
     return num_found, num_success
 

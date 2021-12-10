@@ -32,11 +32,11 @@ def prog_str(prog_type, **kwargs):
         progress_str = f'Running section {kwargs["sect"]}'
     elif prog_type == 'log-complete':
         if kwargs['lines']:
-            progress_str = f'{kwargs["lines"]} lines copied'
+            progress_str = f'{kwargs["lines"]} lines copied\n'
         else:
-            progress_str = "Log files are identical, no lines copied"
-        # print success message
-        progress_str = f'Log updated successfully to {kwargs["file"]}\n'
+            progress_str = "Log files are identical, no lines copied\n"
+        # add success message`
+        progress_str += f'Log updated successfully to {kwargs["file"]}\n'
     #common things
     elif minor_type == 'dir':
         if major_type == 'log':
@@ -81,6 +81,10 @@ def prog_str(prog_type, **kwargs):
         progress_str = "Sync version missing, updating"
     elif prog_type == 'supdate-missing':
         progress_str = "Sync directory not found, updating"
+    elif prog_type == 'recur-found':
+        progress_str ='\n'+f'Settings file found syncing \'{kwargs["dir"]}\':'
+    elif prog_type == 'recur-error':
+        progress_str = f'Error while syncing : {kwargs["err"]}'
 
     return progress_str, major_type, minor_type
 
