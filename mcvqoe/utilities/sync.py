@@ -1,22 +1,12 @@
 #!/usr/bin/env python
 
-# file operations and directory listing
-import os
-
-# used for * filename expansions
-import glob
-
-# used for copy function
-import shutil
-
-# argument parsing
 import argparse
-
-# file time parsing
 import datetime
-
-# for configuration file reading
 import configparser
+import glob
+import os
+import re
+import shutil
 
 # prefix to show that this path needs sub folders copied
 recur_prefix = "*"
@@ -36,6 +26,7 @@ def terminal_progress_update(
         'log' : 1,
         'subsub' : 2,
         'skip' : 1,
+        'supdate' : 0,
         }
 
     split_type = prog_type.split('-')
@@ -61,6 +52,13 @@ def terminal_progress_update(
         print(indent+f'processing directory {current} of {total}')
     if prog_type == 'main-section' :
         print(indent+f'Running section {kwargs["sect"]}')
+    if prog_type == 'log-complete':
+        if kwargs['lines']:
+            print(f'{kwargs["lines"]} lines copied')
+        else:
+            print("Log files are identical, no lines copied")
+        # print success message
+        print(f'Log updated successfully to {kwargs["file"]}\n')
     elif prog_type == 'sub' :
         print(indent+f'processing subdirectory {current} of {total}')
     #common things
@@ -100,12 +98,20 @@ def terminal_progress_update(
         print(indent + f'Deleting old directory \'{kwargs["file"]}\'')
     elif prog_type == 'cull-baddate' :
         print(indent + f'Unable to parse date in file \'{kwargs["file"]}\'')
+    elif prog_type == 'cull-badname' :
+        print(indent + f'Unable to parse filename \'{kwargs["file"]}\'')
     #skipping things
     elif prog_type == 'skip-later' :
         print(indent+f'Skipping {kwargs["file"]} for later')
     elif prog_type == 'skip-start' :
         #ignore indent here, this will be done at the end
         print(f'Copying skipped {kwargs["ext"]} files')
+    elif prog_type == 'supdate-old':
+        print("Sync version old, updating")
+    elif prog_type == 'supdate-vmissing':
+        print("Sync version missing, updating")
+    elif prog_type == 'supdate-missing':
+        print("Sync directory not found, updating")
 
 # data directory names
 data_dirs = (
@@ -389,25 +395,22 @@ class TestSyncer:
                     # find old files and delete them
                     for n, f in enumerate(sset):
                         self.progress_update('cull-update', cnum, n)
-                        # strip extension off of name
-                        name, ext = os.path.splitext(f)
-                        # split name into parts
-                        parts = name.split("_")
-                        num_pts = len(parts)
-                        # check extension
-                        if ext == ".mat":
-                            if parts[-1] in ("ERROR", "TEMP"):
-                                date_slice = slice(num_pts - 3, num_pts - 1)
-                            elif parts[-2] == "of":
-                                date_slice = slice(num_pts - 5, num_pts - 3)
-                            else:
-                                date_slice = slice(num_pts - 2, num_pts)
-                        elif ext == ".csv":
-                            date_slice = slice(num_pts - 6, num_pts - 4)
-                        else:
-                            date_slice = date_slice = slice(num_pts - 2, num_pts)
-                        # grab date from filename
-                        dstr = "_".join(parts[date_slice])
+
+                        #big nasty regex to detect all the parts
+                        fp_re = r'[A-z0-9]+_(?P<type>.*)' \
+                                r'_(?P<date>\d{2}-[A-z][a-z]{2}-\d{2,4})' \
+                                r'_(?P<time>\d{2}-\d{2}-\d{2})' \
+                                r'(?:_(?P<word>[MF]\d_b\d+_w\d_[a-z]+))?' \
+                                r'(?:_(?P<suffix>BAD|TEMP))?'
+                        m = re.match(fp_re, f)
+
+                        if not m:
+                            self.progress_update('cull-badname', cnum, n, file=os.path.join(src, f))
+                            #nothing more to do here
+                            continue;
+
+                        # grab date/time from filename
+                        dstr = "_".join(m.group('date','time'))
                         try:
                             # parse string
                             f_date = datetime.datetime.strptime(dstr, "%d-%b-%Y_%H-%M-%S")
@@ -437,7 +440,7 @@ class TestSyncer:
 def export_sync(config_name, progress_update=terminal_progress_update, **kwargs):
 
     #don't allow cull to be used here
-    if self.cull in kwargs and kwargs['cull']:
+    if 'cull' in kwargs and kwargs['cull']:
         raise TypeError('cull is not supported for export_sync')
 
    # create a config parser
@@ -450,7 +453,7 @@ def export_sync(config_name, progress_update=terminal_progress_update, **kwargs)
         raise ValueError(f"Configuration file not found at {config_name}.")
 
     # find configuration file location, all paths are relative to this
-    config_fold = os.path.dirname(os.path.abspath(args.config))
+    config_fold = os.path.dirname(os.path.abspath(config_name))
 
     #create a sync object
     sync_obj = TestSyncer(**kwargs)
