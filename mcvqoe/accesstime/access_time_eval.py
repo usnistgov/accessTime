@@ -300,12 +300,12 @@ class evaluate:
 
     def __init__(self,
                  test_names,
-                 cut_names,
-                 test_path,
+                 test_path='',
                  wav_dirs=[],
+                 use_reprocess=True,
                  # TODO: Come up with better default for test_type
                  test_type=None,
-                 ptt_session_names=None,
+                 correction_data=None,
                  json_data=None,
                  **kwargs):
         
@@ -318,7 +318,18 @@ class evaluate:
                 raise TypeError(f'{k} is not a valid keyword argument')
         
         # Data loaded in
-        self.data = AccessData(test_names, cut_names, test_path, wav_dirs)
+        self.data = AccessData(test_names=test_names,
+                               test_path=test_path,
+                               wav_dirs=wav_dirs,
+                               use_reprocess=use_reprocess,
+                               )
+        # TODO: How do we handle correction data? default load in from csvs? 
+        # Also needs to make sure talker words line up
+        # And take into account the fit type
+        if correction_data is None:
+            self.cor_data = default_correction_data()
+        else:
+            self.cor_data = correction_data
         # TODO: Come up with clean way to handle correction_data
         # self.correction_data = None if not ptt_session_names else AccessData(ptt_session_names, cut_names, session_dir, cut_dir)
         self.fit_type = self._get_fit_type(test_type)
