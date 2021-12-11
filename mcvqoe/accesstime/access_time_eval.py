@@ -9,6 +9,7 @@ Created on Wed Sep  8 14:26:30 2021
 # =============================================================================
 import argparse
 import os
+import pkg_resources
 import re
 import warnings
 
@@ -24,6 +25,25 @@ def find_session_csvs(session_id, data_path):
     sesh_search = re.compile(f'{session_id}_.+.csv')
     
     return list(filter(sesh_search.match, data_csvs))
+
+def default_correction_data():
+    correction_csv_path = pkg_resources.resource_filename(
+        'mcvqoe.accesstime', 'correction_data'
+        )
+    correction_csvs = pkg_resources.resource_listdir(
+        'mcvqoe.accesstime', 'correction_data'
+        )
+    
+    sesh_csvs = []
+    for ccsv in correction_csvs:
+        if 'capture' in ccsv:
+            sesh_csvs.append(os.path.join(correction_csv_path, ccsv))
+    
+    cor_data = AccessData(sesh_csvs,
+                          wav_dirs=[correction_csv_path] * len(sesh_csvs),
+                          )
+    return cor_data
+    
 # =============================================================================
 # Class definitions
 # =============================================================================
@@ -132,7 +152,7 @@ class AccessData():
                                      'data_file': dat_file,
                                      'cp_path': cp_path}
             self.test_names.append(t_name)
-            self.data, self.cps = self.load_sessions()
+        self.data, self.cps = self.load_sessions()
             
     def load_sessions(self):
         """
@@ -200,6 +220,8 @@ class AccessData():
                 # Store PTT time relative to start of P1 
                 test['time_to_P1'] = T - test['PTT_time']
                 tests = tests.append(test)
+        nrow, _ = tests.shape
+        tests.index = np.arange(nrow)
         
         return tests, tests_cp
     
@@ -235,63 +257,9 @@ class AccessData():
 
         return out_name
 
-
-    def _get_data(self, test_names, test_path, wav_dirs):
-        
-        try:
-            dat = []
-            header = []
-            for session in test_names:
-                sesh_name = os.path.join(test_path, session)
-                # Grab main data, skipping extra header info
-                dat.append(pd.read_csv(sesh_name, skiprows=3))
-                # Grab extra header info
-                header_dat = pd.read_csv(sesh_name,
-                                         sep='=',
-                                         nrows=2,
-                                         header=None,
-                                         usecols=[1]).transpose()
-                header_dat.columns = ['Wav file', 'fs']
-                header.append(header_dat)
-            # dat = [pd.read_csv(test_path + session, skiprows=3) for session in test_names]
-            # header_dat = [pd.read_csv(test_path + session, sep='=', nrows=2,
-            #                           header=None, usecols=[1]) for session in test_names]
-            # header_dat = [hd.transpose() for hd in header_dat]
-            # for hd in header_dat:
-            #     hd.columns=["Wav file", "fs"]
-            return dat, header
-        except(FileNotFoundError) as err:
-            print(f"Session files can not be found. {err}")
-
-    def _get_cut_points(self, cut_names, cut_dir):
-        try:
-            cut_points = [pd.read_csv(cut_dir + cut) for cut in cut_names]
-            return(cut_points)
-        except(FileNotFoundError) as err:
-            print(f"Session files can not be found. {err}")
-
-    def _get_sampling_frequency(self):
-        if not all([(dat["fs"] == self.header_dat[0].iloc[0]["fs"]).any() for dat in self.header_dat]):
-            raise ValueError("Different sampling frequencies.")
-        else:
-            return self.header_dat[0]["fs"]
-
-    def _get_audio_clips(self):
-        # cheap, easy etraction of the word from the header data
-        audio_clips = [fname["Wav file"] for fname in self.header_dat]
-        return(audio_clips)
-
-    def _get_speaker_word(self):
-        # cheap, easy etraction of the word from the header data
-        speaker_words = [fname.iloc[0]["Wav file"][:-4].split("_")[-1] for fname in self.header_dat]
-        return(speaker_words)
-
-    # TODO: Reimplement this
-    # def __repr__(self):
-    #     s = f'''AccessData object:
-    #         Speaker words: {self.speaker_word}
-    #         Sampling frequency: {self.sampling_frequency.iloc[0]}'''
-    #     return s
+    def __str__(self):
+        s = f'AccessData object, talker word combos: {np.unique(self.data.talker_word)}'
+        return s
 
 class FitData:
 

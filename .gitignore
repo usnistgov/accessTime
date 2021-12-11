@@ -53,6 +53,8 @@ ComputerName.txt
 # Un-ignore python default audio and cutpoints
 !/mcvqoe/accesstime/audio_clips/*.wav
 !/mcvqoe/accesstime/audio_clips/*.csv
+# Un-ignore python correction csv files
+!/mcvqoe/accesstime/correction_data/*.csv
 
 # ignore python packing stuff
 .eggs/
