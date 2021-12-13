@@ -23,9 +23,18 @@ settings_name = "CopySettings.json"
 if platform.system() == "Windows":
 
     def get_drive_serial(drive):
+        #args for subprocess
+        sp_args={}
+        #only for windows, prevent windows from appearing
+        if os.name == 'nt':
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            sp_args['startupinfo'] = startupinfo
         # run vol command, seems that you need shell=True. Perhaps vol is not a real command?
         result = subprocess.run(
-            f"vol {drive}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            f"vol {drive}", shell=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            **sp_args,
         )
 
         # check return code
@@ -52,9 +61,17 @@ if platform.system() == "Windows":
             raise RuntimeError("Serial number not found")
 
     def list_drives():
+        #args for subprocess
+        sp_args={}
+        #only for windows, prevent windows from appearing
+        if os.name == 'nt':
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            sp_args['startupinfo'] = startupinfo
 
         result = subprocess.run(
-            ["wmic", "logicaldisk", "get", "name"], stdout=subprocess.PIPE
+            ["wmic", "logicaldisk", "get", "name"], stdout=subprocess.PIPE,
+            **sp_args,
         )
 
         if result.returncode:
