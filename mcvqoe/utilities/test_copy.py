@@ -413,10 +413,17 @@ def copy_test_files(out_dir, dest_dir=None, cname=None, sync_dir=None, dry_run=F
                 else:
                     import_sync(out_dir, destDir, bd=False, cull=True, sunset=30, progress_update=progress_update)
 
-def recursive_sync(out_dir, dry_run=False, sync_dir=None, progress_update=terminal_progress_update):
+def recursive_sync(out_dir, dry_run=False, sync_dir=None, progress_update=None):
     #keep track of how many directories we found
     num_found = 0
     num_success = 0
+    #check if progress update was given
+    if progress_update is None:
+        #use terminal function by default
+        prog_fun=terminal_progress_update
+    else:
+        #use given function
+        prog_fun=progress_update
     #get directory path
     out_dir = os.path.abspath(out_dir)
     for n, (root, dirs, files) in enumerate(os.walk(out_dir, topdown=True)):
@@ -425,7 +432,7 @@ def recursive_sync(out_dir, dry_run=False, sync_dir=None, progress_update=termin
         #check for copy settings
         if settings_name in files:
             num_found += 1
-            progress_update('recur-found', 0, n, dir=root)
+            prog_fun('recur-found', 0, n, dir=root)
             try:
                 #settings found, copy files
                 copy_test_files(root,dry_run=dry_run, sync_dir=sync_dir, progress_update=progress_update)
@@ -433,7 +440,7 @@ def recursive_sync(out_dir, dry_run=False, sync_dir=None, progress_update=termin
                 num_success += 1
             except RuntimeError as e:
                 #print error and continue
-                progress_update('recur-error', 0, n, err=str(e))
+                prog_fun('recur-error', 0, n, err=str(e))
             #remove directories from dirs
             #this will skip all directories
             dirs.clear()
