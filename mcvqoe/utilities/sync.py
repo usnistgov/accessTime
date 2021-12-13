@@ -374,7 +374,7 @@ class TestSyncer:
                     if cpy:
                         # get number of files
                         cnum = len(cpy)
-                        self.progress_update('sub-backup', cnum, 0, file=f)
+                        self.progress_update('sub-backup', cnum, 0, dest=dest, src=src)
                         # copy files from dest to src that are not in src
                         for n, f in enumerate(cpy):
                             self.progress_update('sub-update', cnum, n)
