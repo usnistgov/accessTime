@@ -209,7 +209,7 @@ class TestSyncer:
     def __init__(self, **kwargs):
         #set default values
         self.progress_update=terminal_progress_update
-        self.bd=True
+        self.bd=False
         self.cull=False
         self.sunset=30
         self.thorough=False
