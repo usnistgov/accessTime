@@ -471,7 +471,7 @@ def export_sync(config_name, progress_update=terminal_progress_update, **kwargs)
     config_fold = os.path.dirname(os.path.abspath(config_name))
 
     #create a sync object
-    sync_obj = TestSyncer(**kwargs)
+    sync_obj = TestSyncer(progress_update=progress_update, **kwargs)
 
     #get number of sections
     snum = len(config.sections())
