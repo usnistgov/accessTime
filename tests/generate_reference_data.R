@@ -6,7 +6,7 @@ ref_word_csv <- function(sut_fit, name){
   coefs <- sapply(sut_fit, coef)
   vcovs <- sapply(sut_fit, vcov)
   rownames(vcovs) <- c("t0, t0", "lambda, t0", "t0, lambda", "lambda, lambda")
-  res <- rbind(coefs, vcovs)
+  res <- cbind(t(coefs), t(vcovs))
   write.csv(res, name, quote=FALSE)
 }
 #--------------------[PTT Gate results]-----------------------
