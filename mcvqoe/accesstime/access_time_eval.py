@@ -263,12 +263,24 @@ class AccessData():
 
 class FitData:
 
-    def __init__(self, I0, t0, lam, covar, curve_dat):
+    def __init__(self, I0, t0, lam, covar, 
+                 # curve_dat,
+                 ):
         self.I0 = I0
         self.t0 = t0
         self.lam = lam
-        self.covar = covar
-        self.curve_dat = curve_dat
+        self.covar = pd.DataFrame(covar,
+                                  columns=['t0', 'lambda'],
+                                  index=['t0', 'lambda'],
+                                  )
+    def __repr__(self):
+        out = f'''Model:
+    I0/(1 + exp((t-t0)/lambda))
+    I0: {self.I0}
+    lambda: {self.lam}
+    t0: {self.t0}\n'''
+        return out
+    
 
 class evaluate:
     """
@@ -309,8 +321,6 @@ class evaluate:
                  json_data=None,
                  **kwargs):
         
-        
-
         for k, v in kwargs.items():
             if hasattr(self, k):
                 setattr(self, k, v)
@@ -318,66 +328,107 @@ class evaluate:
                 raise TypeError(f'{k} is not a valid keyword argument')
         
         # Data loaded in
-        self.data = AccessData(test_names=test_names,
+        data = AccessData(test_names=test_names,
                                test_path=test_path,
                                wav_dirs=wav_dirs,
                                use_reprocess=use_reprocess,
                                )
+        self.data = data.data
+        self.test_names = data.test_names
+        self.test_info = data.test_info
+        self.cps = data.cps
+        
         # TODO: How do we handle correction data? default load in from csvs? 
         # Also needs to make sure talker words line up
         # And take into account the fit type
-        if correction_data is None:
+        if correction_data is None and test_type == 'COR':
             self.cor_data = default_correction_data()
-        else:
+        elif test_type == 'COR':
             self.cor_data = correction_data
-        # TODO: Come up with clean way to handle correction_data
-        # self.correction_data = None if not ptt_session_names else AccessData(ptt_session_names, cut_names, session_dir, cut_dir)
-        self.fit_type = self._get_fit_type(test_type)
-        self.fit_data = None
-
-        # Data from fit
-        self.fit_data = None
-
-    def _get_fit_type(self, fit_type):
-        valid_fit_types = ["COR", "LEG"]
-        if not fit_type in valid_fit_types:
-            raise ValueError(f"Fit type not one of: {valid_fit_types}")
-        return fit_type
-
-    def __repr__(self):
-        s = f'''evaluate object:
-            Speaker words: {self.data.speaker_word}
-            Sampling frequency: {self.data.sampling_frequency.iloc[0]}
-            Test type: {self.fit_type}'''
-        return s
+        else:
+            self.cor_data = None
+        # TODO: Determine if correction data matches input data, if not, raise an error
+        
+        
+        self.fit_type = test_type
+        self.fit_data = self.fit_curve_data()
 
     def fit_curve_data(self):
-        # Fit SUT tests
-        recenter = [cp["End"][0]/int(self.data.sampling_frequency) for cp in self.data.cut_points]
-        fresh_dat = [dat[["PTT_time", "P1_Int"]] for dat in self.data.dat]
-        for ii in range(len(recenter)):
-            fresh_dat[ii]["PTT_time"] = recenter[ii] - fresh_dat[ii]["PTT_time"]
-
-        # Legacy fit
+        # TODO: Delete SUT later
+        valid_fit_types = ["COR", "LEG", "SUT"]
+        # Initial parameters: naive guess
+        init = [0, -0.1]
+        
         if self.fit_type == "LEG":
-            # join dataframes
-            curve_dat = pd.concat(fresh_dat)
-
-            # Calculate asymptotic int
-            I0 = np.mean([np.mean(x["P2_Int"]) for x in self.data.dat])
-
-            # logistic function to fit
+            # Calculate asymptotic intelligibility
+            I0 = np.mean(self.data['P2_Int'])
+            # Define logistic function to fit to
             def logistic_fit(xdata, t0, lam):
-                return I0/(1+np.exp((xdata-t0)/lam))
+                return I0/(1+np.exp((xdata - t0)/lam))
+            
+            fit_data = curve_fit(logistic_fit,
+                                 self.data['time_to_P1'],
+                                 self.data['P1_Int'],
+                                 p0=init,
+                                 )
+            fit_data = FitData(I0=I0,
+                               t0=fit_data[0][0],
+                               lam=fit_data[0][1],
+                               covar=fit_data[1],
+                               )
+        elif self.fit_type == "COR":
+            print('Do corrected data')
+        elif self.fit_type == "SUT":
+            # TODO: Decide if this is really worthwhile to keep...I think delete later
+            talker_word_combos = np.unique(self.data['talker_word'])
+            fit_data = dict()
+            for tw in talker_word_combos:
+                data = self.data[self.data['talker_word'] == tw]
+                I0 = np.mean(data['P2_Int'])
+                def logistic_fit(xdata, t0, lam):
+                    return I0/(1+np.exp((xdata - t0)/lam))
+                word_fit = curve_fit(
+                    logistic_fit,
+                    data['time_to_P1'],
+                    data['P1_Int'],
+                    p0=init,
+                    )
+                fit_data[tw] = FitData(I0=I0,
+                       t0=word_fit[0][0],
+                       lam=word_fit[0][1],
+                       covar=word_fit[1],
+                       )
+        else:
+            raise ValueError(f"Fit type not one of: {valid_fit_types}")
+        
+        return fit_data
+            
+        # # Fit SUT tests
+        # recenter = [cp["End"][0]/int(self.data.sampling_frequency) for cp in self.data.cut_points]
+        # fresh_dat = [dat[["PTT_time", "P1_Int"]] for dat in self.data.dat]
+        # for ii in range(len(recenter)):
+        #     fresh_dat[ii]["PTT_time"] = recenter[ii] - fresh_dat[ii]["PTT_time"]
 
-            # TODO: Attempt predictive paramter fit
+        # # Legacy fit
+        # if self.fit_type == "LEG":
+        #     # join dataframes
+        #     curve_dat = pd.concat(fresh_dat)
 
-            # Naieve guess
-            init = [0, -0.1]
-            fit_dat = curve_fit(logistic_fit, curve_dat["PTT_time"], curve_dat["P1_Int"], p0=init)
+        #     # Calculate asymptotic int
+        #     I0 = np.mean([np.mean(x["P2_Int"]) for x in self.data.dat])
 
-            # store as fit data and return
-            return FitData(I0, fit_dat[0][0], fit_dat[0][1], fit_dat[1], curve_dat)
+        #     # logistic function to fit
+        #     def logistic_fit(xdata, t0, lam):
+        #         return I0/(1+np.exp((xdata-t0)/lam))
+
+        #     # TODO: Attempt predictive paramter fit
+
+        #     # Naieve guess
+        #     init = [0, -0.1]
+        #     fit_dat = curve_fit(logistic_fit, curve_dat["PTT_time"], curve_dat["P1_Int"], p0=init)
+
+        #     # store as fit data and return
+        #     return FitData(I0, fit_dat[0][0], fit_dat[0][1], fit_dat[1], curve_dat)
 
         if self.test_type == "COR":
             # needs ptt tests to use correction factor
