@@ -10,6 +10,7 @@ import re
 import unittest
 
 import numpy as np
+import pandas as pd
 
 import mcvqoe.accesstime as access
 
@@ -38,6 +39,53 @@ import mcvqoe.accesstime as access
 #                       cut_names=sesh_cut_paths,
 #                       session_dir='', cut_dir='')
 #     import pdb; pdb.set_trace()
+
+
+
+class  AccessDataTest(unittest.TestCase):
+    ptt_ref_data = pd.read_csv('ptt_ref_data.csv')
+    tol = 1e-16
+    def compare_access_df(self, df1, df2):
+        nrow, _ = df1.shape
+        if nrow != df2.shape[0]:
+            raise ValueError('Dataframes have different number of rows')
+        
+        data_check = np.sum(df1 == df2)
+        data_check['time_to_P1'] = np.sum(np.abs(df1['time_to_P1'] - df2['time_to_P1']) < self.tol)
+        passes = []
+        for col, match in data_check.items():
+            if col != 'TimeGap':
+                tpass = match == nrow
+                passes.append(tpass)
+        
+        self.assertEqual(np.sum(passes), len(df1.columns) - 1)
+    
+    def test_init(self):
+        
+        session_name = 'capture_PTT-gate_14-May-2021_07-30-20'
+        data_path = os.path.join('..', 'accessTime', 'inst', 'extdata')
+        
+        # Test generic session ID with test_path
+        x1 = access.AccessData(session_name, test_path=data_path)
+        self.compare_access_df(x1.data, self.ptt_ref_data)
+        
+        # Test specific csv file names with test_path
+        csv_path = os.path.join(data_path, 'csv')
+        sesh_csvs = access.access_time_eval.find_session_csvs(ptt_session, csv_path)
+        x2 = access.AccessData(test_names=sesh_csvs, test_path=data_path)
+        self.compare_access_df(x2.data, self.ptt_ref_data)
+        
+        
+        # Test specific csv file names with no test_path
+        sesh_paths = [os.path.join(csv_path, x) for x in sesh_csvs]
+        x3 = access.AccessData(test_names=sesh_paths)
+        self.compare_access_df(x3.data, self.ptt_ref_data)
+        
+        # Test explicit wav paths
+        x3w = access.AccessData(test_names=sesh_paths,
+                            wav_dirs=len(sesh_paths) * [test_wav_path],
+                            )
+        self.compare_access_df(x3w.data, self.ptt_ref_data)
 
 def test_init(session_name, data_path):
     ptt_session = session_name
@@ -117,4 +165,5 @@ if __name__ == '__main__':
                             )
     
     test_init(ptt_session, data_path)
+    unittest.main()
 
