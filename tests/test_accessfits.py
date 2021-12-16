@@ -16,10 +16,12 @@ import mcvqoe.accesstime as access
 
 class EvaluateTest(unittest.TestCase):
     ref_data_path = os.path.join('data', 'reference_data')
+    data_path = os.path.join('data')
     
-    def compare_fits_explicit(self, fit1, fit2):
+    def compare_fits_explicit(self, fit1, fit2, talker_words):
         for key in fit1.__dict__.keys():
-            with self.subTest(fit_parameter=key):
+            
+            with self.subTest(talker_words=talker_words, fit_parameter=key):
                 if key == 'covar':
                     f1_covar = getattr(fit1, key)
                     f2_covar = getattr(fit2, key)
@@ -62,7 +64,27 @@ class EvaluateTest(unittest.TestCase):
                                           (ref['lambda_t0'], ref['lambda_lambda']))
                                          ),
                                      )
-            self.compare_fits_explicit(fit_data, ref_fit)
+            self.compare_fits_explicit(fit_data, ref_fit, talker_words=tw)
+    
+    def test_sut_fits(self):
+        sut_sesh_ids = [
+            'capture_Analog_12-Nov-2020_08-26-11',
+            'capture_LTE_14-Apr-2021_16-11-22',
+            'capture_P25Direct_17-Nov-2020_15-44-51',
+            'capture_P25-Phase1-Trunked_04-Nov-2020_07-21-19',
+            'capture_P25-Phase2-Vetted_29-Oct-2020_12-39-37',
+            ]
+        for sesh_id in sut_sesh_ids:
+            eval_obj = access.evaluate(sesh_id,
+                                       test_path=self.data_path,
+                                       test_type='COR',
+                                       )
+            
+            eval_obj.eval(0.9)
+            # self.compare_fits_explicit(eval_obj.fit_data, ref_fit,
+            #                            talker_words=eval_obj.talker_words,
+            #                            )
+            
             
 
 class  AccessDataTest(unittest.TestCase):
@@ -148,6 +170,5 @@ if __name__ == '__main__':
                             wav_dirs=len(sesh_paths) * [test_wav_path],
                             )
     
-    test_init(ptt_session, data_path)
     unittest.main()
 
