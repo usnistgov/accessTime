@@ -15,8 +15,9 @@ import warnings
 
 import pandas as pd
 import numpy as np
-from scipy.optimize import curve_fit
 
+from scipy.optimize import curve_fit
+from scipy.stats import norm
 import mcvqoe.math
 
 def find_session_csvs(session_id, data_path):
@@ -348,23 +349,31 @@ class evaluate:
         else:
             self.cor_data = None
         # TODO: Determine if correction data matches input data, if not, raise an error
-        
-        
+        if self.cor_data is not None:
+            cor_tw = np.unique(self.cor_data.data['talker_word'])
+            for tw in self.talker_words:
+                if tw not in cor_tw:
+                    raise ValueError(f'Missing talker word \'{tw}\'in correction data')
         self.fit_type = test_type
         self.fit_data = self.fit_curve_data()
+        
+    @property
+    def talker_words(self):
+        return np.unique(self.data['talker_word'])
 
     def fit_curve_data(self):
         # TODO: Delete SUT later
         valid_fit_types = ["COR", "LEG", "SUT"]
         # Initial parameters: naive guess
         init = [0, -0.1]
-        
+        # Define logistic function to fit to
+        def logistic_fit(xdata, t0, lam):
+                    return I0/(1+np.exp((xdata - t0)/lam))
+            
         if self.fit_type == "LEG":
             # Calculate asymptotic intelligibility
             I0 = np.mean(self.data['P2_Int'])
-            # Define logistic function to fit to
-            def logistic_fit(xdata, t0, lam):
-                return I0/(1+np.exp((xdata - t0)/lam))
+            
             
             fit_data = curve_fit(logistic_fit,
                                  self.data['time_to_P1'],
@@ -377,7 +386,85 @@ class evaluate:
                                covar=fit_data[1],
                                )
         elif self.fit_type == "COR":
-            print('Do corrected data')
+            # Explicitly grab correction data
+            cor_data = self.cor_data.data
+            
+            # Initialize dictionary to store corrected parameters
+            cor_params = {
+                'I0': 0,
+                't0': 0,
+                'lam': 0,
+                'covar': np.array(([0, 0], [0,0]), dtype=np.dtype('float64')),
+                }
+            
+            for tw in self.talker_words:
+                # Get word data for given talker word combo
+                cor_word_data = cor_data[cor_data['talker_word'] == tw]
+                
+                # Determine I0 for correction data (should alwyas be 1, so we don't track it after this)
+                I0 = np.mean(cor_word_data['P2_Int'])
+                
+                # Get correction fit
+                cor_fit = curve_fit(
+                    logistic_fit,
+                    cor_word_data['time_to_P1'],
+                    cor_word_data['P1_Int'],
+                    p0=init,
+                    )
+                
+                # Get word data for given talker word combo for SUT
+                sut_word_data = self.data[self.data['talker_word'] == tw]
+                # Determine I0 
+                I0 = np.mean(sut_word_data['P2_Int'])
+                # Get curve fit for SUT word
+                sut_fit = curve_fit(
+                    logistic_fit,
+                    sut_word_data['time_to_P1'],
+                    sut_word_data['P1_Int'],
+                    p0=init,
+                    )
+                
+                # Corrected t0 paramerter
+                t0 = sut_fit[0][0] - cor_fit[0][0]
+                # Add to corrected parameters dictionary
+                cor_params['t0'] += t0
+                
+                # Corrected lambda
+                lam = sut_fit[0][1] - cor_fit[0][1]
+                # Add to corrected parameters dictoinary
+                cor_params['lam'] += lam
+                
+                # Add SUT I0 to corrected parameters list
+                cor_params['I0'] += I0
+                
+                # Get corrected variance and covariance of parameters
+                var_t0 = sut_fit[1][0][0] + cor_fit[1][0][0]
+                var_lam = sut_fit[1][1][1] + cor_fit[1][1][1]
+                covar_lam_t0 = sut_fit[1][0][1] + cor_fit[1][0][1]
+                
+                # Store as np array
+                cvar = np.array(([var_t0, covar_lam_t0],
+                                 [covar_lam_t0, var_lam]))
+                
+                # Add into corrected parameters list
+                cor_params['covar'] += cvar
+                
+            # Get number of talker word combinations
+            N_words = len(self.talker_words)
+            
+            # Updated sums to be averages
+            cor_params['I0'] = cor_params['I0']/N_words
+            cor_params['t0'] = cor_params['t0']/N_words
+            cor_params['lam'] = cor_params['lam']/N_words
+            
+            fit_data = FitData(
+                I0=cor_params['I0'],
+                t0=cor_params['t0'],
+                lam=cor_params['lam'],
+                covar=cor_params['covar'],
+                )
+            
+            
         elif self.fit_type == "SUT":
             # TODO: Decide if this is really worthwhile to keep...I think delete later
             talker_word_combos = np.unique(self.data['talker_word'])
@@ -385,8 +472,7 @@ class evaluate:
             for tw in talker_word_combos:
                 data = self.data[self.data['talker_word'] == tw]
                 I0 = np.mean(data['P2_Int'])
-                def logistic_fit(xdata, t0, lam):
-                    return I0/(1+np.exp((xdata - t0)/lam))
+                
                 word_fit = curve_fit(
                     logistic_fit,
                     data['time_to_P1'],
@@ -402,50 +488,48 @@ class evaluate:
             raise ValueError(f"Fit type not one of: {valid_fit_types}")
         
         return fit_data
-            
-        # # Fit SUT tests
-        # recenter = [cp["End"][0]/int(self.data.sampling_frequency) for cp in self.data.cut_points]
-        # fresh_dat = [dat[["PTT_time", "P1_Int"]] for dat in self.data.dat]
-        # for ii in range(len(recenter)):
-        #     fresh_dat[ii]["PTT_time"] = recenter[ii] - fresh_dat[ii]["PTT_time"]
+        
 
-        # # Legacy fit
-        # if self.fit_type == "LEG":
-        #     # join dataframes
-        #     curve_dat = pd.concat(fresh_dat)
+    def eval(self, alpha, rel_to_intell=False, sys_dly_unc=0.07e-3/1.96,
+             p=0.95):
+        """
+        Evaluate access delay for a given value of alpha.
 
-        #     # Calculate asymptotic int
-        #     I0 = np.mean([np.mean(x["P2_Int"]) for x in self.data.dat])
+        Parameters
+        ----------
+        alpha : TYPE
+            DESCRIPTION.
+        rel_to_intell : TYPE, optional
+            DESCRIPTION. The default is False.
+        sys_dly_unc : TYPE, optional
+            DESCRIPTION. The default is 0.07e-3/1.96.
+        p : TYPE, optional
+            DESCRIPTION. The default is 0.95.
 
-        #     # logistic function to fit
-        #     def logistic_fit(xdata, t0, lam):
-        #         return I0/(1+np.exp((xdata-t0)/lam))
+        Returns
+        -------
+        access : TYPE
+            DESCRIPTION.
+        ci : TYPE
+            DESCRIPTION.
 
-        #     # TODO: Attempt predictive paramter fit
-
-        #     # Naieve guess
-        #     init = [0, -0.1]
-        #     fit_dat = curve_fit(logistic_fit, curve_dat["PTT_time"], curve_dat["P1_Int"], p0=init)
-
-        #     # store as fit data and return
-        #     return FitData(I0, fit_dat[0][0], fit_dat[0][1], fit_dat[1], curve_dat)
-
-        if self.test_type == "COR":
-            # needs ptt tests to use correction factor
-            if not self.ptt_session_names:
-                raise ValueError("Correction factor requires PTT tests.")
-            return 0
-
-
+        """
+        # TODO: Implement rel_to_intell - use intelligibility level rather than alpha level
+        C = np.log((1-alpha)/alpha)
+        access = self.fit_data.lam * C + self.fit_data.t0
+        
+        var_t = np.power(C, 2) * self.fit_data.covar.loc["lambda", "lambda"]
+        + self.fit_data.covar.loc["t0", "t0"] 
+        + 2*C*self.fit_data.covar.loc["t0", "lambda"]
+        
+        unc = np.sqrt(var_t + np.power(sys_dly_unc, 2))
+        k = norm.ppf(1-(1-p)/2)
+        ci = np.array([access - k*unc, access + k*unc]) 
+        
+        return access, ci
+    
     def eval_intell(self):
         pass
-
-    def eval_access(self):
-        pass
-
-    def eval(self):
-        pass
-
 
 # =============================================================================
 # Ancillary functions
