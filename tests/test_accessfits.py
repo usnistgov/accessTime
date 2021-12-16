@@ -6,6 +6,7 @@ Created on Mon Nov 29 13:24:11 2021
 """
 import itertools
 import os
+import pkg_resources
 import re
 import unittest
 
@@ -40,7 +41,55 @@ import mcvqoe.accesstime as access
 #                       session_dir='', cut_dir='')
 #     import pdb; pdb.set_trace()
 
-
+class EvaluateTest(unittest.TestCase):
+    ref_data_path = ''
+    
+    def compare_fits_explicit(self, fit1, fit2):
+        for key in fit1.__dict__.keys():
+            if key == 'covar':
+                f1_covar = getattr(fit1, key)
+                f2_covar = getattr(fit2, key)
+                covar_diff = np.abs(f1_covar - f2_covar)
+                # TODO: Compare dataframes see:
+                # https://stackoverflow.com/questions/38839402/how-to-use-assert-frame-equal-in-unittest
+                print('TODO: I DIDNT COMPARE COVARIANCE YET')
+            else:
+                self.assertAlmostEqual(getattr(fit1, key), getattr(fit2, key))
+    
+    def test_ptt_fits(self):
+        ptt_ref_data_fname = 'PTT-gate-word-fits.csv'
+        ptt_ref_data_path = os.path.join(self.ref_data_path, ptt_ref_data_fname)
+        
+        ref_data = pd.read_csv(ptt_ref_data_path, index_col=0)
+        correction_csv_path = pkg_resources.resource_filename(
+            'mcvqoe.accesstime', 'correction_data'
+            )
+        correction_csvs = pkg_resources.resource_listdir(
+            'mcvqoe.accesstime', 'correction_data'
+            )
+        
+        sesh_csvs = []
+        for ccsv in correction_csvs:
+            if 'capture' in ccsv:
+                sesh_csvs.append(os.path.join(correction_csv_path, ccsv))
+        
+        eval_obj = access.evaluate(sesh_csvs,
+                                   wav_dirs=[correction_csv_path] * len(sesh_csvs),
+                                   test_type='SUT'
+                                   )
+        for tw, fit_data in eval_obj.fit_data.items():
+            
+            ref = ref_data.loc[tw]
+            ref_fit = access.FitData(I0=ref['I0'],
+                                     t0=ref['t0'],
+                                     lam=ref['lambda'],
+                                     covar=np.array(
+                                         ((ref['t0_t0'], ref['t0_lambda']),
+                                          (ref['lambda_t0'], ref['lambda_lambda']))
+                                         ),
+                                     )
+            self.compare_fits_explicit(fit_data, ref_fit)
+            
 
 class  AccessDataTest(unittest.TestCase):
     ptt_ref_data = pd.read_csv('ptt_ref_data.csv')
