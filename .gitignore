@@ -55,6 +55,8 @@ ComputerName.txt
 !/mcvqoe/accesstime/audio_clips/*.csv
 # Un-ignore python correction csv files
 !/mcvqoe/accesstime/correction_data/*.csv
+# Un-ignore testing data
+!tests/data/**/*.csv
 
 # ignore python packing stuff
 .eggs/
