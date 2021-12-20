@@ -2,7 +2,7 @@
 __pycache__
 
 #data directory
-data/
+/data/
 
 #test type file
 test-type.txt
@@ -20,7 +20,7 @@ ComputerName.txt
 *.wav
 
 # Output data files
-*.csv
+# *.csv
 
 # R files
 *.Rhistory
@@ -56,7 +56,7 @@ ComputerName.txt
 # Un-ignore python correction csv files
 !/mcvqoe/accesstime/correction_data/*.csv
 # Un-ignore testing data
-!tests/data/**/*.csv
+!/tests/data/**/*.csv
 
 # ignore python packing stuff
 .eggs/
