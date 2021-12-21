@@ -4,10 +4,7 @@ import mcvqoe.base
 import statistics
 import argparse
 import numpy as np
-import plotly.graph_objects as go
 import pandas as pd
-import plotly.io as pio
-import plotly.express as px
 import math
 import re
 import json
@@ -58,7 +55,7 @@ class diagnose():
         Names of all trials that set off any of the flags for 
         potential problems
     """
-    def load_dat():    
+def load_dat(Wav_Dir):    
         # Get trial recordings
         print("Loading recordings")
         # Get all the Rx wav files 
@@ -100,9 +97,7 @@ class diagnose():
     
 def AW_Rec_Check(Trials, rx_rec, fs, rx_dat, bad_trial):
     """
-    Calculates the a-weight (dBA) of each trial. Plot these  
-    values. Check for trials with a dBA less than - 60 dBA.
-    Check for trials with a dBA a certain distance from the mean.
+    Calculates the a-weight (dBA) of each trial.
     
     Parameters
     ----------
@@ -122,16 +117,9 @@ def AW_Rec_Check(Trials, rx_rec, fs, rx_dat, bad_trial):
     -------
     A_Weight : array
         A_Weight of every trial 
-    bad_trial : set
-        Names of all trials that set off any of the flags for 
-        potential problems      
-    AW_flag : set
-        Trials that have low dBA values (and likely lost audio)
-        or otherwise deviate from the patterns of the dataset 
     """
-    # Create empty list, set for a-weight values and flag     
+    # Create empty list for a-weight values     
     A_Weight = []
-    AW_flag = set()
       
     # Get A-weight
     print("Gathering Statistics and Creating Plots") 
@@ -140,53 +128,11 @@ def AW_Rec_Check(Trials, rx_rec, fs, rx_dat, bad_trial):
         aw = mcvqoe.base.a_weighted_power(rx_rec[k], fs) 
         A_Weight.append(aw)
 
-    # Plot a-weighted power for all trials  
-    A_Weight = np.asarray(A_Weight)  
-    x_axis = list(range(1,Trials+1))
-    dfAW = pd.DataFrame({"A-Weight": A_Weight,
-                         "Trials": x_axis})  
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x = dfAW['Trials'], 
-            y = dfAW['A-Weight'],
-            mode = 'markers'
-        )
-    )    
-    fig.update_layout(title_text='A-Weighted Power of Received Audio')
-    fig.update_xaxes(title_text='Trial Number')
-    fig.update_yaxes(title_text='A-Weight (dBA)')
-    fig.show() 
+    return A_Weight
 
-    # Calculate mean a-weight, standard deviation.
-    # Use this info to find trials that may have lost
-    # audio. 
-    AW_lin = 10**(A_Weight/20)
-    AW_low = 10**(-60/20)
-    AW_Mean = round(statistics.mean(AW_lin),3)
-    AW_std = round(statistics.stdev(AW_lin),3)
-    for m in range(0,Trials):
-        # Cycle through AW values, look for trials where the values
-        # stand out by being a certain distance from the mean
-        if abs(AW_lin[m]-AW_Mean) > 2*AW_std:
-            # Get the name of the wav file
-            AWflag_wav = rx_dat[m]
-            # Add it to the bad list
-            bad_trial.add(AWflag_wav)
-            AW_flag.add(AWflag_wav)
-        # Add a flag if the a-weight is below -60 dBA
-        if AW_lin[m] < AW_low:
-           # Get the name of the wav file
-           AWflag_wav = rx_dat[m]
-           # Add it to the bad list
-           AW_flag.add(AWflag_wav)
-
-    return A_Weight, AW_flag, bad_trial
-
-def FSF_Rec_Check(TX_filename, tx_wavs, Trials, rx_rec, fs, rx_dat, bad_trial):   
+def FSF_Rec_Check(TX_filename,tx_wavs,Trials,rx_rec,fs,rx_dat,bad_trial):   
     """
-    Calculate FSF scores, standard deviation. Use this info to find trials that may have lost
-    audio.
+    Calculate FSF scores of each trial. 
     
     Parameters
     ----------
@@ -202,24 +148,15 @@ def FSF_Rec_Check(TX_filename, tx_wavs, Trials, rx_rec, fs, rx_dat, bad_trial):
         sampling rate of rx recordings       
     rx_dat : list
         names of rx recordings   
-    bad_trial : set
-        Names of all trials that set off any of the flags for 
-        potential problems
 
     Returns
     -------
-    bad_trial : set
-        Names of all trials that set off any of the flags for 
-        potential problems
     FSF_all : list
        FSF scores of every trial 
-    FSF_flag : set
-        Trials that have low FSF scores or otherwise deviate 
-        from the patterns of the dataset     
+     
     """
-    # Create empty list,set for FSF scores and flag    
+    # Create empty list for FSF scores
     FSF_all = []
-    FSF_flag = set()
     
     # Get FSF scores, plot trials
     print("Gathering FSF data") 
@@ -243,49 +180,13 @@ def FSF_Rec_Check(TX_filename, tx_wavs, Trials, rx_rec, fs, rx_dat, bad_trial):
         get_fsf = mcvqoe.base.fsf(RX_wav,TX_wav,fs)
         # Get just the FSF score
         FSF_all.append(get_fsf[0])   
-        
-    # Gather metrics for FSF scores
-    FSF_Mean = round(statistics.mean(FSF_all),3)
-    FSF_std = round(statistics.stdev(FSF_all),3)
-    for m in range(0,Trials):
-        # Cycle through FSF scores, look for trials where the score
-        # stands out by being a certain distance from the mean
-        if abs(FSF_all[m]-FSF_Mean) > 2*FSF_std:
-            # Get the name of the wav file
-            FSFflag_wav = rx_dat[m]
-            # Add it to the bad list
-            bad_trial.add(FSFflag_wav)
-            FSF_flag.add(FSFflag_wav)
-        # Add a flag for low FSF scores that may be a sign of 
-        # dropped audio
-        if FSF_all[m] < 0.3:
-            # Add it to the bad list
-            bad_trial.add(FSFflag_wav)
-            FSF_flag.add(FSFflag_wav)
-            
-    # Plot FSF values 
-    FSF_Scores = np.asarray(FSF_all)  
-    x_axis = list(range(1,Trials+1))
-    dfFSF = pd.DataFrame({"FSF Score": FSF_Scores,
-                          "Trial": x_axis})  
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-        x = dfFSF['Trial'],    
-        y = dfFSF['FSF Score'],
-        mode = 'markers'
-        )
-    ) 
-    fig.update_layout(title_text='FSF Score of Received Audio')
-    fig.update_xaxes(title_text='Trial Number')
-    fig.update_yaxes(title_text='FSF Score')
-    fig.show()
 
-    return bad_trial, FSF_all, FSF_flag
+    return FSF_all
 
-def Clip_Rec_Check(Trials, rx_rec, rx_dat, bad_trial):
+def Clip_Rec_Check(Trials,rx_rec,rx_dat,bad_trial):
     """
-    Cycle through all rx recordings and check if any clipped.
+    Cycle through all rx recordings and get peak amplitude.
+    
     Parameters
     ----------
     Trials : int
@@ -294,112 +195,28 @@ def Clip_Rec_Check(Trials, rx_rec, rx_dat, bad_trial):
         audio for rx recordings         
     rx_dat : list
         names of rx recordings   
-    bad_trial : set
-        Names of all trials that set off any of the flags for 
-        potential problems
 
     Returns
     ------- 
     peak_dbfs : list
         peak amplitude of each trial, dB relative to full 
         scale 
-    Clip_flag : set
-        Trials that clipped 
-    bad_trial : set
-        Names of all trials that set off any of the flags for 
-        potential problems
     """
-    # Set up warning threshold
-    vol_high = -1
-    # Create empty list, set for peak volume and flag    
+    # Create empty list for peak volume
     peak_dbfs = []
-    Clip_flag = set()
+
     for n in range(0,Trials):
-        # Check for positive and negative clipping
+        # Find peak amplitude (abs)
         peak = max(abs(rx_rec[n]))
         peak_db = round(20 * math.log10(peak), 2)
         peak_dbfs.append(peak_db)
-        # If approaching clipping, flag as a bad trial
-        if peak_dbfs[n] > vol_high :
-            # Get the name of the wav file
-            clip_wav = rx_dat[n]
-            # Add it to the bad list
-            bad_trial.add(clip_wav)
-            Clip_flag.add(clip_wav)
     
-    return peak_dbfs, Clip_flag, bad_trial        
-    
-def Wav_Plot(rx_rec, Trials, fs):
-    """
-    Plot rx trial audio recordings
-    
-    Parameters
-    ----------
-    Trials : int
-        number of trials 
-    rx_rec : list 
-        audio for rx recordings   
-    fs : int 
-        sampling rate of rx recordings       
-
-    Returns
-    -------
- 
-    """
-    # Create empty list for time (seconds)
-    tsec = []
-    # Prepare time info for plotting
-    for k in range(0,Trials):
-        t = len(rx_rec[0])/fs
-        ts = np.arange(0,t,1/fs)
-        tsec.append(ts)
-        # Plot recording
-        dfWavs= pd.DataFrame({"time":ts, 
-                        "audio":rx_rec[0]})
-    dfWavs.set_index('time')
-    fig = px.line(dfWavs, y='audio',x='time')
-    fig.update_layout(title_text='Trial Recordings')
-    fig.update_xaxes(title_text='Time (s)')
-    fig.update_yaxes(title_text='Amplitude')
-    fig.show()  
-    
- 
-def Problem_Trials(bad_trial, Clip_flag, AW_flag, FSF_flag):     
-    """
-    Warn user of problem trial recording names 
-    
-    Parameters
-    ----------
-    bad_trial : set
-        Names of all trials that set off any of the flags for 
-        potential problems
-    Clip_flag : set    
-        names of trials flagged for clipping
-    AW_flag : set
-        names of trials flagged for their dBA values
-    FSF_flag : set     
-        names of trials flagged for their FSF scores   
-
-    Returns
-    -------
-
-    """
-    np.disp('The following trials were flagged as potentially having issues')
-    np.disp(bad_trial)
-    if Clip_flag:
-        np.disp('The following trials were flagged for clipping')
-        np.disp(Clip_flag)  
-    if AW_flag:    
-        np.disp('The following trials were flagged for their a-weight')
-        np.disp(AW_flag)
-    if FSF_flag:    
-        np.disp('The following trials were flagged for their FSF scores')
-        np.disp(FSF_flag) 
+    return peak_dbfs       
 
 def Gather_Diagnostics(rx_dat,A_Weight,FSF_all,peak_dbfs):
     """
     Create a dataframe of all diagnostic data. A-weight,
-    FSF scores, max clip amplitude. Convert to json
+    FSF scores, max clip amplitude. Convert to json, csv
     
     Parameters
     ----------
@@ -422,13 +239,18 @@ def Gather_Diagnostics(rx_dat,A_Weight,FSF_all,peak_dbfs):
                     "A_Weight":A_Weight,
                     "FSF_Scores":FSF_all,
                     "Amplitude":peak_dbfs})
-    # Creat json file
-    diagnostics_json = df_Diagnostics.to_json()
+    # TODO Set dir for testing    
     Test_Dir = 'C:/Users/cjg2/Documents/MCV'
+    # Create json
+    diagnostics_json = df_Diagnostics.to_json()
     with open(os.path.join(Test_Dir,'diagnostics_json.json'),'w') as f:
-        f.write(diagnostics_json)      
-    
-    return diagnostics_json    
+        f.write(diagnostics_json) 
+    # Create csv    
+    diagnostics_csv = df_Diagnostics.to_csv()
+    with open(os.path.join(Test_Dir,'diagnostics_json.json'),'w') as f:
+        f.write(diagnostics_csv)
+        
+    return diagnostics_json, diagnostics_csv    
 
 def main():   
     """
