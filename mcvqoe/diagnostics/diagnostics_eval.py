@@ -18,23 +18,29 @@ import math
 import re
 import json
 
-def load_csv(CSV_Dir):
+class diagnostics_eval():
     """
-    Read in a diagnostics csv path. Plot data and 
-    use a-weight, FSF, and clipping checks to inform
-    user of potential problems in collected data. Flags
-    trials that may require further investigation. 
+    Plot data and inform user of potential problems in collected
+    data. Flags trials that may require further investigation.
+    """
+
+def load_csv(csv_dir):
+    """
+    Read in a diagnostics csv path.  
 
     Parameters
     ----------
-    CSV_Dir : TYPE
-        DESCRIPTION.
+    csv_dir : string
+        Path to diagnostics csv
 
     Returns
     -------
     None.
 
     """
+    
+    # Read csv, convert to dataframe
+    diagnostics_dat = pd.read_csv(csv_dir)
 
 def Clip_Flag(Trials,peak_dbfs,rx_dat,bad_trial):
     """
