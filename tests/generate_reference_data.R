@@ -11,6 +11,11 @@ ref_word_csv <- function(sut_fit, name){
   write.csv(res, name, quote=FALSE)
 }
 
+# ref_tech_csv <- function(tech_fits, name){
+#   coefs <- sapply(tech_fits, coef)
+#   vcovs <- sapply(tech_fits, )
+# }
+
 rec_access_csv <- function(tech_fits, name){
   alpha <- seq(from=0.5, to=0.99, by=0.01)
   access_vals_raW <- lapply(tech_fits,
@@ -32,3 +37,4 @@ tech_fits <- list(analog_direct=analog_direct,
                   )
 
 rec_access_csv(tech_fits, file.path(data_path, "reference-access-values.csv"))
+ref_word_csv(tech_fits, file.path(data_path, "reference-tech-fits.csv"))

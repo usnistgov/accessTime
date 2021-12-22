@@ -18,19 +18,35 @@ class EvaluateTest(unittest.TestCase):
     ref_data_path = os.path.join('data', 'reference_data')
     data_path = os.path.join('data')
     
-    def compare_fits_explicit(self, fit1, fit2, talker_words):
+    sut_sesh_ids = {
+            'analog_direct': 'capture_Analog_12-Nov-2020_08-26-11',
+            'lte': 'capture_LTE_14-Apr-2021_16-11-22',
+            'p25_direct': 'capture_P25Direct_17-Nov-2020_15-44-51',
+            'p25_trunked_phase1': 'capture_P25-Phase1-Trunked_04-Nov-2020_07-21-19',
+            'p25_trunked_phase2': 'capture_P25-Phase2-Vetted_29-Oct-2020_12-39-37',
+            }
+    
+    def compare_fits_explicit(self, fit1, fit2, fit_description):
         for key in fit1.__dict__.keys():
             
-            with self.subTest(talker_words=talker_words, fit_parameter=key):
-                if key == 'covar':
-                    f1_covar = getattr(fit1, key)
-                    f2_covar = getattr(fit2, key)
-                    covar_diff = np.abs(f1_covar - f2_covar)
-                    # TODO: Compare dataframes see:
-                    # https://stackoverflow.com/questions/38839402/how-to-use-assert-frame-equal-in-unittest
-                    print('TODO: I DIDNT COMPARE COVARIANCE YET')
-                else:
+            with self.subTest(fit_description=fit_description, fit_parameter=key):
+                if key == 'I0':
+                    # These should be identical
                     self.assertAlmostEqual(getattr(fit1, key), getattr(fit2, key))
+                elif key != 'covar':
+                    # Update what key to use to grab from covariance matrix
+                    if key== 'lam':
+                        covar_k = 'lambda'
+                    else:
+                        covar_k = key
+                    # Grab variances for each parameter
+                    var1 = fit1.covar.loc[covar_k, covar_k]
+                    var2 = fit2.covar.loc[covar_k, covar_k]
+                    # Uncertainty of the difference between the parameters is sqrt of the sum of variances
+                    # We will use that as a delta for our check
+                    total_unc = np.sqrt(var1 + var2)
+                    self.assertAlmostEqual(getattr(fit1, key), getattr(fit2, key), delta=total_unc)
+                    
     
     def test_ptt_fits(self):
         ptt_ref_data_fname = 'PTT-gate-word-fits.csv'
@@ -64,26 +80,46 @@ class EvaluateTest(unittest.TestCase):
                                           (ref['lambda_t0'], ref['lambda_lambda']))
                                          ),
                                      )
-            self.compare_fits_explicit(fit_data, ref_fit, talker_words=tw)
+            self.compare_fits_explicit(fit_data, ref_fit, fit_description='PTT Gate' + tw)
     
-    def test_sut_fits(self):
-        sut_sesh_ids = [
-            'capture_Analog_12-Nov-2020_08-26-11',
-            'capture_LTE_14-Apr-2021_16-11-22',
-            'capture_P25Direct_17-Nov-2020_15-44-51',
-            'capture_P25-Phase1-Trunked_04-Nov-2020_07-21-19',
-            'capture_P25-Phase2-Vetted_29-Oct-2020_12-39-37',
-            ]
-        for sesh_id in sut_sesh_ids:
+    def test_sut_access(self):
+        
+        ref_path = os.path.join(self.ref_data_path, 'reference-access-values.csv')
+        sut_ref_data = pd.read_csv(ref_path)
+        for tech, sesh_id in self.sut_sesh_ids.items():
             eval_obj = access.evaluate(sesh_id,
                                        test_path=self.data_path,
                                        test_type='COR',
                                        )
+            sut_ref = sut_ref_data[sut_ref_data['Technology'] == tech]
+            for ix, ref_row in sut_ref.iterrows():
+                [access_time, ci] = eval_obj.eval(ref_row['alpha'])
+                ref_ci = (ref_row['access_time'] 
+                          + 1.96*ref_row['uncertainty'] * np.array([-1, 1]))
+                with self.subTest(tech=tech, alpha=ref_row['alpha']):
+                    self.assertTrue((ref_ci[0] <= ci[0] and ci[0] <= ref_ci[1])
+                                    or (ci[0] <= ref_ci[0] and ref_ci[0] <= ci[1]))
+    
+    def test_sut_fits(self):
+        
+        ref_path = os.path.join(self.ref_data_path, 'reference-tech-fits.csv')
+        sut_ref_data = pd.read_csv(ref_path, index_col=0)
+        for tech, sesh_id in self.sut_sesh_ids.items():
+            eval_obj = access.evaluate(sesh_id,
+                                       test_path=self.data_path,
+                                       test_type='COR',
+                                       )
+            ref = sut_ref_data.loc[tech]
+            ref_fit = access.FitData(I0=ref['I0'],
+                                     t0=ref['t0'],
+                                     lam=ref['lambda'],
+                                     covar=np.array(
+                                         ((ref['t0_t0'], ref['t0_lambda']),
+                                          (ref['lambda_t0'], ref['lambda_lambda']))
+                                         ),
+                                     )
+            self.compare_fits_explicit(eval_obj.fit_data, ref_fit, fit_description=tech)
             
-            eval_obj.eval(0.9)
-            # self.compare_fits_explicit(eval_obj.fit_data, ref_fit,
-            #                            talker_words=eval_obj.talker_words,
-            #                            )
             
             
 
@@ -152,13 +188,12 @@ if __name__ == '__main__':
     sesh_csvs = access.access_time_eval.find_session_csvs(ptt_session, csv_path)
     x2 = access.AccessData(test_names=sesh_csvs, test_path=data_path)
     
-    # TODO:
     # Test specific csv file names with no test_path
     sesh_paths = [os.path.join(csv_path, x) for x in sesh_csvs]
     x3 = access.AccessData(test_names=sesh_paths)
     # Can you do non-specific wav paths with specific csv paths?
     
-    # TODO: None of these test wav_path separately...
+    
     # Test explicit wav paths
     test_wav_path = os.path.join(wav_path, ptt_session)
     cp_names = os.listdir(test_wav_path)
