@@ -488,7 +488,7 @@ class evaluate:
         return fit_data
         
 
-    def eval(self, alpha, rel_to_intell=False, sys_dly_unc=0.07e-3/1.96,
+    def eval(self, alpha, raw_intell=False, sys_dly_unc=0.07e-3/1.96,
              p=0.95):
         """
         Evaluate access delay for a given value of alpha.
@@ -497,7 +497,7 @@ class evaluate:
         ----------
         alpha : TYPE
             DESCRIPTION.
-        rel_to_intell : TYPE, optional
+        raw_intell : TYPE, optional
             DESCRIPTION. The default is False.
         sys_dly_unc : TYPE, optional
             DESCRIPTION. The default is 0.07e-3/1.96.
@@ -512,7 +512,7 @@ class evaluate:
             DESCRIPTION.
 
         """
-        if rel_to_intell:
+        if raw_intell:
             if alpha > self.fit_data.I0:
                 raise ValueError(f'Invalid intelligibility level, must be <= {self.fit_data.I0}')
             # Rescale such that alpha is the fractoin of asymptotic
@@ -549,45 +549,64 @@ def pretty_print(evaluate):
 # Main definition
 # =============================================================================
 def main():
-    # # set up parser
-    # parser = argparse.ArgumentParser(description=__doc__)
+    """
+    Evalaute Access Time data with command line arguments.
 
-    # parser.add_argument('session_files', type=str, nargs='+', action='extend',
-    #                     help='Test names')
-    # parser.add_argument('cut_files', type=str, nargs='+', action='extend',
-    #                     help='Cut files corresponding to session files.')
-    # parser.add_argument('-sp', '--session-path', default='', type=str,
-    #                     help='Path to directory containing the session files, defaults to current directory.')
-    # parser.add_argument('-cp', '--cut-path', default='', type=str,
-    #                     help='Path to directory containing the cut files, defaults to current directory.')
-    # parser.add_argument('-tt', '--test-type', default='SUT', type=str,
-    #                     help='Path to directory containing the cut files, defaults to current directory.')
+    Returns
+    -------
+    None.
 
-    # # Get arguments for use in evaluate class
-    # args = parser.parse_args()
-    # t = evaluate(args.session_files, args.cut_files,
-    #              args.session_path, args.cut_path,
-    #              args.test_type)
+    """
+    # Set up argument parser
+    parser = argparse.ArgumentParser(
+        description=__doc__)
+    parser.add_argument('test_names',
+                        type=str,
+                        nargs="+",
+                        action="extend",
+                        help=("Test names (same as name of folder for wav"
+                              "files)"))
+    parser.add_argument('-p', '--test-path',
+                        default='',
+                        type=str,
+                        help=("Path where test data is stored. Must contain"
+                              "wav and csv directories."))
 
-    # res = t.eval()
+    parser.add_argument('-a', '--alpha',
+                        default=[],
+                        nargs="+",
+                        action="extend",
+                        type=float,
+                        help="Values to evalaute access at. Either relative to asymptotic intelligibility or raw intelligibility values (see --relative-intell)")
 
-    # # Pretty print result and return
-    # pretty_print(res)
-    # return(res)
+    parser.add_argument('-n', '--no-reprocess',
+                        default=True,
+                        action="store_false",
+                        help="Do not use reprocessed data if it exists.")
+    
+    parser.add_argument('-r', '--raw-intell',
+                        default=True,
+                        action="store_false",
+                        help="Evaluate access with alpha as raw intelligibility.")
+    
 
-    eta = evaluate(
-        ['Rcapture_P25_Direct_Access_Time_18-Oct-2019_07-38-54_F1_b39_w4_hook.csv',
-         'Rcapture_P25_Direct_Access_Time_22-Oct-2019_07-25-17_F3_b15_w5_west.csv',
-         'Rcapture_P25_Direct_Access_Time_23-Oct-2019_14-11-36_M3_b22_w3_cop.csv',
-         'Rcapture_P25_Direct_Access_Time_25-Oct-2019_13-22-20_M4_b18_w4_pay.csv'],
-        ['Tx_F1_b39_w4_hook.csv', 'Tx_F3_b15_w5_west.csv',
-         'Tx_M3_b22_w3_cop.csv', 'Tx_M4_b18_w4_pay.csv'],
-        'C:/Users/wrm3/Desktop/Access Time Addendum Paper Data/P25-Direct-2500-ms/',
-        'C:/Users/wrm3/Desktop/Access Time Addendum Paper Data/P25-Direct-2500-ms/',
-        'LEG')
+    args = parser.parse_args()
 
-    u = eta.fit_curve_data()
-    print(u)
+    eval_obj = evaluate(args.test_names,
+                      test_path=args.test_path,
+                      use_reprocess=args.no_reprocess)
+    
+    print("Results shown as Access(alpha) = mean, (95% C.I.)")
+    msg_str = "Access({:.4f}) = {:.4f} s, ({:.4f},{:.4f}) s"
+    for alpha in args.alpha:
+        atime, ci = eval_obj.eval(alpha,
+                                  raw_intell=args.raw_intell,
+                                  )
+        print(msg_str.format(alpha,
+                             atime,
+                             ci[0],
+                             ci[1],
+                             ))
 
 # =============================================================================
 # Execute if run as main script
