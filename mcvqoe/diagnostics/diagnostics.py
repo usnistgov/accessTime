@@ -85,7 +85,7 @@ class diagnose():
                     tx_path = Wav_Dir + '/' + TX_filename[k]
                     fs,tx_wavfile = mcvqoe.base.audio_read(tx_path)
                     tx_wavs.append(tx_wavfile)
-       
+            #TODO figure out a reasonable way to return rx_rec out
             return TX_filename, tx_wavs, Trials, rx_rec, fs, rx_dat, bad_trial
         
     def AW_Rec_Check(Trials, rx_rec, fs, rx_dat, bad_trial):
@@ -194,6 +194,13 @@ def Clip_Rec_Check(Trials,rx_rec,rx_dat,bad_trial):
     """
     # Create empty list for peak volume
     peak_dbfs = []
+    for n in range(0,Trials):
+        # check for positive and negative clipping
+        peak = max(abs(rx_rec[n]))
+        peak_db = round(20 * math.log10(peak), 2)
+        peak_dbfs.append(peak_db)
+    return peak_dbfs
+
 def main():   
     """
     Read in a directory of WAV files. 

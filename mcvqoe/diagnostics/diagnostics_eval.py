@@ -12,7 +12,6 @@ import argparse
 import numpy as np
 import plotly.graph_objects as go
 import pandas as pd
-import plotly.io as pio
 import plotly.express as px
 import math
 import re
@@ -35,14 +34,36 @@ def load_csv(csv_dir):
 
     Returns
     -------
-    None.
-
+     rx_name : list
+         names of rx recordings 
+     A_Weight : array
+         A_Weight of every trial    
+    FSF_all : list
+         FSF scores of every trial
+     peak_dbfs : list
+         peak amplitude of each trial, dB relative to full 
+         scale      
+     Trials : int
+         number of trials
     """
     
     # Read csv, convert to dataframe
     diagnostics_dat = pd.read_csv(csv_dir)
+    # TODO: make these naming conventions from the csvs
+    # make functional sense 
+    rx_name = diagnostics_dat.RX_Name
+    rx_name = rx_name.to_numpy()
+    A_Weight = diagnostics_dat.A_Weight
+    A_Weight = A_Weight.to_numpy()
+    FSF_all = diagnostics_dat.FSF_Scores
+    FSF_all = FSF_all.to_numpy()
+    peak_dbfs = diagnostics_dat.Amplitude
+    peak_dbfs = peak_dbfs.to_numpy()
+    Trials = len(diagnostics_dat)
+    
+    return rx_name, A_Weight, FSF_all, peak_dbfs, Trials
 
-def Clip_Flag(Trials,peak_dbfs,rx_dat,bad_trial):
+def Clip_Flag(Trials,peak_dbfs,rx_name):
     """
     Cycle through the peak amplitude and check
     for clipping.
@@ -51,10 +72,8 @@ def Clip_Flag(Trials,peak_dbfs,rx_dat,bad_trial):
     ----------
     Trials : int
         number of trials
-    rx_dat : list
+    rx_name : list
         names of rx recordings 
-    bad_trial : TYPE
-        DESCRIPTION.
     peak_dbfs : list
         peak amplitude of each trial, dB relative to full 
         scale     
@@ -63,9 +82,6 @@ def Clip_Flag(Trials,peak_dbfs,rx_dat,bad_trial):
     -------
     clip_flag : set
         Trials that clipped 
-    bad_trial : set
-        Names of all trials that set off any of the flags for 
-        potential problems
 
     """
     # Set up warning threshold
@@ -78,11 +94,10 @@ def Clip_Flag(Trials,peak_dbfs,rx_dat,bad_trial):
         # If approaching clipping, flag as a bad trial
         if peak_dbfs[n] > vol_high :
             # Get the name of the wav file
-            clip_wav = rx_dat[n]
+            clip_wav = rx_name[n]
             # Add it to the bad list
-            bad_trial.add(clip_wav)
             clip_flag.add(clip_wav)
-    return clip_flag, bad_trial    
+    return clip_flag   
 
 def FSF_Plot(FSF_all,Trials):
     """
@@ -118,7 +133,7 @@ def FSF_Plot(FSF_all,Trials):
     fig.update_yaxes(title_text='FSF Score')
     fig.show()
     
-def FSF_Flag(FSF_all,Trials,rx_dat):
+def FSF_Flag(FSF_all,Trials,rx_name):
     """
     Check for trials with an FSF a certain distance
     from the mean. Use this info to find trials that 
@@ -130,7 +145,7 @@ def FSF_Flag(FSF_all,Trials,rx_dat):
        FSF scores of every trial
     Trials : int
        number of trials   
-    rx_dat : list
+    rx_name : list
         names of rx recordings
         
     Returns
@@ -138,9 +153,6 @@ def FSF_Flag(FSF_all,Trials,rx_dat):
     FSF_flag : set
         Trials that have low FSF scores or otherwise deviate 
         from the patterns of the dataset
-    bad_trial : set
-        Names of all trials that set off any of the flags for 
-        potential problems
     """
     # Create empty set for FSF flag    
     FSF_flag = set()
@@ -152,18 +164,16 @@ def FSF_Flag(FSF_all,Trials,rx_dat):
         # stands out by being a certain distance from the mean
         if abs(FSF_all[m]-FSF_Mean) > 2*FSF_std:
             # Get the name of the wav file
-            FSFflag_wav = rx_dat[m]
+            FSFflag_wav = rx_name[m]
             # Add it to the bad list
-            bad_trial.add(FSFflag_wav)
             FSF_flag.add(FSFflag_wav)
         # Add a flag for low FSF scores that may be a sign of 
         # dropped audio
         if FSF_all[m] < 0.3:
             # Add it to the bad list
-            bad_trial.add(FSFflag_wav)
             FSF_flag.add(FSFflag_wav)
             
-    return bad_trial, FSF_flag            
+    return FSF_flag            
     
 def AW_Plot(A_Weight,Trials):
     """
@@ -199,7 +209,7 @@ def AW_Plot(A_Weight,Trials):
     fig.update_yaxes(title_text='A-Weight (dBA)')
     fig.show()
 
-def AW_Flag(A_Weight,Trials,rx_dat):
+def AW_Flag(A_Weight,Trials,rx_name):
     """
     Check for trials with a dBA less than -60 dBA. Check 
     for trials with a dBA a certain distance from the 
@@ -211,14 +221,11 @@ def AW_Flag(A_Weight,Trials,rx_dat):
         A_Weight of every trial
     Trials : int
         number of trials
-    rx_dat : list
+    rx_name : list
         names of rx recordings    
 
     Returns
-    -------
-    bad_trial : set
-        Names of all trials that set off any of the flags for 
-        potential problems      
+    -------     
     AW_flag : set
         Trials that have low dBA values (and likely lost audio)
         or otherwise deviate from the patterns of the dataset 
@@ -239,18 +246,17 @@ def AW_Flag(A_Weight,Trials,rx_dat):
         # stand out by being a certain distance from the mean
         if abs(AW_lin[m]-AW_Mean) > 2*AW_std:
             # Get the name of the wav file
-            AWflag_wav = rx_dat[m]
+            AWflag_wav = rx_name[m]
             # Add it to the bad list
-            bad_trial.add(AWflag_wav)
             AW_flag.add(AWflag_wav)
         # Add a flag if the a-weight is below -60 dBA
         if AW_lin[m] < AW_low:
            # Get the name of the wav file
-           AWflag_wav = rx_dat[m]
+           AWflag_wav = rx_name[m]
            # Add it to the bad list
            AW_flag.add(AWflag_wav)
            
-        return AW_flag, bad_trial           
+        return AW_flag           
 
 def Wav_Plot(rx_rec, Trials, fs):
     """
@@ -287,15 +293,12 @@ def Wav_Plot(rx_rec, Trials, fs):
     fig.show()  
     
  
-def Problem_Trials(bad_trial, Clip_flag, AW_flag, FSF_flag):     
+def Problem_Trials(Clip_flag, AW_flag, FSF_flag):     
     """
     Warn user of problem trial recording names 
     
     Parameters
     ----------
-    bad_trial : set
-        Names of all trials that set off any of the flags for 
-        potential problems
     Clip_flag : set    
         names of trials flagged for clipping
     AW_flag : set
@@ -307,8 +310,6 @@ def Problem_Trials(bad_trial, Clip_flag, AW_flag, FSF_flag):
     -------
 
     """
-    np.disp('The following trials were flagged as potentially having issues')
-    np.disp(bad_trial)
     if Clip_flag:
         np.disp('The following trials were flagged for clipping')
         np.disp(Clip_flag)  
