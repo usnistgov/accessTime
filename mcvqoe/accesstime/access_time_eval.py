@@ -316,8 +316,7 @@ class evaluate:
                  test_path='',
                  wav_dirs=[],
                  use_reprocess=True,
-                 # TODO: Come up with better default for test_type
-                 test_type=None,
+                 test_type="COR",
                  correction_data=None,
                  json_data=None,
                  **kwargs):
@@ -339,21 +338,20 @@ class evaluate:
         self.test_info = data.test_info
         self.cps = data.cps
         
-        # TODO: How do we handle correction data? default load in from csvs? 
-        # Also needs to make sure talker words line up
-        # And take into account the fit type
+        # Assign correction data if it is given and relevant
         if correction_data is None and test_type == 'COR':
             self.cor_data = default_correction_data()
         elif test_type == 'COR':
             self.cor_data = correction_data
         else:
             self.cor_data = None
-        # TODO: Determine if correction data matches input data, if not, raise an error
+        # Determine if correction data matches input data, if not, raise an error
         if self.cor_data is not None:
             cor_tw = np.unique(self.cor_data.data['talker_word'])
             for tw in self.talker_words:
                 if tw not in cor_tw:
                     raise ValueError(f'Missing talker word \'{tw}\'in correction data')
+        
         self.fit_type = test_type
         self.fit_data = self.fit_curve_data()
         
@@ -514,7 +512,16 @@ class evaluate:
             DESCRIPTION.
 
         """
-        # TODO: Implement rel_to_intell - use intelligibility level rather than alpha level
+        if rel_to_intell:
+            if alpha > self.fit_data.I0:
+                raise ValueError(f'Invalid intelligibility level, must be <= {self.fit_data.I0}')
+            # Rescale such that alpha is the fractoin of asymptotic
+            alpha = alpha/self.fit_data.I0
+        else:
+            if alpha >= 1:
+                raise ValueError('Invalid alpha level, must be less than 1')
+
+        
         C = np.log((1-alpha)/alpha)
         access = self.fit_data.lam * C + self.fit_data.t0
         
