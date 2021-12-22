@@ -24,11 +24,15 @@ setuptools.setup(
     install_requires=[
         'mcvqoe-base',
         'abcmrt16',
+        'scipy',
+        'numpy',
+        'pandas',
     ],
     entry_points={
         'console_scripts':[
             'accessTime-sim=mcvqoe.accesstime.access_time_sim:main',
             'accessTime-measure=mcvqoe.accesstime.access_time_hw_test:main',
+            'accessTime-eval=mcvqoe.accesstime.access_time_eval:main',
         ],
     },
     python_requires='>=3.6',
