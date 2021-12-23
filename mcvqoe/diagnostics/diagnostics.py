@@ -23,6 +23,18 @@ class diagnose():
     
     Attributes
     ----------
+    TX_filename : list
+        names of tx audio files
+    tx_wavs   :  list
+        audio for tx audio
+    Trials : int
+        number of trials 
+    rx_rec : list 
+        audio for rx recordings   
+    fs : int 
+        sampling rate of rx recordings       
+    rx_dat : list
+        names of rx recordings
     
     Methods
    ----------
@@ -42,33 +54,11 @@ class diagnose():
     def __init__(self, 
                  Wav_Dir = ''):
         self.Wav_Dir = Wav_Dir
-        
-    
-    def load_dat(Wav_Dir):  
-        """
-        Read in a directory of test trial wav files.
-        
-        Parameters
-        ----------
-        Wav_Dir : string
-            directory of WAV files
 
-        Returns
-        -------
-        TX_filename : list
-            names of tx audio files
-        tx_wavs   :  list
-            audio for tx audio
-        Trials : int
-            number of trials 
-        rx_rec : list 
-            audio for rx recordings   
-        fs : int 
-            sampling rate of rx recordings       
-        rx_dat : list
-            names of rx recordings
-
-        """    
+        # TODO get this old function cleanly into init, 
+        # TODO clean up input in other functions 
+        
+        # Read in a directory of test trial wav files.
         # Get all the Rx wav files 
         Dir_Files = os.listdir(Wav_Dir)
         Naming = 'Rx*'
@@ -117,9 +107,6 @@ class diagnose():
             sampling rate of rx recordings       
         rx_dat : list
             names of rx recordings   
-        bad_trial : set
-            Names of all trials that set off any of the flags for 
-            potential problems
     
         Returns
         -------
@@ -244,6 +231,7 @@ class diagnose():
                     "Amplitude":peak_dbfs})
     # TODO Set dir for testing    
     Test_Dir = 'C:/Users/cjg2/Documents/MCV'
+    # TODO name json and csv with session name 
     # Create json
     diagnostics_json = df_Diagnostics.to_json()
     with open(os.path.join(Test_Dir,'diagnostics_json.json'),'w') as f:
@@ -283,6 +271,7 @@ def main():
     )
     # Parse input arguments
     args = parser.parse_args()
+
 
 if __name__ == "__main__":
     main()
