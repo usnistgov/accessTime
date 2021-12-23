@@ -8,6 +8,7 @@ Created on Wed Sep  8 14:26:30 2021
 # Import statements
 # =============================================================================
 import argparse
+import json
 import os
 import pkg_resources
 import re
@@ -261,6 +262,8 @@ class AccessData():
     def __str__(self):
         s = f'AccessData object, talker word combos: {np.unique(self.data.talker_word)}'
         return s
+    
+    
 
 class FitData:
 
@@ -312,7 +315,7 @@ class evaluate:
     """
 
     def __init__(self,
-                 test_names,
+                 test_names=None,
                  test_path='',
                  wav_dirs=[],
                  use_reprocess=True,
@@ -326,17 +329,19 @@ class evaluate:
                 setattr(self, k, v)
             else:
                 raise TypeError(f'{k} is not a valid keyword argument')
-        
-        # Data loaded in
-        data = AccessData(test_names=test_names,
-                               test_path=test_path,
-                               wav_dirs=wav_dirs,
-                               use_reprocess=use_reprocess,
-                               )
-        self.data = data.data
-        self.test_names = data.test_names
-        self.test_info = data.test_info
-        self.cps = data.cps
+        if json_data is not None:
+            self.test_names, self.test_info, self.data, self.cps = self.load_json_data(json_data)
+        else:
+            # Data loaded in
+            data = AccessData(test_names=test_names,
+                                   test_path=test_path,
+                                   wav_dirs=wav_dirs,
+                                   use_reprocess=use_reprocess,
+                                   )
+            self.data = data.data
+            self.test_names = data.test_names
+            self.test_info = data.test_info
+            self.cps = data.cps
         
         # Assign correction data if it is given and relevant
         if correction_data is None and test_type == 'COR':
@@ -536,7 +541,55 @@ class evaluate:
         return access, ci
     
     def eval_intell(self):
+        # TODO: make this
         pass
+    
+    def to_json(self, filename=None):
+        """
+        Create json representation of access data
+
+        Parameters
+        ----------
+        filename : str, optional
+            If given save to json file. Otherwise returns json string. The default is None.
+
+        Returns
+        -------
+        None.
+
+        """
+        cps = {}
+        for talker_word, cp in self.cps.items():
+            cps[talker_word] = cp.to_json()
+        
+        out_json = {
+            'measurement': self.data.to_json(),
+            'cps': cps,
+            'test_info': json.dumps(self.test_info)
+                }
+        
+        # Final json representation of all data
+        final_json = json.dumps(out_json)
+        if filename is not None:
+            with open(filename, 'w') as f:
+                json.dump(out_json, f)
+        
+        return final_json
+    
+    def load_json_data(self, json_data):
+        if isinstance(json_data, str):
+            json_data = json.loads(json_data)
+        # Extract data, cps, and test_info from json_data
+        data = pd.read_json(json_data['measurement'])
+        cps = {}
+        for talker_word, cp in json_data['cps'].items():
+            cps[talker_word] = pd.read_json(cp)
+        
+        test_info = json.loads(json_data['test_info'])
+        
+        # Return normal Access data attributes from these
+        return test_info.keys(), test_info, data, cps
+        
 
 # =============================================================================
 # Ancillary functions

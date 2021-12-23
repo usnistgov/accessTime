@@ -120,8 +120,22 @@ class EvaluateTest(unittest.TestCase):
                                      )
             self.compare_fits_explicit(eval_obj.fit_data, ref_fit, fit_description=tech)
             
-            
-            
+    def test_json_save_and_load(self):
+        tech = 'lte'
+        sesh_id = self.sut_sesh_ids[tech]
+        eval_obj = access.evaluate(sesh_id,
+                                   test_path=self.data_path,
+                                   test_type='COR',
+                                   )
+        json_str = eval_obj.to_json()
+        
+        eval_json = access.evaluate(json_data=json_str)
+        for alpha in np.arange(0.5, 1, 0.01):
+            [a1, ci1] = eval_obj.eval(alpha)
+            [a2, ci2] = eval_json.eval(alpha)
+            with self.subTest(tech=tech, alpha=alpha):
+                self.assertAlmostEqual(a1, a2, places=10)
+                
 
 class  AccessDataTest(unittest.TestCase):
     data_path = os.path.join('data', 'reference_data')
