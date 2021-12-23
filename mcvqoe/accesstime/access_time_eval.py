@@ -577,6 +577,7 @@ class evaluate:
         return final_json
     
     def load_json_data(self, json_data):
+        # TODO: Should handle correction data too!
         if isinstance(json_data, str):
             json_data = json.loads(json_data)
         # Extract data, cps, and test_info from json_data
