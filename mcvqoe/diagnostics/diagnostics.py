@@ -43,7 +43,6 @@ class diagnose():
 
     Examples
     --------
-
     
     Returns
     -------
@@ -82,26 +81,12 @@ class diagnose():
             # Cycle through and get all the TX files
             for k in range(0,len(self.TX_filename)):
                 tx_path = self.Wav_Dir + '/' + self.TX_filename[k]
-                fs,tx_wavfile = mcvqoe.base.audio_read(tx_path)
+                self.fs,tx_wavfile = mcvqoe.base.audio_read(tx_path)
                 self.tx_wavs.append(tx_wavfile)
-        #TODO figure out a reasonable way to return rx_rec out
-        self.TX_filename, self.tx_wavs, self.Trials, self.rx_rec, 
-        self.fs, self.rx_dat 
     
     def AW_Rec_Check(self):
         """
         Calculates the a-weight (dBA) of each trial.
-        
-        Parameters
-        ----------
-        Trials : int
-            number of trials 
-        rx_rec : list 
-            audio for rx recordings   
-        fs : int 
-            sampling rate of rx recordings       
-        rx_dat : list
-            names of rx recordings   
     
         Returns
         -------
@@ -122,27 +107,11 @@ class diagnose():
     def FSF_Rec_Check(self):   
         """
         Calculate FSF scores of each trial. 
-        
-        Parameters
-        ----------
-        TX_filename : list
-            names of tx audio files
-        tx_wavs   :  list
-            audio for tx audio
-        Trials : int
-            number of trials 
-        rx_rec : list 
-            audio for rx recordings   
-        fs : int 
-            sampling rate of rx recordings       
-        rx_dat : list
-            names of rx recordings   
     
         Returns
         -------
         FSF_all : list
            FSF scores of every trial 
-         
         """
         # Create empty list for FSF scores
         FSF_all = []
@@ -173,16 +142,7 @@ class diagnose():
     def Clip_Rec_Check(self):
         """
         Cycle through all rx recordings and get peak amplitude.
-        
-        Parameters
-        ----------
-        Trials : int
-            number of trials 
-        rx_rec : list 
-            audio for rx recordings         
-        rx_dat : list
-            names of rx recordings   
-    
+
         Returns
         ------- 
         peak_dbfs : list
@@ -205,8 +165,6 @@ class diagnose():
         
         Parameters
         ----------
-        rx_dat : list
-            Names of all RX trials
         A_Weight : list    
             A-Weight across all RX trials 
         FSF_all : list
@@ -224,16 +182,17 @@ class diagnose():
                         "A_Weight":A_Weight,
                         "FSF_Scores":FSF_all,
                         "Amplitude":peak_dbfs})
-        # TODO Set dir for testing    
-        Test_Dir = 'C:/Users/cjg2/Documents/MCV'
-        # TODO name json and csv with session name 
+        # TODO Set dir for testing to where the data comes from    
+        Test_Dir = 'C:/Users/cjg2/Documents/MCV' 
+        # Get session name and use that to name files 
+        test_path, test_name =re.split("wav/+", self.Wav_Dir)
         # Create json
         diagnostics_json = df_Diagnostics.to_json()
-        with open(os.path.join(Test_Dir,'diagnostics_json.json'),'w') as f:
+        with open(os.path.join(Test_Dir,'diagnostics_' + test_name +'.json'),'w') as f:
             f.write(diagnostics_json) 
         # Create csv    
-        diagnostics_csv = df_Diagnostics.to_csv()
-        with open(os.path.join(Test_Dir,'diagnostics_json.json'),'w') as f:
+        diagnostics_csv = df_Diagnostics.to_csv(index=False, line_terminator='\n')
+        with open(os.path.join(Test_Dir,'diagnostics_' + test_name +'.csv'),'w') as f:
             f.write(diagnostics_csv)
             
         return diagnostics_json, diagnostics_csv 
