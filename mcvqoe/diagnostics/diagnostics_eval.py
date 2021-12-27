@@ -13,24 +13,53 @@ import numpy as np
 import plotly.graph_objects as go
 import pandas as pd
 import plotly.express as px
-import math
-import re
-import json
+
 
 class diagnostics_eval():
     """
-    Plot data and inform user of potential problems in collected
+    Plot diagnostics and inform user of potential problems in collected
     data. Flags trials that may require further investigation.
-    """
     
-    def load_csv(csv_dir):
+    Parameters
+    ----------
+    csv_dir : string
+        path to diagnostics csv
+    
+    Attributes
+    ----------
+    TX_filename : list
+        names of tx audio files
+    tx_wavs   :  list
+        audio for tx audio
+    Trials : int
+        number of trials 
+    rx_rec : list 
+        audio for rx recordings   
+    fs : int 
+        sampling rate of rx recordings       
+    rx_dat : list
+        names of rx recordings
+    
+    Methods
+   ----------
+
+    See Also
+    --------
+
+    Examples
+    --------
+    
+    Returns
+    -------
+    
+    """
+    def __init__(self, 
+                 csv_dir = ''):
+        self.csv_dir = csv_dir
+    
+    # TODO add this to init 
         """
         Read in a diagnostics csv path.  
-    
-        Parameters
-        ----------
-        csv_dir : string
-            Path to diagnostics csv
     
         Returns
         -------
@@ -48,35 +77,24 @@ class diagnostics_eval():
         """
         
         # Read csv, convert to dataframe
-        diagnostics_dat = pd.read_csv(csv_dir)
+        diagnostics_dat = pd.read_csv(self.csv_dir)
         # TODO: make these naming conventions from the csvs
         # make functional sense 
         rx_name = diagnostics_dat.RX_Name
-        rx_name = rx_name.to_numpy()
+        self.rx_name = rx_name.to_numpy()
         A_Weight = diagnostics_dat.A_Weight
-        A_Weight = A_Weight.to_numpy()
+        self.A_Weight = A_Weight.to_numpy()
         FSF_all = diagnostics_dat.FSF_Scores
-        FSF_all = FSF_all.to_numpy()
+        self.FSF_all = FSF_all.to_numpy()
         peak_dbfs = diagnostics_dat.Amplitude
-        peak_dbfs = peak_dbfs.to_numpy()
-        Trials = len(diagnostics_dat)
+        self.peak_dbfs = peak_dbfs.to_numpy()
+        self.trials = len(diagnostics_dat)
         
-        return rx_name, A_Weight, FSF_all, peak_dbfs, Trials
     
-    def Clip_Flag(Trials,peak_dbfs,rx_name):
+    def Clip_Flag(self):
         """
         Cycle through the peak amplitude and check
-        for clipping.
-    
-        Parameters
-        ----------
-        Trials : int
-            number of trials
-        rx_name : list
-            names of rx recordings 
-        peak_dbfs : list
-            peak amplitude of each trial, dB relative to full 
-            scale     
+        for clipping.  
     
         Returns
         -------
@@ -90,25 +108,18 @@ class diagnostics_eval():
         clip_flag = set()
         
         # Check for positive and negative clipping
-        for n in range(0,Trials):
+        for n in range(0,self.rials):
             # If approaching clipping, flag as a bad trial
-            if peak_dbfs[n] > vol_high :
+            if self.peak_dbfs[n] > vol_high :
                 # Get the name of the wav file
-                clip_wav = rx_name[n]
+                clip_wav = self.rx_name[n]
                 # Add it to the bad list
                 clip_flag.add(clip_wav)
         return clip_flag   
     
-    def FSF_Plot(FSF_all,Trials):
+    def FSF_Plot(self):
         """
-        Plot the FSF of every trial. 
-        
-        Parameters
-        ----------
-        FSF_all : list
-            FSF scores of every trial
-        Trials : int
-            number of trials   
+        Plot the FSF of every trial.  
         
         Returns
         -------
@@ -116,8 +127,8 @@ class diagnostics_eval():
     
         """
         # Plot FSF values 
-        FSF_Scores = np.asarray(FSF_all)  
-        x_axis = list(range(1,Trials+1))
+        FSF_Scores = np.asarray(self.FSF_all)  
+        x_axis = list(range(1,self.trials+1))
         dfFSF = pd.DataFrame({"FSF Score": FSF_Scores,
                               "Trial": x_axis})  
         fig = go.Figure()
@@ -133,20 +144,11 @@ class diagnostics_eval():
         fig.update_yaxes(title_text='FSF Score')
         fig.show()
         
-    def FSF_Flag(FSF_all,Trials,rx_name):
+    def FSF_Flag(self):
         """
         Check for trials with an FSF a certain distance
         from the mean. Use this info to find trials that 
         may have lost audio.
-        
-        Parameters
-        ----------
-        FSF_all : list
-           FSF scores of every trial
-        Trials : int
-           number of trials   
-        rx_name : list
-            names of rx recordings
             
         Returns
         -------
@@ -157,34 +159,27 @@ class diagnostics_eval():
         # Create empty set for FSF flag    
         FSF_flag = set()
         # Gather metrics for FSF scores
-        FSF_Mean = round(statistics.mean(FSF_all),3)
-        FSF_std = round(statistics.stdev(FSF_all),3)
-        for m in range(0,Trials):
+        FSF_Mean = round(statistics.mean(self.FSF_all),3)
+        FSF_std = round(statistics.stdev(self.FSF_all),3)
+        for m in range(0,self.trials):
             # Cycle through FSF scores, look for trials where the score
             # stands out by being a certain distance from the mean
-            if abs(FSF_all[m]-FSF_Mean) > 2*FSF_std:
+            if abs(self.FSF_all[m]-FSF_Mean) > 2*FSF_std:
                 # Get the name of the wav file
-                FSFflag_wav = rx_name[m]
+                FSFflag_wav = self.rx_name[m]
                 # Add it to the bad list
                 FSF_flag.add(FSFflag_wav)
             # Add a flag for low FSF scores that may be a sign of 
             # dropped audio
-            if FSF_all[m] < 0.3:
+            if self.FSF_all[m] < 0.3:
                 # Add it to the bad list
                 FSF_flag.add(FSFflag_wav)
                 
         return FSF_flag            
         
-    def AW_Plot(A_Weight,Trials):
+    def AW_Plot(self):
         """
-        Plot the a-weight of every trial. 
-        
-        Parameters
-        ----------
-        A_Weight : array
-            A_Weight of every trial
-        Trials : int
-            number of trials   
+        Plot the a-weight of every trial.    
         
         Returns
         -------
@@ -192,8 +187,8 @@ class diagnostics_eval():
     
         """
         # Plot a-weighted power for all trials  
-        A_Weight = np.asarray(A_Weight)  
-        x_axis = list(range(1,Trials+1))
+        A_Weight = np.asarray(self.A_Weight)  
+        x_axis = list(range(1,self.trials+1))
         dfAW = pd.DataFrame({"A-Weight": A_Weight,
                              "Trials": x_axis})  
         fig = go.Figure()
@@ -209,20 +204,11 @@ class diagnostics_eval():
         fig.update_yaxes(title_text='A-Weight (dBA)')
         fig.show()
     
-    def AW_Flag(A_Weight,Trials,rx_name):
+    def AW_Flag(self):
         """
         Check for trials with a dBA less than -60 dBA. Check 
         for trials with a dBA a certain distance from the 
-        mean.
-        
-        Parameters
-        ----------
-        A_Weight : array
-            A_Weight of every trial
-        Trials : int
-            number of trials
-        rx_name : list
-            names of rx recordings    
+        mean.   
     
         Returns
         -------     
@@ -237,28 +223,28 @@ class diagnostics_eval():
         # Calculate mean a-weight, standard deviation.
         # Use this info to find trials that may have lost
         # audio. 
-        AW_lin = 10**(A_Weight/20)
+        AW_lin = 10**(self.A_Weight/20)
         AW_low = 10**(-60/20)
         AW_Mean = round(statistics.mean(AW_lin),3)
         AW_std = round(statistics.stdev(AW_lin),3)
-        for m in range(0,Trials):
+        for m in range(0,self.trials):
             # Cycle through AW values, look for trials where the values
             # stand out by being a certain distance from the mean
             if abs(AW_lin[m]-AW_Mean) > 2*AW_std:
                 # Get the name of the wav file
-                AWflag_wav = rx_name[m]
+                AWflag_wav = self.rx_name[m]
                 # Add it to the bad list
                 AW_flag.add(AWflag_wav)
             # Add a flag if the a-weight is below -60 dBA
             if AW_lin[m] < AW_low:
                # Get the name of the wav file
-               AWflag_wav = rx_name[m]
+               AWflag_wav = self.rx_name[m]
                # Add it to the bad list
                AW_flag.add(AWflag_wav)
                
         return AW_flag           
     
-    def Wav_Plot(rx_rec,Trials,fs):
+    def Wav_Plot(self,fs):
         """
         Plot rx trial audio recordings
         
@@ -278,13 +264,13 @@ class diagnostics_eval():
         # Create empty list for time (seconds)
         tsec = []
         # Prepare time info for plotting
-        for k in range(0,Trials):
-            t = len(rx_rec[0])/fs
+        for k in range(0,self.trials):
+            t = len(self.rx_rec[0])/fs
             ts = np.arange(0,t,1/fs)
             tsec.append(ts)
             # Plot recording
             dfWavs= pd.DataFrame({"time":ts, 
-                            "audio":rx_rec[0]})
+                            "audio":self.rx_rec[0]})
         dfWavs.set_index('time')
         fig = px.line(dfWavs, y='audio',x='time')
         fig.update_layout(title_text='Trial Recordings')
