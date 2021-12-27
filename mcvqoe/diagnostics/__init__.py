@@ -1,1 +1,2 @@
-from .Test_Stats.py import Test_Stats
+from .diagnostics import diagnose
+from .diagnostics_eval import diagnostics_eval
