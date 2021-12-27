@@ -48,7 +48,7 @@ class diagnose():
     -------
    
     """
-    
+
     def __init__(self, 
                  Wav_Dir = ''):
         self.Wav_Dir = Wav_Dir
@@ -184,6 +184,9 @@ class diagnose():
                         "Amplitude":peak_dbfs})
         # TODO Set dir for testing to where the data comes from    
         Test_Dir = 'C:/Users/cjg2/Documents/MCV' 
+        # TODO check if there's a diagnotics folder in the
+        # main data dir. If not, make one. If yes, save the
+        # file there 
         # Get session name and use that to name files 
         test_path, test_name =re.split("wav/+", self.Wav_Dir)
         # Create json
