@@ -211,7 +211,7 @@ class measure:
         self.get_post_notes = None
         self.info = {'Test Type': 'default', 'Pre Test Notes': ''}
         self.inter_word_diff = 0.0 # Used to compare inter word delays
-        self.no_log = ('test',)
+        self.no_log = ('test', 'rec_file')
         self.outdir = ""
         self.ptt_delay = [0.0]
         self.ptt_gap = 3.1
