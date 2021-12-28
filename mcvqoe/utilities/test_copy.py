@@ -257,8 +257,8 @@ def create_new_settings(direct, dest_dir, cname):
 def write_settings(set_dict, file):
     save_keys = ("ComputerName", "DriveSerial", "Path", "Direct")
 
-    #filter dictionary to contain only the specivied keys
-    out_dict = {k : v for k,v in set_dict.items()}
+    #filter dictionary to contain only the specified keys
+    out_dict = {k : v for k,v in set_dict.items() if k in save_keys}
 
     #write out new dict
     json.dump(out_dict, file)
