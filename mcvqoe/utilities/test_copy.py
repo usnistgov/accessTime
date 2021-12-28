@@ -200,7 +200,7 @@ def log_update(log_in_name, log_out_name, dryRun=False, progress_update=terminal
     # print success message
     #print(f"Log updated successfully to {log_out_name}\n")
 
-def load_settings_file(file):
+def load_settings_file(file, match_drive=True):
     with open(file, "rt") as fp_set:
         set_dict = json.load(fp_set)
 
@@ -211,20 +211,33 @@ def load_settings_file(file):
     if set_dict["Direct"]:
         set_dict['prefix'] = ""
     else:
-        drives = list_drives()
 
-        drive_info = next(
-            (item for item in drives if item["serial"] == set_dict["DriveSerial"]),
-            None,
-        )
+        #if we get a string for DriveSerial, make it a tuple
+        if isinstance(set_dict["DriveSerial"], str):
+            set_dict["DriveSerial"]=(set_dict["DriveSerial"],)
+        else:
+            #turn other things (ie. list) into a tuple
+            set_dict["DriveSerial"]=tuple(set_dict["DriveSerial"])
 
-        if not drive_info:
-            raise RuntimeError(
-                f'Could not find drive with serial {set_dict["DriveSerial"]}'
-            )
+        if match_drive:
+            #get a list of connected storage devices
+            drives = list_drives()
 
-        # create drive prefix, add slash for path concatenation
-        set_dict['prefix'] = drive_info["drive"] + os.sep
+            matching_drives = [item for item in drives
+                                    if item["serial"] in set_dict["DriveSerial"]]
+
+            if not matching_drives:
+                raise RuntimeError('Could not find drive with serial '
+                                        f'in {set_dict["DriveSerial"]}')
+            elif len(matching_drives) != 1:
+                raise RuntimeError(f'Found {len(matching_drives)} '
+                                    'matching drives. Please unplug all but one')
+
+            #only one drive found, get info
+            drive_info = matching_drives[0]
+
+            # create drive prefix, add slash for path concatenation
+            set_dict['prefix'] = drive_info["drive"] + os.sep
 
     return set_dict
 
@@ -246,7 +259,7 @@ def create_new_settings(direct, dest_dir, cname):
     # create dictionary of options, normalize paths
     set_dict = {
         "ComputerName": os.path.normpath(cname),
-        "DriveSerial": drive_ser,
+        "DriveSerial": (drive_ser,),
         "Path": os.path.normpath(rel_path),
         "Direct": direct,
         "prefix": prefix,
@@ -257,11 +270,46 @@ def create_new_settings(direct, dest_dir, cname):
 def write_settings(set_dict, file):
     save_keys = ("ComputerName", "DriveSerial", "Path", "Direct")
 
-    #filter dictionary to contain only the specivied keys
-    out_dict = {k : v for k,v in set_dict.items()}
+    #filter dictionary to contain only the specified keys
+    out_dict = {k : v for k,v in set_dict.items() if k in save_keys}
+
+    #if we get a string for DriveSerial, make it a tuple
+    if isinstance(out_dict["DriveSerial"], str):
+        out_dict["DriveSerial"]=(out_dict["DriveSerial"],)
 
     #write out new dict
     json.dump(out_dict, file)
+
+def add_drive(path, set_path):
+    (prefix, rel_path) = os.path.splitdrive(path)
+
+    if rel_path:
+        #normalize rel_path to get rid of extra slashes
+        rel_path = os.path.normpath(rel_path)
+
+        if not rel_path and rel_path != os.path.sep:
+            raise RuntimeError(f'Expected path to drive but got \'{path}\'')
+
+    #load settings from file
+    settings = load_settings_file(set_path, match_drive=False)
+
+    if settings['Direct']:
+        raise RuntimeError('Can not add a drive to a direct sync')
+
+    # get serial number for the drive to add
+    drive_ser = get_drive_serial(prefix)
+
+    #get drives as a set
+    drive_set = set(settings['DriveSerial'])
+
+    #add drive serial
+    drive_set.add(drive_ser)
+
+    settings['DriveSerial'] = tuple(drive_set)
+
+    #write new settings
+    with open(set_path, 'w') as f:
+        write_settings(settings, f)
 
 
 def input_log_name(d):
