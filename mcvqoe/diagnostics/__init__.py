@@ -1,2 +1,2 @@
-from .diagnostics import diagnose
+from .diagnostics import Diagnose
 from .diagnostics_eval import diagnostics_eval
