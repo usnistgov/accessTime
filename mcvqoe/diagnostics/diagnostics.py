@@ -6,9 +6,9 @@ import pandas as pd
 import math
 import re
 
-class diagnose():
+class Diagnose():
     """
-   diagnose Class to perform diagnostic evaluation of received
+   Diagnose Class to perform diagnostic evaluation of received
     audio files and confirm data integrity.
      
     Use a-weight, FSF, and clipping checks to inform
@@ -84,7 +84,7 @@ class diagnose():
                 self.fs,tx_wavfile = mcvqoe.base.audio_read(tx_path)
                 self.tx_wavs.append(tx_wavfile)
     
-    def AW_Rec_Check(self):
+    def aw_calc(self):
         """
         Calculates the a-weight (dBA) of each trial.
     
@@ -104,7 +104,7 @@ class diagnose():
     
         return A_Weight
     
-    def FSF_Rec_Check(self):   
+    def fsf_calc(self):   
         """
         Calculate FSF scores of each trial. 
     
@@ -139,7 +139,7 @@ class diagnose():
     
         return FSF_all
 
-    def Clip_Rec_Check(self):
+    def peak_amp_calc(self):
         """
         Cycle through all rx recordings and get peak amplitude.
 
@@ -157,8 +157,8 @@ class diagnose():
             peak_db = round(20 * math.log10(peak), 2)
             peak_dbfs.append(peak_db)
         return peak_dbfs
-    
-    def Gather_Diagnostics(self,A_Weight,FSF_all,peak_dbfs):
+
+    def gather_diagnostics(self,A_Weight,FSF_all,peak_dbfs):
         """
         Create a dataframe of all diagnostic data. A-weight,
         FSF scores, max clip amplitude. Convert to json, csv
@@ -181,21 +181,16 @@ class diagnose():
         df_Diagnostics = pd.DataFrame({"RX_Name":self.rx_dat, 
                         "A_Weight":A_Weight,
                         "FSF_Scores":FSF_all,
-                        "Amplitude":peak_dbfs})
-        # TODO Set dir for testing to where the data comes from    
-        Test_Dir = 'C:/Users/cjg2/Documents/MCV' 
-        # TODO check if there's a diagnotics folder in the
-        # main data dir. If not, make one. If yes, save the
-        # file there 
+                        "Peak_Amplitude":peak_dbfs})
         # Get session name and use that to name files 
         test_path, test_name =re.split("wav/+", self.Wav_Dir)
         # Create json
         diagnostics_json = df_Diagnostics.to_json()
-        with open(os.path.join(Test_Dir,'diagnostics_' + test_name +'.json'),'w') as f:
+        with open(os.path.join(self.Wav_Dir,'diagnostics.json'),'w') as f:
             f.write(diagnostics_json) 
         # Create csv    
         diagnostics_csv = df_Diagnostics.to_csv(index=False, line_terminator='\n')
-        with open(os.path.join(Test_Dir,'diagnostics_' + test_name +'.csv'),'w') as f:
+        with open(os.path.join(self.Wav_Dir,'diagnostics.csv'),'w') as f:
             f.write(diagnostics_csv)
             
         return diagnostics_json, diagnostics_csv 
@@ -219,16 +214,22 @@ def main():
     # Input parsing
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-wd",
-        "--Wav_Dir",
+        "Wav_Dir",
         default=None,
         type=str,
-        dest="Wav_Dir",
         help="Directory to test data wav files",
     )
     # Parse input arguments
     args = parser.parse_args()
-
+    obj = Diagnose(args.Wav_Dir)
+    print("Measuring a-weight") 
+    A_Weight = obj.aw_calc()
+    print("Measuring FSF") 
+    FSF_all = obj.fsf_calc()
+    print("Measuring peak amplitude") 
+    peak_dbfs = obj.peak_amp_calc()
+    print("Creating json and csv") 
+    obj.gather_diagnostics(A_Weight, FSF_all, peak_dbfs)
 
 if __name__ == "__main__":
     main()
