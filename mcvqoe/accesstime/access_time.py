@@ -16,6 +16,7 @@ import zipfile
 from .version import version
 from fractions import Fraction
 from mcvqoe.base.terminal_user import terminal_progress_update, terminal_user_check
+from mcvqoe.delay.ITS_delay import active_speech_level
 from mcvqoe.math import approx_permutation_test
 
 import numpy as np
@@ -76,8 +77,8 @@ class measure:
         of P1 is determined to be equivalent to P2.
     bgnoise_file : string
         Name of audio file to use as background noise during measurement.
-    bgnoise_volume : float, default=0.1
-        volume of background noise.
+    bgnoise_snr : float, default=50
+        Signal to noise ratio for voice vs noise.
     data_file : TODO
         TODO : This looks unused, what is it for???
     dev_dly : float
@@ -205,7 +206,7 @@ class measure:
         self.audio_interface = None
         self.auto_stop = True
         self.bgnoise_file = ""
-        self.bgnoise_volume = 0.1
+        self.bgnoise_snr = 50
         self.data_file = ""
         self.dev_dly = float(31e-3)
         self.get_post_notes = None
@@ -295,11 +296,20 @@ class measure:
                 
             #add noise if given
             if self.bgnoise_file:
-                if (nf.size != audio_dat.size):
-                    #resize to fit
-                    n_nf=np.resize(nf, audio_dat.size)
-                    #add to array
-                    audio_dat = audio_dat + n_nf*self.bgnoise_volume
+
+                # measure amplitude of signal and noise
+                sig_level = active_speech_level(audio_dat, abcmrt.fs)
+                noise_level = active_speech_level(nf, abcmrt.fs)
+
+                # calculate noise gain required to get desired SNR
+                noise_gain = sig_level - (self.bgnoise_snr + noise_level)
+
+                # set noise to the correct level
+                noise_scaled = nf * (10 ** (noise_gain / 20))
+
+                # add noise (repeated to audio file size)
+                audio_dat = audio_dat + np.resize(noise_scaled, audio_dat.size)
+
             # Convert to float sound array and add to list
             self.y.append( audio_dat )
             #strip extension from file
