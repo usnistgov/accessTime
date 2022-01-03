@@ -4,7 +4,6 @@ Created on Tue Dec 21 08:31:44 2021
 
 @author: cjg2
 """
-
 import statistics
 import numpy as np
 import plotly.graph_objects as go
@@ -221,7 +220,7 @@ class Diagnostics_Eval():
                aw_flag.add(aw_flag_wav)
                
         return aw_flag           
-    
+    # TODO fix this for actual use case
     def wav_plot(self,fs):
         """
         Plot rx trial audio recordings

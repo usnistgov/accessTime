@@ -72,8 +72,6 @@ class Diagnose():
             self.fs,y_rec = mcvqoe.base.audio_read(rx_path)
             self.rx_rec.append(y_rec[:,0]) 
             self.rx_dat.append(rx_name[0])
-            # TODO be robust to scenarios where TX audio is not
-            # saved to the data folder
             # Find all the Tx files in the wav_dir, strip 
             # the Tx and .wav off 
             TX_names = 'Tx*'
@@ -81,11 +79,15 @@ class Diagnose():
             self.TX_filename =fnmatch.filter(TX_obj, '*.wav')
             # Create empty list for tx wavs 
             self.tx_wavs = []
-            # Cycle through and get all the TX files
-            for k in range(0,len(self.TX_filename)):
-                tx_path = self.Wav_Dir + '/' + self.TX_filename[k]
-                self.fs,tx_wavfile = mcvqoe.base.audio_read(tx_path)
-                self.tx_wavs.append(tx_wavfile)
+            if TX_obj:
+                # Cycle through and get all the TX files
+                for k in range(0,len(self.TX_filename)):
+                    tx_path = self.Wav_Dir + '/' + self.TX_filename[k]
+                    self.fs,tx_wavfile = mcvqoe.base.audio_read(tx_path)
+                    self.tx_wavs.append(tx_wavfile)
+            # TODO be robust to scenarios where TX audio is not
+            # saved to the data folder        
+            # if there are no TX files in the dat dir, find them
     
     def aw_calc(self):
         """
