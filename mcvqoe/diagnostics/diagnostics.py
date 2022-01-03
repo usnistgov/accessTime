@@ -48,11 +48,9 @@ class Diagnose():
     -------
    
     """
-
     def __init__(self, 
                  Wav_Dir = ''):
         self.Wav_Dir = Wav_Dir
-        
         # Read in a directory of test trial wav files.
         # Get all the Rx wav files 
         Dir_Files = os.listdir(self.Wav_Dir)
@@ -64,17 +62,18 @@ class Diagnose():
         self.rx_rec = []
         self.rx_dat = []
         # Cycle through, in order
+        # TODO: be clear about testing file formats. This gets confused if
+        # the RX numbers reset for each file like in access time
         for n in range(1,self.Trials+1):
             start = 'Rx'+str(n)+'_'
             rx_name = [s for s in all_wavs if start in s]
             rx_path = self.Wav_Dir + '/' + rx_name[0]
+            # Check how many channels we have 
             self.fs,y_rec = mcvqoe.base.audio_read(rx_path)
-            #TODO be robust to tests that have multiple channels
-            self.rx_rec.append(y_rec[:]) 
+            self.rx_rec.append(y_rec[:,0]) 
             self.rx_dat.append(rx_name[0])
             # TODO be robust to scenarios where TX audio is not
             # saved to the data folder
-            
             # Find all the Tx files in the wav_dir, strip 
             # the Tx and .wav off 
             TX_names = 'Tx*'
