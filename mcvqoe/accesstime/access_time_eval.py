@@ -14,8 +14,10 @@ import pkg_resources
 import re
 import warnings
 
-import pandas as pd
 import numpy as np
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 
 from scipy.optimize import curve_fit
 from scipy.stats import norm
@@ -358,14 +360,17 @@ class evaluate:
                     raise ValueError(f'Missing talker word \'{tw}\'in correction data')
         
         self.fit_type = test_type
-        self.fit_data = self.fit_curve_data()
+        self.fit_data = self.fit_curve_data(self.fit_type)
         
     @property
     def talker_words(self):
         return np.unique(self.data['talker_word'])
 
-    def fit_curve_data(self):
-        # TODO: Delete SUT later
+    def fit_curve_data(self, fit_type, talker_words=None):
+        
+        if talker_words is None:
+            talker_words = self.talker_words
+
         valid_fit_types = ["COR", "LEG", "SUT"]
         # Initial parameters: naive guess
         init = [0, -0.1]
@@ -373,7 +378,7 @@ class evaluate:
         def logistic_fit(xdata, t0, lam):
                     return I0/(1+np.exp((xdata - t0)/lam))
             
-        if self.fit_type == "LEG":
+        if fit_type == "LEG":
             # Calculate asymptotic intelligibility
             I0 = np.mean(self.data['P2_Int'])
             
@@ -388,7 +393,7 @@ class evaluate:
                                lam=fit_data[0][1],
                                covar=fit_data[1],
                                )
-        elif self.fit_type == "COR":
+        elif fit_type == "COR":
             # Explicitly grab correction data
             cor_data = self.cor_data.data
             
@@ -400,7 +405,7 @@ class evaluate:
                 'covar': np.array(([0, 0], [0,0]), dtype=np.dtype('float64')),
                 }
             
-            for tw in self.talker_words:
+            for tw in talker_words:
                 # Get word data for given talker word combo
                 cor_word_data = cor_data[cor_data['talker_word'] == tw]
                 
@@ -453,7 +458,7 @@ class evaluate:
                 cor_params['covar'] += cvar
                 
             # Get number of talker word combinations
-            N_words = len(self.talker_words)
+            N_words = len(talker_words)
             
             # Updated sums to be averages
             cor_params['I0'] = cor_params['I0']/N_words
@@ -468,8 +473,7 @@ class evaluate:
                 )
             
             
-        elif self.fit_type == "SUT":
-            # TODO: Decide if this is really worthwhile to keep...I think delete later
+        elif fit_type == "SUT":
             talker_word_combos = np.unique(self.data['talker_word'])
             fit_data = dict()
             for tw in talker_word_combos:
@@ -493,7 +497,7 @@ class evaluate:
         return fit_data
         
 
-    def eval(self, alpha, raw_intell=False, sys_dly_unc=0.07e-3/1.96,
+    def eval(self, alpha, fit_data=None, raw_intell=False, sys_dly_unc=0.07e-3/1.96,
              p=0.95):
         """
         Evaluate access delay for a given value of alpha.
@@ -517,22 +521,27 @@ class evaluate:
             DESCRIPTION.
 
         """
+        if fit_data is None:
+            fit_data = self.fit_data
+        
         if raw_intell:
-            if alpha > self.fit_data.I0:
-                raise ValueError(f'Invalid intelligibility level, must be <= {self.fit_data.I0}')
+            if alpha > fit_data.I0:
+                raise ValueError(f'Invalid intelligibility level, must be <= {fit_data.I0}')
             # Rescale such that alpha is the fractoin of asymptotic
-            alpha = alpha/self.fit_data.I0
+            alpha = alpha/fit_data.I0
         else:
             if alpha >= 1:
                 raise ValueError('Invalid alpha level, must be less than 1')
 
         
         C = np.log((1-alpha)/alpha)
-        access = self.fit_data.lam * C + self.fit_data.t0
+        access = fit_data.lam * C + fit_data.t0
         
-        var_t = np.power(C, 2) * self.fit_data.covar.loc["lambda", "lambda"]
-        + self.fit_data.covar.loc["t0", "t0"] 
-        + 2*C*self.fit_data.covar.loc["t0", "lambda"]
+        var_t = (
+            np.power(C, 2) * fit_data.covar.loc["lambda", "lambda"]
+            + fit_data.covar.loc["t0", "t0"] 
+            + 2*C*fit_data.covar.loc["t0", "lambda"]
+        )
         
         unc = np.sqrt(var_t + np.power(sys_dly_unc, 2))
         k = norm.ppf(1-(1-p)/2)
@@ -540,9 +549,16 @@ class evaluate:
         
         return access, ci
     
-    def eval_intell(self):
-        # TODO: make this
-        pass
+    def eval_intell(self, ptt_times=None, fit_data=None):
+        
+        if fit_data is None:
+            fit_data = self.fit_data
+        if ptt_times is None:
+            ptt_times = np.arange(-0.6, 2.5, 0.02)
+        
+        intell = fit_data.I0/(1+np.exp((ptt_times - fit_data.t0)/fit_data.lam))
+        
+        return intell
     
     def to_json(self, filename=None):
         """
@@ -577,6 +593,26 @@ class evaluate:
         return final_json
     
     def load_json_data(self, json_data):
+        """
+        Do all data loading from input json_data
+
+        Parameters
+        ----------
+        json_data : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        test_names : list
+            DESCRIPTION.
+        test_info : dict
+            DESCRIPTION.
+        data : pd.DataFrame
+            DESCRIPTION.
+        cps : dict
+            DESCRIPTION.
+
+        """
         # TODO: Should handle correction data too!
         if isinstance(json_data, str):
             json_data = json.loads(json_data)
@@ -590,13 +626,212 @@ class evaluate:
         
         # Return normal Access data attributes from these
         return test_info.keys(), test_info, data, cps
-        
+    
+    def plot(self, raw_intell=False, talkers=None,
+             title='Access delay'):
+        """
+        Plot access delay curve with uncertainty
 
-# =============================================================================
-# Ancillary functions
-# =============================================================================
-def pretty_print(evaluate):
-    pass
+        Parameters
+        ----------
+        raw_intell : TYPE, optional
+            DESCRIPTION. The default is False.
+        talkers : TYPE, optional
+            DESCRIPTION. The default is None.
+        title : TYPE, optional
+            DESCRIPTION. The default is 'Access delay'.
+
+        Returns
+        -------
+        fig : TYPE
+            DESCRIPTION.
+
+        """
+        # Valid range of alpha values to consider
+        alphas = np.arange(0.5, 1, 0.01)
+        
+        # Determine if raw intelligibility or alpha values for x-axis
+        if raw_intell:
+            alphas = self.fit_data.I0 * alphas
+            xlabel = 'Intelligibility'
+        else:
+            xlabel = 'alpha'
+        
+        
+        if talkers is None:
+            # Default is to use all talkers
+            fit_data = None
+        else:
+            # Otherwise get corrected curve data for a subset determined by talkers
+            fit_data = self.fit_curve_data(fit_type='COR',
+                                           talker_words=talkers,
+                                           )
+        # Initialize dict for storing access info
+        access = {
+            'alpha': [],
+            'access': [],
+            'ci_l': [],
+            'ci_u': [],
+                  }
+        
+        for alpha in alphas:
+            # Get access estimate and confidence interval
+            a, ci = self.eval(alpha, raw_intell=raw_intell, fit_data=fit_data)
+            access['alpha'].append(alpha)
+            access['access'].append(a)
+            access['ci_l'].append(ci[0])
+            access['ci_u'].append(ci[1])
+        # Make data frame of all access info
+        df = pd.DataFrame(access)
+        
+        # Initialize figure
+        fig = go.Figure()
+        
+        # Plot access estimate
+        fig.add_trace(
+            go.Scatter(
+                x=df['alpha'],
+                y=df['access'],
+                legendgroup='Ah',
+                legendgrouptitle_text='Access delay',
+                name='estimate',
+                )
+            )
+        
+        # Plot access confidence interval lower bound
+        fig.add_trace(
+            go.Scatter(
+                x=df['alpha'],
+                y=df['ci_l'],
+                line={'color': 'blue',
+                      'dash': 'dash'},
+                legendgroup='Ah',
+                name='95% confidence interval',
+                )
+            )
+        # Plot access confidence interval upper bound
+        fig.add_trace(
+            go.Scatter(
+                x=df['alpha'],
+                y=df['ci_u'],
+                line={'color': 'blue',
+                      'dash': 'dash'},
+                legendgroup='Ah',
+                name='95% confidence interval',
+                showlegend=False,
+                )
+            )
+        # Add title and axis labels
+        fig.update_layout(            
+            title=title,
+            xaxis_title=xlabel,
+            yaxis_title='Access time [seconds]',
+        )
+        return fig
+    
+    def plot_intell(self, show_raw=True, talkers=None,
+                    title='Intelligibility Curves'):
+        """
+        Plot intelligibility curves
+
+        Parameters
+        ----------
+        show_raw : TYPE, optional
+            DESCRIPTION. The default is True.
+        talkers : TYPE, optional
+            DESCRIPTION. The default is None.
+        title : TYPE, optional
+            DESCRIPTION. The default is 'Intelligibility Curves'.
+
+        Raises
+        ------
+        ValueError
+            DESCRIPTION.
+
+        Returns
+        -------
+        fig : TYPE
+            DESCRIPTION.
+
+        """
+        # Get individual fits for each talker word combo
+        tw_fits = self.fit_curve_data("SUT")
+        
+        
+        if talkers is None:
+            # Default is use all talkers
+            talkers = tw_fits.keys()
+        else:
+            if isinstance(talkers, str):
+                talkers = [talkers]
+            # Ensure that talkers passed are valid
+            valid_talkers = tw_fits.keys()
+            for talker in talkers:
+                if talker not in valid_talkers:
+                    raise ValueError(f'Invalid talker \'{talker}\'. talkers must be subset of {valid_talkers}')
+        
+        # Initialize figure
+        fig = go.Figure()
+        # TODO: Come up with better ptt_times?
+        ptt_times = np.arange(-0.6, 2.5, 0.02)
+        
+        # Get default plotly colors
+        colors = px.colors.qualitative.Plotly
+        # Initizialize index tracker for which color to use
+        color_ix = 0
+        for talker in talkers:
+            # Get fit data for talker word combo
+            talker_fit = tw_fits[talker]
+            
+            # Evaluate intelligibility for talker word combo
+            talker_intell = self.eval_intell(ptt_times=ptt_times, fit_data=talker_fit)
+            
+            # Set color
+            color = colors[color_ix]
+            
+            # Plot intelligibility curve
+            fig.add_trace(
+                go.Scatter(
+                    x=ptt_times,
+                    y=talker_intell,
+                    line={
+                        'width': 6,
+                        'color': color,
+                        },
+                    legendgrouptitle_text=talker,
+                    legendgroup=talker,
+                    name= 'intelligibility curve',
+                    )
+                )
+            if show_raw == True:
+                # Get raw data for talker word combo
+                talker_data = self.data[self.data['talker_word'] == talker]
+                # Plot raw P1 intelligibility data
+                fig.add_trace(
+                    go.Scatter(
+                        x=talker_data['time_to_P1'],
+                        y=talker_data['P1_Int'],
+                        line={
+                            'color': color,
+                            },
+                        legendgroup=talker,
+                        mode='markers',
+                        name='raw data'
+                        )
+                    )
+            # Iterate color
+            if color_ix == len(colors) - 1:
+                color_ix = 0
+            else:
+                color_ix += 1
+        # Add title, axes labels
+        fig.update_layout(            
+            title=title,
+            xaxis_title='Time from PTT to P1 [seconds]',
+            yaxis_title='Access time [seconds]',
+        )
+        
+        return fig
 
 
 # =============================================================================
