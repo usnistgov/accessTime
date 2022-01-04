@@ -193,7 +193,7 @@ class AccessData():
                 tw_search_var = re.compile(tw_search_str)
                 tw_search = tw_search_var.search(word_csv)
                 if tw_search is None:
-                    import pdb; pdb.set_trace()
+                    raise RuntimeError(f'Unable to determine talker word from filename {word_csv}')
                 talker, bw_index, word = tw_search.groups()
                 talker_word = talker + ' ' +  word
                 # Store as column
