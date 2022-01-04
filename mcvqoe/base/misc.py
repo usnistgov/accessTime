@@ -2,6 +2,7 @@ import csv
 import math
 
 import numpy as np
+import pandas as pd
 import scipy.io.wavfile
 import scipy.signal as sig
 
@@ -508,3 +509,57 @@ def a_weighted_power(x, fs=48000):
 
     x = sig.lfilter(b, a, x)
     return 10 * (math.log10(np.mean(np.square(x))))
+
+def get_measurement_from_file(filepath, module=True):
+    """
+    Determine measurement type from file header.
+
+    Parameters
+    ----------
+    filepath : str
+        Path to file.
+    module : bool, optional
+        If True returns the module name instead of evaluation shortened 
+        measurement string (e.g. 'mcvqoe.mouth2ear' vs 'm2e'). The default is 
+        True.
+
+    Returns
+    -------
+    measurement : str
+        Measurement type. Returns None if it could not be determined.
+
+    """
+    # Intialize measurement
+    measurement = None
+    try:
+        # Read in csv
+        df = pd.read_csv(filepath)
+        # Get column names
+        colnames = df.columns
+        
+        if 'W0_Int' in colnames:
+            # All psud tests have to have at least one word so W0_Int should always be there
+            measurement = 'psud'
+        elif 'Intelligibility' in colnames:
+            # Intelligibility only in intelligibility tests
+            measurement = 'intell'
+        elif 'm2e_latency' in colnames:
+            # m2e_latency in all tests, but if it's here and the others didn't work it's probably m2e latency
+            measurement = 'm2e'
+    except pd.errors.ParserError:
+        # If parsing failed, check access data, skip 3 rows
+        df = pd.read_csv(filepath, skiprows=3)
+        if 'P1_Int' in df.columns:
+            measurement = 'access'
+    
+    if module and measurement is not None:
+        measurement_dir_modules = {    
+            'access' : 'mcvqoe.accesstime',
+            'intell' : 'mcvqoe.intelligibility',
+            'm2e' : 'mcvqoe.mouth2ear',
+            'psud' : 'mcvqoe.psud',
+        }
+        measurement = measurement_dir_modules[measurement]
+    return measurement
+
+        
