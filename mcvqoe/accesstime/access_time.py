@@ -1314,3 +1314,21 @@ class measure:
                 return dat_list
         except FileNotFoundError:
             return None
+    
+    @staticmethod
+    def included_audio_path():
+        """
+        Return path where audio files included in the package are stored.
+        
+        Returns
+        -------
+        audio_path : str
+        Paths to included audio files
+
+        """
+        
+        audio_path = pkg_resources.resource_filename(
+            'mcvqoe.accesstime', 'audio_clips'
+            )
+        
+        return audio_path
