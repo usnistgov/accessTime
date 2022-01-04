@@ -99,7 +99,8 @@ if platform.system() == "Windows":
                         continue
                     else:
                         raise RuntimeError(
-                            f'command returnd {res.returncode} for drive \'{m.group("drive")}\''
+                            f'command returnd {res.returncode} for drive '
+                            f'\'{m.group("drive")}\' \'{info}\''
                         )
 
                 # find drive label
