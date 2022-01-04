@@ -39,7 +39,7 @@ if platform.system() == "Windows":
 
         # check return code
         if result.returncode:
-            info = result.sterr.decode("UTF-8")
+            info = result.stderr.decode("UTF-8")
 
             if "the device is not ready" in info.tolower():
                 raise RuntimeError("Device is not ready")
@@ -92,7 +92,7 @@ if platform.system() == "Windows":
                 )
 
                 if res.returncode:
-                    info = res.sterr.decode("UTF-8")
+                    info = res.stderr.decode("UTF-8")
 
                     if "the device is not ready" in info.tolower():
                         # drive is not ready, skip
