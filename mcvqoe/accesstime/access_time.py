@@ -1520,6 +1520,14 @@ class measure:
         #return matching index
         return match[0]
 
+    @staticmethod
+    def unzip_audio(audio_path):
+        zip_path = os.path.join(audio_path,zip_name)
+        if zipfile.is_zipfile(zip_path):
+            audio_zip = zipfile.ZipFile(zip_path,mode='r')
+            #extract all files into the audio dir
+            audio_zip.extractall(audio_path)
+
     def post_process(self,test_dat,fname,audio_path):
         """
         process csv data.
@@ -1568,14 +1576,11 @@ class measure:
 
                 #check if file exists
                 if not os.path.exists(clip_path):
-                    zip_path = os.path.join(audio_path,zip_name)
-                    if zipfile.is_zipfile(zip_path):
-                        #update progress
-                        self.progress_update('status', self.trials, n,
-                            msg = 'Decompressing audio...')
-                        audio_zip = zipfile.ZipFile(zip_path,mode='r')
-                        #extract all files into the audio dir
-                        audio_zip.extractall(audio_path)
+                    #update progress
+                    self.progress_update('status', self.trials, n,
+                        msg = 'Attempting to decompress audio...')
+                    #unzip audio if it exists
+                    self.unzip_audio(audio_path)
                 try:
                     #attempt to get channels from data
                     rec_chans=trial['channels']
