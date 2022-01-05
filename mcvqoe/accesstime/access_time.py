@@ -1570,12 +1570,12 @@ class measure:
                 if not os.path.exists(clip_path):
                     zip_path = os.path.join(audio_path,zip_name)
                     if zipfile.is_zipfile(zip_path):
-                        audio_zip = zipfile.ZipFile(zip_path,mode='r')
-                        #extract all files into the audio dir
-                        audio_zip.extractall(audio_path)
                         #update progress
                         self.progress_update('status', self.trials, n,
                             msg = 'Decompressing audio...')
+                        audio_zip = zipfile.ZipFile(zip_path,mode='r')
+                        #extract all files into the audio dir
+                        audio_zip.extractall(audio_path)
                 try:
                     #attempt to get channels from data
                     rec_chans=trial['channels']
