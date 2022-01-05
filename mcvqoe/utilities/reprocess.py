@@ -45,37 +45,13 @@ def make_parser():
 def get_module(module_name=None, datafile=None):
 
     if not module_name:
-        #no name given, see if we can find one
 
-        #get absolute path to .csv file
-        abs_dat_path = os.path.abspath(datafile)
+        #get module name
+        module_name = mcvqoe.base.get_measurement_from_file(datafile)
 
-        curr_path = abs_dat_path
-
-        measurement_dir = None
-
-        for split_count in range(3):
-
-            path_extra = curr_path
-
-            for expected_name in csv_path_names:
-                path_extra, fold = os.path.split(path_extra)
-
-                if fold not in expected_name:
-                    break
-            else:
-                #loop ran to completion, measurement found!
-                #get the name of the data directory
-                measurement_dir = os.path.basename(path_extra)
-                break
-            #remove another layer
-            curr_path, fname = os.path.split(curr_path)
-
-        if not measurement_dir:
-            raise RuntimeError(f'Unexpected directory \'{fold}\', unable to determine measurement.')
-
-        #get module name, will fail if incorrect
-        module_name = measurement_dir_modules[measurement_dir]
+        #make sure a module was found
+        if not module_name:
+            raise RuntimeError(f"Unable to determine measurement for '{datafile}'")
     else:
         #name given, clean up and use
 
