@@ -1,16 +1,12 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Dec 21 08:31:44 2021
-
-@author: cjg2
-"""
 import statistics
 import numpy as np
 import plotly.graph_objects as go
 import plotly.io as pio
-pio.renderers.default = 'browser'
 import pandas as pd
 import plotly.express as px
+# TODO for my testing, not in final 
+pio.renderers.default = 'browser'
+
 
 class Diagnostics_Eval():
     """
