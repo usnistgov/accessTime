@@ -39,9 +39,9 @@ if platform.system() == "Windows":
 
         # check return code
         if result.returncode:
-            info = result.sterr.decode("UTF-8")
+            info = result.stderr.decode("UTF-8")
 
-            if "the device is not ready" in info.tolower():
+            if "the device is not ready" in info.lower():
                 raise RuntimeError("Device is not ready")
             else:
                 raise RuntimeError(
@@ -92,14 +92,18 @@ if platform.system() == "Windows":
                 )
 
                 if res.returncode:
-                    info = res.sterr.decode("UTF-8")
+                    info = res.stderr.decode("UTF-8")
 
-                    if "the device is not ready" in info.tolower():
+                    if "the device is not ready" in info.lower():
                         # drive is not ready, skip
+                        continue
+                    elif "the network path was not found" in info.lower():
+                        # network drive issue, skip
                         continue
                     else:
                         raise RuntimeError(
-                            f'command returnd {res.returncode} for drive \'{m.group("drive")}\''
+                            f'command returnd {res.returncode} for drive '
+                            f'\'{m.group("drive")}\' \'{info}\''
                         )
 
                 # find drive label
