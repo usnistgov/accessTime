@@ -28,18 +28,28 @@ class QoEsim:
 
     Parameters
     ----------
-    port : str
+    port : str, default=None
         For compatibility with 'RadioInterface'. Value has no effect on simulation.
+
+    Attributes
+    ----------
     debug : bool, default=False
         If true, print some extra 'RadioInterface' things.
-    fs : int
+    sample_rate : int, default=48000
         Sample rate of audio in/out in samples per second.
-    blocksize : int
+    blocksize : int, default=512
         For compatibility with 'AudioPlayer'. Value has no effect on simulation.
-    buffersize : int
+    buffersize : int, default=20
         For compatibility with 'AudioPlayer'. Value has no effect on simulation.
-    overplay : float
+    overplay : float, default =1.0
         The number of seconds of extra audio to play/record at the end of a clip.
+    device : str, default=__class__
+        Device name for compatibility with 'AudioPlayer'. This is set to the
+        string representation of the class instance by default. Changing has no
+        effect on simulations.
+    port_name : str, default='SIM'
+        Serial port name. For compatibility with RadioInterface, changing has no
+        effect on simulations.
     rec_chans : dict
         Dictionary describing the recording. Dictionary keys must be one of
         {'rx_voice','PTT_signal'. For simulation, the value is ignored, as this
@@ -49,35 +59,11 @@ class QoEsim:
         Dictionary describing the playback channels. Dictionary keys should be
         one of {'tx_voice','start_signal'}. For simulation, the value is ignored,
         as this normally represents the physical channel number.
-
-    Attributes
-    ----------
-    sample_rate : int
-        Sample rate of audio in/out in samples per second.
-    blocksize : int
-        For compatibility with 'AudioPlayer'. Value has no effect on
-        simulation.
-    buffersize : int
-        For compatibility with 'AudioPlayer'. Value has no effect on simulation.
-    overplay : float
-        The number of seconds of extra audio to play/record at the end of a clip.
-    device : str
-        Device name for compatibility with 'AudioPlayer'. This is set to the
-        string representation of the class instance by default. Changing has no
-        effect on simulations.
-    rec_chans : dict
-        Dictionary describing the recording. Dictionary keys must be one of
-        {'rx_voice','PTT_signal'}. For simulation, the value is ignored, as this
-        normally represents the physical channel number. At this time QoEsim can
-        not simulate 'timecode' or 'tx_beep' audio.
-    playback_chans : dict
-        Dictionary describing the playback channels. Dictionary keys must be one
-        of {'tx_voice','start_signal'}. The value for each entry is the, zero
-        based, channel number that each signal should be played on.
-    channel_tech : {'clean','p25','analog','amr-wb','amr-nb'}, default='clean'
-        Technology to use for the simulated channel.
+    channel_tech : string, default='clean'
+        Technology to use for the simulated channel. Must match the name of an
+        installed channel plugin.
     channel_rate : int or str, default=None
-        rate to simulate channel at. Each channel tech handles this differently.
+        Rate to simulate channel at. Each channel tech handles this differently.
         When set to None the default rate is used.
     pre_impairment : function, default=None
         Impairment function to apply before the audio goes through the channel.
@@ -90,34 +76,38 @@ class QoEsim:
         of the same length, with the impairments applied. A value of None skips
         applying an impairment.
     channel_impairment : function, default=None
-        Imparment to apply to the channel data. This is not super well defined
-        as each channel is a bit diffrent. A value of None skips applying an
-        impairment.
-    dvsi_path : str, default='pcnrtas'
-        path to the dvsi encode/decode executable. Used to simulate P25 channels.
-    fmpeg_path : str
-        path to the ffmpeg executable. Ffmpeg is used to simulate for amr
-        channels. By default the path is searched for ffmpeg, if the ffmpeg
-        program is found on the path then this will be the full path to ffmpeg.
-        Otherwise this will simply be the string 'ffmpeg'.
+        Imparment to apply to the channel data. Callback function that is called
+        on the channel data to simulate a less than perfect communication channel.
+        A value of none skips applying an impairment.
     m2e_latency : float, default=None
         Simulated mouth to ear latency for the channel in seconds. If none than
-        the minimum latency for the technology is used.
+        the minimum latency for the technology is used. Can be set to a callable
+        object to return a different value each time.
     access_delay : float, default=0
         Delay between the time that the simulated push to talk button is pushed
         and when audio starts coming through the channel. If the 'ptt_delay'
         method is called before play_record is called, then the time given to
         'ptt_delay' is added to access_delay to get the time when access is
         granted. Otherwise access is granted 'access_delay' seconds after the
-        clip starts.
+        clip starts.Can be set to a callable object to return a diffrent value
+        each time. Can be set to a callable object to return a different value
+        each time.
+    device_delay : float, default=0
+        Delay of simulated audio interface. This is added to m2e_latency and is
+        the delay for the PTT signal. Can be set to a callable object to return
+        a different value each time.
     rec_snr : float, default=60
-        Signal to noise ratio for audio channel.
+        Signal to noise ratio, in dB, for audio channel.
     print_args : bool, default=False
         Print arguments to external programs.
     PTT_sig_freq : float, default=409.6
         Frequency of the PTT signal from the play_record method.
     PTT_sig_amplitude : float, default=0.7
         Amplitude of the PTT signal from the play_record method.
+    default_radio : int, default=1
+        For compatibility with RadioInterface, the number of the radio to use
+        when none is given. Doesn't really have an effect on simulation, but the
+        ptt_wait_delay is tracked for each radio.
 
     See Also
     --------
@@ -163,7 +153,7 @@ class QoEsim:
         self.blocksize = 512
         self.buffersize = 20
         self.overplay = 1.0
-        self.device = __class__  # fake device name
+        self.device = str(__class__)  # fake device name
         self.port_name = 'SIM'   # fake serial port
         self.rec_chans = {"rx_voice": 0}
         self.playback_chans = {"tx_voice": 0}
@@ -210,7 +200,7 @@ class QoEsim:
                 props.append(f'{prop} = {repr(getattr(self, prop))}')
 
         return f'{type(self).__name__}({", ".join(props)})'
-	
+
     def __enter__(self):
 
         return self
@@ -473,6 +463,8 @@ class QoEsim:
 
         For 'RadioInterface' this would read temperature from the microcontroller.
         For simulation, this returns some fake values.
+        NOTE : the current hardware no longer supports temperature measurements,
+        this may be removed in the future.
 
         Returns
         -------
@@ -505,12 +497,19 @@ class QoEsim:
         self.led(1, False)
 
     # =====================[Find device function]=====================
-    def find_device(self):
+    @staticmethod
+    def find_device(device_str="UMC"):
         """
         Return fake device name.
 
         For 'AudioPlayer' this would return the name of the audio device to use.
         For simulation this just returns the string representation of the class.
+
+        Arguments
+        ---------
+        device_str : str, default="UMC"
+            For compatibility with AudioPlayer. For hardware this would look for
+            device matching this. For simulations, it does nothing.
 
         Returns
         -------
@@ -528,7 +527,7 @@ class QoEsim:
         >>> sim_obj=mcvqoe.simulation.QoEsim()
         >>> print(sim_obj.find_device())
         """
-        return __class__
+        return str(__class__)
 
     # =====================[Get Channel Technologies]=====================
     @staticmethod
@@ -700,9 +699,9 @@ class QoEsim:
     def _get_impairments():
         '''
         Get installed impairments.
-        
+
         Return a tuple of EntryPoint objects for the installed impairments.
-        
+
         Returns
         -------
         tuple
@@ -710,30 +709,56 @@ class QoEsim:
         '''
         # locate any impairment plugins installed
         return entry_points()["mcvqoe.impairment"]
-        
+
     # =========================[get impairment plugins]=========================
     def _get_impairment_module(name):
-    
+        """
+        Get matching impairment module.
+        """
+
         # locate any impairment plugins installed
         impairments = QoEsim._get_impairments()
-        
+
         for i in impairments:
             if i.name == name:
                 module = i.load()
                 break
         else:
             raise ValueError(f'impairment name \'{name}\' is not installed')
-            
+
         return module
     # =========================[get impairment plugins]=========================
     @staticmethod
     def get_impairment_names(plugin_type):
-        
+        """
+        Return the names of all the impairments that match a given type.
+
+        This imports all the impairment plugins, imports them and checks to see
+        if their impairment type matches `plugin_type`.
+
+        Parameters
+        ----------
+        plugin_type : str
+            A string containing the plugin type to match. Should be one of :
+            'Analog', 'Digital' or 'Audio'.
+
+        Returns
+        -------
+        tuple
+            A tuple containing the names of the plugins that match the given type.
+
+        See Also
+        --------
+        mcvqoe.simulation.QoEsim.get_channel_type : Get the type of a channel.
+        mcvqoe.simulation.QoEsim.get_channel_techs : List of channel technologies.
+        mcvqoe.simulation.QoEsim.channel_tech : Channel technology to use.
+        """
+
         # locate any impairment plugins installed
         impairments = QoEsim._get_impairments()
-        
+
         names = []
-        
+
         for i in impairments:
             #TODO : probably need a try in her somewhere
             #load module
@@ -741,37 +766,97 @@ class QoEsim:
             #check if type matches
             if plugin_type == module.impairment_type or 'generic' == module.impairment_type:
                 names.append(i.name)
-        
-        return names
-        
+
+        return tuple(names)
+
     # =======================[get all impairment plugins]=======================
     @staticmethod
     def get_all_impairment_names():
+        """
+        Return the names of all the impairments that are installed.
+
+        Returns
+        -------
+        tuple
+            A tuple containing the names of the plugins that match the given type.
+
+        See Also
+        --------
+        mcvqoe.simulation.QoEsim.get_impairment_names : Get matching impairments.
+        """
 
         # locate any impairment plugins installed
         impairments = QoEsim._get_impairments()
 
-        return [i.name for i in impairments]
+        return tuple([i.name for i in impairments])
 
     # =======================[get impairment parameters]=======================
     @staticmethod
     def get_impairment_params(name):
-    
+        """
+        Get the parameters for a given impairment.
+
+        Returns a list containing an ImpairmentParam object for each impairment
+        that the `create_impairment` function in the plugin takes.
+
+        Returns
+        -------
+        list
+            A list of ImpairmentParam objects describing the parameters.
+
+        See Also
+        --------
+        mcvqoe.simulation.QoEsim.get_impairment_func : Create impairment function.
+        """
         module = QoEsim._get_impairment_module(name)
-        
+
         return module.parameters
-    
+
     # =======================[get impairment Description]=======================
     @staticmethod
     def get_impairment_description(name):
-    
+        """
+        Get the description from an impairment plugin.
+
+        Parameters
+        ----------
+        name : str
+            A string containing the impairment to get the description of.
+
+        Returns
+        -------
+        str
+            The description from the plugin.
+
+        See Also
+        --------
+        mcvqoe.simulation.QoEsim.get_impairment_names : Get matching impairments.
+        """
         module = QoEsim._get_impairment_module(name)
-        
+
         return module.description
-        
+
     # =======================[get impairment Version]=======================
     @staticmethod
     def get_impairment_version(name):
+        """
+        Get the version string of an impairment plugin
+
+        Parameters
+        ----------
+        name : str
+            A string containing the impairment to get the version of.
+
+        Returns
+        -------
+        str
+            The version string from the plugin.
+
+        See Also
+        --------
+        mcvqoe.simulation.QoEsim.get_impairment_names : Get matching impairments.
+        """
+
 
         module = QoEsim._get_impairment_module(name)
 
@@ -785,12 +870,33 @@ class QoEsim:
     # ========================[initialize an impairment]========================
     @staticmethod
     def get_impairment_func(name, **kwargs):
-        
+        """
+        Return an impairment function.
+
+        Return an impairment function for the named impairment with the given
+        arguments. Possible keyword arguments are given by get_impairment_params.
+        Arguments that are not given will have their default values used. Extra
+        arguments that are given will be ignored.
+
+        Parameters
+        ----------
+        name : str
+            The plugin to create an impairment for.
+
+        Returns
+        -------
+        object
+            A callable object that can be used as an impairment for QoEsim.
+
+        See Also
+        --------
+        mcvqoe.simulation.QoEsim.get_impairment_params : Get impairment parameters.
+        """
         module = QoEsim._get_impairment_module(name)
-        
+
         return module.create_impairment(**kwargs)
 
-    # ========================[get delay value]========================    
+    # ========================[get delay value]========================
     def _get_delay_samples(self, value, name, offset=0):
         if value is None:
             delay_samples = 0
@@ -879,10 +985,10 @@ class QoEsim:
 
         # get delay offset for channel technology
         m2e_offset = chan_mod.standard_delay
-        
+
         # calculate values in samples
         overplay_samples = int(self.overplay * self.sample_rate)
-        
+
         # get value for device delay
         device_delay_samples = self._get_delay_samples(self.device_delay,'device delay')
 
@@ -1021,12 +1127,12 @@ class ImpairmentParam:
 class Impairment:
     '''
     Class used to define impairments.
-    
-    This is a good base class to make impairments that will be logged correctly. 
+
+    This is a good base class to make impairments that will be logged correctly.
     '''
     def __init__(self, **kwargs):
         self.arguments =  kwargs
-    
+
     def __repr__(self):
         return f'{type(self).__name__}('+', '.join([f'{k}={repr(v)}' for k, v in self.arguments.items()])+')'
 
