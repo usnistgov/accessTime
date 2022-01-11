@@ -5,6 +5,7 @@ import argparse
 import pandas as pd
 import math
 import re
+import numpy as np
 import statistics
 
 class Diagnose():
@@ -58,20 +59,20 @@ class Diagnose():
         Naming = 'Rx*'
         all_wavs = fnmatch.filter(Dir_Files, Naming)
         # Get total number of trials
-        self.Trials = len(all_wavs)
+        self.trials = len(all_wavs)
         # Create empty list for rx recordings 
         self.rx_rec = []
         self.rx_dat = []
         # Cycle through, in order
         # TODO: be clear about testing file formats. This gets confused if
         # the RX numbers reset for each file like in access time
-        for n in range(1,self.Trials+1):
+        for n in range(1,self.trials+1):
             start = 'Rx'+str(n)+'_'
             rx_name = [s for s in all_wavs if start in s]
             rx_path = self.Wav_Dir + '/' + rx_name[0]
             # Check how many channels we have 
             self.fs,y_rec = mcvqoe.base.audio_read(rx_path)
-            self.rx_rec.append(y_rec[:,0]) 
+            self.rx_rec.append(y_rec[:]) 
             self.rx_dat.append(rx_name[0])
             # Find all the Tx files in the wav_dir, strip 
             # the Tx and .wav off 
@@ -103,7 +104,7 @@ class Diagnose():
         A_Weight = []
           
         # Get A-weight
-        for k in range(0,self.Trials): 
+        for k in range(0,self.trials): 
             # Calculate the A-weighted power of each recording 
             aw = mcvqoe.base.a_weighted_power(self.rx_rec[k], self.fs) 
             A_Weight.append(aw)
@@ -130,7 +131,7 @@ class Diagnose():
             tx_justname = tx_justname[3:]
             tx_base.append(tx_justname)   
     
-        for j in range(0,self.Trials): 
+        for j in range(0,self.trials): 
             # Find RX files with the matching tx name, create groups 
             match_wavs = re.match(r'(Rx\d+_(?P<tx_base_name>[^.]+))',self.rx_dat[j])
             # find the index of the TX and RX clips to match with the lists of 
@@ -157,39 +158,45 @@ class Diagnose():
         """
         # Create empty list for peak volume
         peak_dbfs = []
-        for n in range(0,self.Trials):
+        for n in range(0,self.trials):
             # check for positive and negative clipping
             peak = max(abs(self.rx_rec[n]))
             peak_db = round(20 * math.log10(peak), 2)
             peak_dbfs.append(peak_db)
         return peak_dbfs
-    #TODO rethink flagging to better fit CSV export (1 and 0)
-    def clip_flag(self):
+    
+    def clip_flag(self,peak_dbfs):
         """
         Cycle through the peak amplitude and check
         for clipping.  
     
         Returns
         -------
-        clip_flag : set
+        clip_flag : list
             Trials that clipped 
     
         """
         # Set up warning threshold
         vol_high = -1
-        # Create empty set for peak volume and flag
-        clip_flag = set()
+        # Create empty list for setting flags
+        clip_flag = []
         # Check for positive and negative clipping
+        peak = np.array(peak_dbfs)
         for n in range(0,self.trials):
             # If approaching clipping, flag as a bad trial
-            if self.peak_dbfs[n] > vol_high :
-                # Get the name of the wav file
-                clip_wav = self.rx_name[n]
+            if peak[n] > vol_high:
+                # Flag as a clipped trial
+                clip_wav = True
                 # Add it to the bad list
-                clip_flag.add(clip_wav)
+                clip_flag.append(clip_wav) 
+            elif peak[n] < vol_high:   
+                # Flag as a non-clipped trial
+                clip_wav = False
+                # Add it to the bad list
+                clip_flag.append(clip_wav)         
         return clip_flag   
 
-    def fsf_flag(self):
+    def fsf_flag(self,FSF_all):
         """
         Check for trials with an FSF a certain distance
         from the mean. Use this info to find trials that 
@@ -197,32 +204,39 @@ class Diagnose():
             
         Returns
         -------
-        fsf_flag : set
+        fsf_flag : list
             Trials that have low FSF scores or otherwise deviate 
             from the patterns of the dataset
         """
-        # Create empty set for FSF flag    
-        fsf_flag = set()
+        # Create empty list for FSF flag    
+        fsf_flag = []
         # Gather metrics for FSF scores
-        fsf_mean = round(statistics.mean(self.fsf_all),3)
-        fsf_std = round(statistics.stdev(self.fsf_all),3)
+        fsf_array = np.array(FSF_all)
+        fsf_mean = round(statistics.mean(fsf_array),3)
+        fsf_std = round(statistics.stdev(fsf_array),3)
         for m in range(0,self.trials):
             # Cycle through FSF scores, look for trials where the score
             # stands out by being a certain distance from the mean
-            if abs(self.FSF_all[m]-fsf_mean) > 2*fsf_std:
-                # Get the name of the wav file
-                fsf_flag_wav = self.rx_name[m]
+            if abs(fsf_array[m]-fsf_mean) > 2*fsf_std:
+                # Flag the trial due to FSF score
+                fsf_flag_wav = True
                 # Add it to the bad list
-                fsf_flag.add(fsf_flag_wav)
+                fsf_flag.append(fsf_flag_wav)
+            elif abs(fsf_array[m]-fsf_mean) < 2*fsf_std:
+                # Do not flag
+                fsf_flag_wav = False
+                # Add it to the bad list
+                fsf_flag.append(fsf_flag_wav)   
             # Add a flag for low FSF scores that may be a sign of 
             # dropped audio
-            if self.fsf_all[m] < 0.3:
+            if fsf_array[m] < 0.25:
+                # Flag the trial due to low FSF
+                fsf_flag_wav = True
                 # Add it to the bad list
-                fsf_flag.add(fsf_flag_wav)
-                
+                fsf_flag.add(fsf_flag_wav)      
         return fsf_flag
 
-    def aw_flag(self):
+    def aw_flag(self,A_Weight):
         """
         Check for trials with a dBA less than -60 dBA. Check 
         for trials with a dBA a certain distance from the 
@@ -230,18 +244,18 @@ class Diagnose():
     
         Returns
         -------     
-        aw_flag : set
+        aw_flag : list
             Trials that have low dBA values (and likely lost audio)
             or otherwise deviate from the patterns of the dataset 
     
         """
-        # Create empty  set for a-weight flag     
-        aw_flag = set()
-        
+        # Create empty list for a-weight flag     
+        aw_flag = []
         # Calculate mean a-weight, standard deviation.
         # Use this info to find trials that may have lost
         # audio. 
-        aw_lin = 10**(self.a_weight/20)
+        aw_array = np.array(A_Weight)
+        aw_lin = 10**(aw_array/20)
         aw_low = 10**(-60/20)
         aw_mean = round(statistics.mean(aw_lin),3)
         aw_std = round(statistics.stdev(aw_lin),3)
@@ -249,17 +263,17 @@ class Diagnose():
             # Cycle through AW values, look for trials where the values
             # stand out by being a certain distance from the mean
             if abs(aw_lin[m]-aw_mean) > 2*aw_std:
-                # Get the name of the wav file
-                aw_flag_wav = self.rx_name[m]
+                aw_flagged = True
                 # Add it to the bad list
-                aw_flag.add(aw_flag_wav)
+                aw_flag.append(aw_flagged)
+            elif abs(aw_lin[m]-aw_mean) < 2*aw_std:
+                aw_flagged = False
+                aw_flag.append(aw_flagged)     
             # Add a flag if the a-weight is below -60 dBA
             if aw_lin[m] < aw_low:
-               # Get the name of the wav file
-               aw_flag_wav = self.rx_name[m]
-               # Add it to the bad list
-               aw_flag.add(aw_flag_wav)
-               
+                aw_low = True
+                # Add it to the bad list
+                aw_flag.add(aw_low)   
         return aw_flag
         
     def gather_diagnostics(self,A_Weight,FSF_all,peak_dbfs,clip_flag,fsf_flag,aw_flag):
@@ -275,12 +289,12 @@ class Diagnose():
             FSF scores across all RX trials
         peak_dbfs : list     
             Peak amplitude across all RX trials   
-        clip_flag : set
+        clip_flag : list
             Trials that clipped    
-        fsf_flag : set
+        fsf_flag : list
             Trials that have low FSF scores or otherwise deviate 
             from the patterns of the dataset
-        aw_flag : set
+        aw_flag : list
             Trials that have low dBA values (and likely lost audio)
             or otherwise deviate from the patterns of the dataset         
         
@@ -293,7 +307,10 @@ class Diagnose():
         df_Diagnostics = pd.DataFrame({"RX_Name":self.rx_dat, 
                         "A_Weight":A_Weight,
                         "FSF_Scores":FSF_all,
-                        "Peak_Amplitude":peak_dbfs})
+                        "Peak_Amplitude":peak_dbfs,
+                        "AW_flag":aw_flag,
+                        "Clip_flag":clip_flag,
+                        "FSF_flag":fsf_flag})
         # Get session name and use that to name files 
         test_path, test_name =re.split("wav/+", self.Wav_Dir)
         # Create json
