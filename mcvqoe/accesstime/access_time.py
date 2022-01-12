@@ -1461,22 +1461,7 @@ class measure:
             #set audio file names to Tx file names
             self.audio_files=['Tx_'+name+'.wav' for name in clips]
 
-            dat_name,_=os.path.splitext(os.path.basename(fname))
-
-            csv_name_re = r'R?(?P<base>capture+_(?P<type>.*)' \
-            r'_(?P<date>\d{2}-[A-z][a-z]{2}-\d{2,4})' \
-            r'_(?P<time>\d{2}-\d{2}-\d{2})' \
-            r')'                                  #end of base group  \
-            r'_(?P<word>[MF]\d_b\d+_w\d_[a-z]+)' \
-            r'(?:_(?P<suffix>BAD|TEMP))?'
-
-            m = re.match(csv_name_re, dat_name)
-
-            if not m:
-                raise RuntimeError(f'Unable to get base name from \'{dat_name}\'')
-
-            #get base group
-            dat_name = m.group('base')
+            dat_name = mcvqoe.base.get_meas_basename(fname, re_type="access_csv")
 
             if(audio_path is not None):
                 self.audio_path=audio_path
