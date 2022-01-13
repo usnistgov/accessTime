@@ -29,7 +29,7 @@ The firmware for the RadioInterface board can be found at:
 
 # Measurement Data Structure
 
-For more information about how measurement data gets stored see <DataStructure.md>
+For more information about how measurement data gets stored see the [Data Structure Readme](DataStructure.md).
 
 # License
 
