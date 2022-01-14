@@ -29,7 +29,7 @@ to measure and quantify the access time of any PTT communication system.
 - 1 computer able to run Python 3.9 or newer
 - 1 audio interface
 - 2 push-to-talk communications devices for testing
-- QoE box for connecting radios to
+- QoE hardware
 - cables to connect test devices to QoE hardware
 - Audio cables to connect QoE hardware to audio interface
 
