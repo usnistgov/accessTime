@@ -332,7 +332,7 @@ class evaluate:
             else:
                 raise TypeError(f'{k} is not a valid keyword argument')
         if json_data is not None:
-            self.test_names, self.test_info, self.data, self.cps = self.load_json_data(json_data)
+            self.test_names, self.test_info, self.data, self.cps = evaluate.load_json_data(json_data)
         else:
             # Data loaded in
             data = AccessData(test_names=test_names,
@@ -592,7 +592,8 @@ class evaluate:
         
         return final_json
     
-    def load_json_data(self, json_data):
+    @staticmethod
+    def load_json_data(json_data):
         """
         Do all data loading from input json_data
 
