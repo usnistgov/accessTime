@@ -13,10 +13,10 @@ import pandas as pd
 
 import mcvqoe.accesstime as access
 
-
+dirname = os.path.dirname(__file__)
 class EvaluateTest(unittest.TestCase):
-    ref_data_path = os.path.join('data', 'reference_data')
-    data_path = os.path.join('data')
+    ref_data_path = os.path.join(dirname, 'data', 'reference_data')
+    data_path = os.path.join(dirname, 'data')
     
     sut_sesh_ids = {
             'analog_direct': 'capture_Analog_12-Nov-2020_08-26-11',
@@ -138,11 +138,14 @@ class EvaluateTest(unittest.TestCase):
                 
 
 class  AccessDataTest(unittest.TestCase):
-    data_path = os.path.join('data', 'reference_data')
+    data_path = os.path.join(dirname, 'data', 'reference_data')
     ref_fname = 'ptt_ref_data.csv'
     ref_fpath = os.path.join(data_path, ref_fname)
     ptt_ref_data = pd.read_csv(ref_fpath)
+    
+    raw_data_path = os.path.join(dirname, 'data')
     tol = 1e-16
+    
     def compare_access_df(self, df1, df2):
         nrow, _ = df1.shape
         if nrow != df2.shape[0]:
@@ -161,7 +164,7 @@ class  AccessDataTest(unittest.TestCase):
     def test_init(self):
         
         session_name = 'capture_PTT-gate_14-May-2021_07-30-20'
-        data_path = os.path.join('..', 'accessTime', 'inst', 'extdata')
+        data_path = self.raw_data_path
         
         # Test generic session ID with test_path
         x1 = access.AccessData(session_name, test_path=data_path)
@@ -169,7 +172,7 @@ class  AccessDataTest(unittest.TestCase):
         
         # Test specific csv file names with test_path
         csv_path = os.path.join(data_path, 'csv')
-        sesh_csvs = access.access_time_eval.find_session_csvs(ptt_session, csv_path)
+        sesh_csvs = access.access_time_eval.find_session_csvs(session_name, csv_path)
         x2 = access.AccessData(test_names=sesh_csvs, test_path=data_path)
         self.compare_access_df(x2.data, self.ptt_ref_data)
         
@@ -180,6 +183,7 @@ class  AccessDataTest(unittest.TestCase):
         self.compare_access_df(x3.data, self.ptt_ref_data)
         
         # Test explicit wav paths
+        test_wav_path = os.path.join(data_path, 'wav', session_name)
         x3w = access.AccessData(test_names=sesh_paths,
                             wav_dirs=len(sesh_paths) * [test_wav_path],
                             )
@@ -187,37 +191,6 @@ class  AccessDataTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    
-    data_path = os.path.join('..', 'accessTime', 'inst', 'extdata')
-    csv_path = os.path.join(data_path, 'csv')
-    wav_path = os.path.join(data_path, 'wav')
-    
-    ptt_session = 'capture_PTT-gate_14-May-2021_07-30-20'
-    # test_tech(ptt_session)
-    
-    # Test generic session ID with test_path
-    x1 = access.AccessData(ptt_session, test_path=data_path)
-    
-    # Test specific csv file names with test_path
-    sesh_csvs = access.access_time_eval.find_session_csvs(ptt_session, csv_path)
-    x2 = access.AccessData(test_names=sesh_csvs, test_path=data_path)
-    
-    # Test specific csv file names with no test_path
-    sesh_paths = [os.path.join(csv_path, x) for x in sesh_csvs]
-    x3 = access.AccessData(test_names=sesh_paths)
-    # Can you do non-specific wav paths with specific csv paths?
-    
-    
-    # Test explicit wav paths
-    test_wav_path = os.path.join(wav_path, ptt_session)
-    cp_names = os.listdir(test_wav_path)
-    cp_paths = [os.path.join(test_wav_path, x) for x in cp_names]
-    
-    # x1w = access.AccessData(ptt_session, test_path=data_path, wav_dirs=cp_paths)
-    # x2w = access.AccessData(test_names=sesh_csvs, test_path=data_path, wav_dirs=cp_paths)
-    x3w = access.AccessData(test_names=sesh_paths,
-                            wav_dirs=len(sesh_paths) * [test_wav_path],
-                            )
     
     unittest.main()
 
