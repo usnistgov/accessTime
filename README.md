@@ -7,12 +7,14 @@ quality of experience (QoE) in communications. NIST’s PSCR division developed 
 to measure and quantify the access time of any push to talk (PTT) communication system.
 
 # OBTAINING SOFTWARE
+
 - Access Time measurement software available at:  https://github.com/usnistgov/accessTime
 - Microcontroller firmware available at:  https://github.com/usnistgov/MCV-QoE-firmware
 - MCV QoE GUI software available at : https://github.com/usnistgov/mcvqoe
 - Core MCV QoE library available at : https://github.com/usnistgov/mcvqoe-base
 
 # OBTAINING PAPERS
+
 - Start-of-word correction paper available at: https://doi.org/10.6028/NIST.TN.2166
 - Addendum Paper available at: https://doi.org/10.6028/NIST.IR.8328
 - Orignal measurement system paper available at: https://doi.org/10.6028/NIST.IR.8275
@@ -23,7 +25,8 @@ to measure and quantify the access time of any push to talk (PTT) communication 
 - Original measurement system data available at:  https://doi.org/10.18434/M32083
 
 # HARDWARE REQUIREMENTS
-- 1 computer able to run Python 3.6 or newer
+
+- 1 computer able to run Python 3.9 or newer
 - 1 audio interface
 - 2 communications devices for testing
 - QoE box for connecting radios to
@@ -38,9 +41,17 @@ The easiest way to use the measurement system is to run the GUI (https://github.
 
 # Calculating Access Time and Uncertainty
 
-If access time is run through the GUI, the user will be guided through the process of calculating access time. Otherwise the code to calculate access time values and their associated uncertainties is in the folder accessTime, as an R package. The package can be installed via the following command in the R console: `devtools::install_git(url="git://github.com/usnistgov/accessTime", subdir = "accessTime")`.
+If access time is run through the GUI, the user will be guided through the 
+process of calculating access time. Using the GUI is the recomended way, but it
+can also be done by running the following python code:
 
-Detailed documentation, with examples, is built into the R package. An index containing all documentation files as well as the description file can be found via the following command in the R console, after the package has been installed: `help(package="accessTime")`
+```
+eval_obj = mcvqoe.accesstime.evaluate(filepaths)
+mean, ci = eval_obj.eval(alpha=0.9)
+```
+
+Where `filepaths` is a list that contains the path to the .csv files from the 
+test to evaluate.
 
 # Microcontroller Code
 The code, as well as additional instructions, for the radio interface microcontroller is located:  <https://doi.org/10.18434/M32086>. 
@@ -49,20 +60,14 @@ This code was designed to run on the MSP-EXP430F5529LP "Launch Pad" development 
 
 The code uses the standard TI USB library and serial drivers. On Windows 10 driver installation is not necessary. On other systems the appropriate driver may need to be downloaded from TI.
 
-# Volume Settings
-Volume settings can impact test audio quality. To run the volume setting procedure, run the volume\_adjust.m script. The output of this script gives the ideal volume settings for Vtx.
-
-Example input specifications: `volume_adjust('AudioFile','Filepath\Example.wav','Trials',100, 'DevVolume', -5, 'Lim', [-30, 0])`
-
 # TECHNICAL SUPPORT
 For more information or assistance on access delay measurements please contact:
 
-Jaden Pieper\
 Public Safety Communications Research Division\
 National Institute of Standards and Technology\
 325 Broadway\
 Boulder, CO 80305\
-jaden.pieper@nist.gov
+PSCR@PSCR.gov
 
 # DISCLAIMER
 **Much of the included software was developed by NIST employees, for that software the following disclaimer applies:**
