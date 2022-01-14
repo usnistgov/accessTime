@@ -16,9 +16,11 @@ simulate sending audio through a PTT communication system.
 
 # Building and Instally the Package Locally
 
-To build and install the package
+To build and install the package, clone this repository and run the following
+from the root of the git repository :
+
 ```
-python setup.py install
+pip install .
 ```
 
 # Radio Interface Firmware
