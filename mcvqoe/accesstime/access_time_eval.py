@@ -174,6 +174,7 @@ class AccessData():
         tests = pd.DataFrame()
         tests_cp = {}
         for session, sesh_info in self.test_info.items():
+            tests_cp[session] = {}
             for word_csv in sesh_info['data_file']:
                 fname = os.path.join(sesh_info['data_path'], word_csv)
                 if self.use_reprocess:
@@ -204,7 +205,7 @@ class AccessData():
                 cp_name = 'Tx_' + talker + bw_index + word + '.csv'
                 cp_path = os.path.join(sesh_info['cp_path'], cp_name)
                 
-                tests_cp[talker_word] = pd.read_csv(cp_path)
+                tests_cp[session][talker_word] = pd.read_csv(cp_path)
                 
                 
                 with open(fname) as head_file:
@@ -219,7 +220,7 @@ class AccessData():
                     raise RuntimeError(f'No valid sample rate found in session header\n{fname}')
                 
                 # Determine length of T from cutpoints
-                T = tests_cp[talker_word].loc[0]['End']/fs
+                T = tests_cp[session][talker_word].loc[0]['End']/fs
                 
                 # Store PTT time relative to start of P1 
                 test['time_to_P1'] = T - test['PTT_time']
@@ -575,13 +576,19 @@ class evaluate:
 
         """
         cps = {}
-        for talker_word, cp in self.cps.items():
-            cps[talker_word] = cp.to_json()
+        for sesh, sesh_cps in self.cps.items():
+            cps[sesh] = {}
+            for talker_word, cp in sesh_cps.items():
+                cps[sesh][talker_word] = cp.to_json()
+        # cps = {}
+        # for talker_word, cp in self.cps.items():
+        #     cps[talker_word] = cp.to_json()
         
         out_json = {
             'measurement': self.data.to_json(),
             'cps': cps,
-            'test_info': json.dumps(self.test_info)
+            # 'test_info': json.dumps(self.test_info)
+            'test_info': self.test_info,
                 }
         
         # Final json representation of all data
@@ -619,11 +626,19 @@ class evaluate:
             json_data = json.loads(json_data)
         # Extract data, cps, and test_info from json_data
         data = pd.read_json(json_data['measurement'])
-        cps = {}
-        for talker_word, cp in json_data['cps'].items():
-            cps[talker_word] = pd.read_json(cp)
         
-        test_info = json.loads(json_data['test_info'])
+        cps = {}
+        cp_data = json_data['cps']
+        for sesh, sesh_cps in cp_data.items():
+            cps[sesh] = {}
+            for talker_word, cp in sesh_cps.items():
+                cps[sesh][talker_word] = pd.read_json(cp)
+        
+        # cps = {}
+        # for talker_word, cp in json_data['cps'].items():
+        #     cps[talker_word] = pd.read_json(cp)
+        
+        test_info = json_data['test_info']
         
         # Return normal Access data attributes from these
         return test_info.keys(), test_info, data, cps
