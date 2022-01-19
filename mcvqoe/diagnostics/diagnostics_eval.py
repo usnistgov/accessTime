@@ -87,6 +87,7 @@ class Diagnostics_Eval():
             mode = 'markers'
             )
         ) 
+        fig.update_traces(marker=dict(size=8, color='#0000FF'))
         fig.update_layout(title_text='FSF Score of Received Audio')
         fig.update_xaxes(title_text='Trial Number')
         fig.update_yaxes(title_text='FSF Score')
@@ -113,43 +114,37 @@ class Diagnostics_Eval():
                 y = dfAW['A-Weight'],
                 mode = 'markers'
             )
-        )    
+        )   
+        fig.update_traces(marker=dict(size=8, color='#0000FF'))
         fig.update_layout(title_text='A-Weighted Power of Received Audio')
         fig.update_xaxes(title_text='Trial Number')
         fig.update_yaxes(title_text='A-Weight (dBA)')
         fig.show()
     
-    # TODO fix this for actual use case
-    def wav_plot(self,fs):
+    def peak_dbfs_plot(self):
         """
-        Plot rx trial audio recordings
+        Plot the peak dbfs of every trial.    
         
-        Parameters
-        ----------
-        Trials : int
-            number of trials 
-        rx_rec : list 
-            audio for rx recordings   
-        fs : int 
-            sampling rate of rx recordings       
-    
         Returns
         -------
-     
+        None.
+    
         """
-        # Create empty list for time (seconds)
-        tsec = []
-        # Prepare time info for plotting
-        for k in range(0,self.trials):
-            t = len(self.rx_rec[0])/fs
-            ts = np.arange(0,t,1/fs)
-            tsec.append(ts)
-            # Plot recording
-            dfWavs= pd.DataFrame({"time":ts, 
-                            "audio":self.rx_rec[0]})
-        dfWavs.set_index('time')
-        fig = px.line(dfWavs, y='audio',x='time')
-        fig.update_layout(title_text='Trial Recordings')
-        fig.update_xaxes(title_text='Time (s)')
-        fig.update_yaxes(title_text='Amplitude')
-        fig.show()  
+        # Plot the peak amplitude (dbfs) for all trials  
+        peak_amp = np.asarray(self.peak_dbfs)  
+        x_axis = list(range(1,self.trials+1))
+        df_peak = pd.DataFrame({"Peak_dbfs": peak_amp,
+                             "Trials": x_axis})  
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x = df_peak['Trials'], 
+                y = df_peak['Peak_dbfs'],
+                mode = 'markers'
+            )
+        )   
+        fig.update_traces(marker=dict(size=8, color='#0000FF'))
+        fig.update_layout(title_text='Peak Amplitude of Received Audio')
+        fig.update_xaxes(title_text='Trial Number')
+        fig.update_yaxes(title_text='Peak Amplitude (dBfs)')
+        fig.show()      
