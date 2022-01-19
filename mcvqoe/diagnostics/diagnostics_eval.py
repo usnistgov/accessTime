@@ -1,5 +1,3 @@
-import statistics
-import numpy as np
 import plotly.graph_objects as go
 import plotly.io as pio
 import pandas as pd
@@ -11,7 +9,7 @@ pio.renderers.default = 'browser'
 class Diagnostics_Eval():
     """
     Plot diagnostics and inform user of potential problems in collected
-    data. Flags trials that may require further investigation.
+    data.
     
     Parameters
     ----------
@@ -22,8 +20,6 @@ class Diagnostics_Eval():
     ----------   
     fs : int 
         sampling rate of rx recordings       
-    rx_dat : list
-        names of rx recordings
     rx_name : list
          names of rx recordings 
     a_weight : array
@@ -35,6 +31,14 @@ class Diagnostics_Eval():
          scale      
     trials : int
          number of trials
+    clip_flag : list
+        Trials that clipped  
+    fsf_flag : list
+        Trials that have low FSF scores or otherwise deviate 
+        from the patterns of the dataset
+    aw_flag : list
+        Trials that have low dBA values (and likely lost audio)
+        or otherwise deviate from the patterns of the dataset     
          
     Methods
     ----------
@@ -91,7 +95,10 @@ class Diagnostics_Eval():
             x = dfFSF['Trial'],    
             y = dfFSF['FSF Score'],
             mode = 'markers',
+            showlegend = True,
+            name = 'FSF score'
         )), 
+        # TODO update legend to show flagged trials
         fig.update_traces(marker = dict(
             size = 10, 
             color = (
