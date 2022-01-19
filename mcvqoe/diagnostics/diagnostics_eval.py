@@ -63,7 +63,13 @@ class Diagnostics_Eval():
         self.fsf_all = fsf_all.to_numpy()
         peak_dbfs = diagnostics_dat.Peak_Amplitude
         self.peak_dbfs = peak_dbfs.to_numpy()
-        self.trials = len(diagnostics_dat)      
+        self.trials = len(diagnostics_dat) 
+        aw_flag = diagnostics_dat.AW_flag
+        self.aw_flag = aw_flag.to_numpy()
+        clip_flag = diagnostics_dat.Clip_flag
+        self.clip_flag = clip_flag.to_numpy()
+        fsf_flag = diagnostics_dat.FSF_flag
+        self.fsf_flag = fsf_flag.to_numpy() 
     
     def fsf_plot(self):
         """
@@ -74,24 +80,35 @@ class Diagnostics_Eval():
         None.
     
         """
-        # Plot FSF values 
-        fsf_scores = np.asarray(self.fsf_all)  
+        # Plot FSF values   
         x_axis = list(range(1,self.trials+1))
-        dfFSF = pd.DataFrame({"FSF Score": fsf_scores,
-                              "Trial": x_axis})  
+        dfFSF = pd.DataFrame({"FSF Score": self.fsf_all,
+                              "Trial": x_axis,
+                              "fsf_flag": self.fsf_flag})  
         fig = go.Figure()
         fig.add_trace(
             go.Scatter(
             x = dfFSF['Trial'],    
             y = dfFSF['FSF Score'],
-            mode = 'markers'
+            mode = 'markers',
+        )), 
+        fig.update_traces(marker = dict(
+            size = 10, 
+            color = (
+                (dfFSF.fsf_flag == 1)
+                ).astype('int'),
+            colorscale = [[0, '#0000FF'], [1, 'red']],
+            symbol = dfFSF.fsf_flag
             )
-        ) 
-        fig.update_traces(marker=dict(size=8, color='#0000FF'))
+        )
         fig.update_layout(title_text='FSF Score of Received Audio')
         fig.update_xaxes(title_text='Trial Number')
         fig.update_yaxes(title_text='FSF Score')
         fig.show()
+
+            # If approaching clipping, flag as a bad trial
+         #   if self.fsf_flag == 1:       
+
         
     def aw_plot(self):
         """
@@ -102,11 +119,11 @@ class Diagnostics_Eval():
         None.
     
         """
-        # Plot a-weighted power for all trials  
-        a_weight = np.asarray(self.a_weight)  
+        # Plot a-weighted power for all trials    
         x_axis = list(range(1,self.trials+1))
-        dfAW = pd.DataFrame({"A-Weight": a_weight,
-                             "Trials": x_axis})  
+        dfAW = pd.DataFrame({"A-Weight": self.a_weight,
+                             "Trials": x_axis,
+                             "aw_flag":self.aw_flag})  
         fig = go.Figure()
         fig.add_trace(
             go.Scatter(
@@ -114,8 +131,16 @@ class Diagnostics_Eval():
                 y = dfAW['A-Weight'],
                 mode = 'markers'
             )
-        )   
-        fig.update_traces(marker=dict(size=8, color='#0000FF'))
+        )
+        fig.update_traces(marker = dict(
+            size = 10, 
+            color = (
+                (dfAW.aw_flag == 1)
+                ).astype('int'),
+            colorscale = [[0, '#0000FF'], [1, 'red']],
+            symbol = dfAW.aw_flag
+            )
+        )
         fig.update_layout(title_text='A-Weighted Power of Received Audio')
         fig.update_xaxes(title_text='Trial Number')
         fig.update_yaxes(title_text='A-Weight (dBA)')
@@ -130,11 +155,11 @@ class Diagnostics_Eval():
         None.
     
         """
-        # Plot the peak amplitude (dbfs) for all trials  
-        peak_amp = np.asarray(self.peak_dbfs)  
+        # Plot the peak amplitude (dbfs) for all trials   
         x_axis = list(range(1,self.trials+1))
-        df_peak = pd.DataFrame({"Peak_dbfs": peak_amp,
-                             "Trials": x_axis})  
+        df_peak = pd.DataFrame({"Peak_dbfs": self.peak_dbfs,
+                             "Trials": x_axis,
+                             "clip_flag": self.clip_flag})  
         fig = go.Figure()
         fig.add_trace(
             go.Scatter(
@@ -143,7 +168,15 @@ class Diagnostics_Eval():
                 mode = 'markers'
             )
         )   
-        fig.update_traces(marker=dict(size=8, color='#0000FF'))
+        fig.update_traces(marker = dict(
+            size = 10, 
+            color = (
+                (df_peak.clip_flag == 1)
+                ).astype('int'),
+            colorscale = [[0, '#0000FF'], [1, 'red']],
+            symbol = df_peak.clip_flag
+            )
+        )
         fig.update_layout(title_text='Peak Amplitude of Received Audio')
         fig.update_xaxes(title_text='Trial Number')
         fig.update_yaxes(title_text='Peak Amplitude (dBfs)')
