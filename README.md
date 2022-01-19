@@ -1,10 +1,10 @@
 # PURPOSE
 
-The purpose of this software is to measure the access delay of a push-to-talk network.
+The purpose of this software is to measure the access delay of a push-to-talk (PTT) network.
 Access time generally describes time associated with the initialization and assignment
 of channels upon user request to speak and has been identified as a key component of
 quality of experience (QoE) in communications. NIST’s PSCR division developed a method
-to measure and quantify the access time of any push to talk (PTT) communication system.
+to measure and quantify the access time of any PTT communication system.
 
 # OBTAINING SOFTWARE
 
@@ -28,10 +28,10 @@ to measure and quantify the access time of any push to talk (PTT) communication 
 
 - 1 computer able to run Python 3.9 or newer
 - 1 audio interface
-- 2 communications devices for testing
-- QoE box for connecting radios to
-- cables to connect test devices to QoE box
-- Audio cables to connect QoE box to audio interface
+- 2 push-to-talk communications devices for testing
+- QoE hardware
+- cables to connect test devices to QoE hardware
+- Audio cables to connect QoE hardware to audio interface
 
 # RUNNING MEASUREMENT SOFTWARE
 
