@@ -11,7 +11,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/usnistgov/mcvqoe-base",
-    packages=setuptools.find_namespace_packages(include=['mcvqoe.*']),
+    packages=setuptools.find_namespace_packages(include=["mcvqoe.*"]),
     include_package_data=True,
     package_data={
         "mcvqoe": ["audio_clips", "test.wav"],
@@ -33,6 +33,7 @@ setuptools.setup(
         "soundfile",
         "appdirs",
         'importlib-metadata ; python_version < "3.8"',
+        "pandas",
     ],
     entry_points={
         "console_scripts": [
@@ -45,7 +46,7 @@ setuptools.setup(
             "mcvqoe-diagnostics=mcvqoe.diagnostics.diagnostics:main",
         ],
         "mcvqoe.channel": "clean=mcvqoe.simulation.cleanchan",
-        "mcvqoe.impairment" : "probabilityiser=mcvqoe.simulation.pbiplugin",
+        "mcvqoe.impairment": "probabilityiser=mcvqoe.simulation.pbiplugin",
     },
     python_requires=">=3.6",
 )
