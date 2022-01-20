@@ -80,13 +80,13 @@ class Measure:
         #dummy function, override if needed
         pass
 
-    def run(self):
+    def run(self, **kwargs):
         if self.test == "1loc":
-            return self.run_1loc()
+            return self.run_1loc(**kwargs)
         elif self.test == "2loc_tx":
-            return self.run_2loc_tx()
+            return self.run_2loc_tx(**kwargs)
         elif self.test == "2loc_rx":
-            return self.run_2loc_rx()
+            return self.run_2loc_rx(**kwargs)
         else:
             raise ValueError(f'Unknown test type "{self.test}"')
 
