@@ -40,7 +40,7 @@ fn = abcmrt.fs/2
 ptt_filt = scipy.signal.firwin(400, 200/fn, pass_zero='lowpass')
 
 
-class measure:
+class measure(mcvqoe.base.Measure):
     """
     Class to run access time measurements.
 
@@ -162,6 +162,11 @@ class measure:
                                              pause_trials = np.Inf)
     >>> test_obj.run()
     """
+
+    measurement_name = "Access"
+
+    no_log = ('test', 'rec_file', 'data_header', 'bad_header', 'y')
+
     #on load conversion to datetime object fails for some reason
     #TODO : figure out how to fix this, string works for now but this should work too:
     #row[k]=datetime.datetime.strptime(row[k],'%d-%b-%Y_%H-%M-%S')
@@ -190,6 +195,24 @@ class measure:
                   'TimeGap'     : str,
                  }
 
+    #access time requires some extra channels
+    required_chans = {
+                    '1loc' : {
+                                "rec" : ("rx_voice","PTT_signal"),
+                                "pb" : ("tx_voice","start_signal"),
+                             },
+                    # NOTE : for 2 location, recording inputs will be checked
+                    #        to see if they include a timecode channel
+                    '2loc_tx' : {
+                                "rec" : ("PTT_signal"),
+                                "pb" : ("tx_voice","start_signal"),
+                                },
+                    '2loc_rx' : {
+                                "rec" : ("rx_voice",),
+                                "pb" : (),
+                             },
+                      }
+
     def __init__(self, **kwargs):
 
         self.audio_files = [
@@ -216,10 +239,10 @@ class measure:
         self.get_post_notes = None
         self.info = {'Test Type': 'default', 'Pre Test Notes': ''}
         self.inter_word_diff = 0.0 # Used to compare inter word delays
-        self.no_log = ('test', 'rec_file', 'data_header', 'bad_header', 'y')
         self.outdir = ""
         self.ptt_delay = [0.0]
         self.ptt_gap = 3.1
+        self.test = "1loc"
         self.ptt_rep = 30
         self.ptt_step = float(20e-3)
         self.rec_file = None
@@ -417,7 +440,24 @@ class measure:
                 self._time_expand_samples*abcmrt.fs
                 ).astype(int)
 
-    def run(self, recovery=False):
+    def log_extra(self):
+        #add abcmrt version
+        self.info['abcmrt version']=abcmrt.version
+
+    def test_setup(self):
+        #-----------------------[Check audio sample rate]-----------------------
+        if self.audio_interface is not None and \
+            self.audio_interface.sample_rate != abcmrt.fs:
+            raise ValueError(f'audio_interface sample rate is {self.audio_interface.sample_rate} Hz but only {abcmrt.fs} Hz is supported')
+        #---------------------------[Set time expand]---------------------------
+        self.set_time_expand(self.time_expand)
+
+
+    # the generic two location tx code won't work, but does not exist yet
+    def run_2loc_tx(self, recovery=False):
+        raise NotImplementedError("Two location Access Time code has yet to be written")
+
+    def run_1loc(self, recovery=False):
         """Run an Access Time test
         
         ...
@@ -438,26 +478,11 @@ class measure:
         time_e = np.nan
         tg_e = np.nan
         
-        #-----------------------[Check audio sample rate]-----------------------
-        
-        if (self.audio_interface.sample_rate != abcmrt.fs):
-            raise ValueError(f'audio_interface sample rate is {self.audio_interface.sample_rate} Hz but only {abcmrt.fs} Hz is supported')
-        
-        #------------------[Check for correct audio channels]------------------
-        
-        if('tx_voice' not in self.audio_interface.playback_chans.keys()):
-            raise ValueError('self.audio_interface must be set up to play tx_voice')
-        if('start_signal' not in self.audio_interface.playback_chans.keys()):
-            raise ValueError('self.audio_interface must be set up to play start_signal')
-            
-        if('rx_voice' not in self.audio_interface.rec_chans.keys()):
-            raise ValueError('self.audio_interface must be set up to record rx_voice')
-        if('PTT_signal' not in self.audio_interface.rec_chans.keys()):
-            raise ValueError('self.audio_interface must be set up to record PTT_signal')
-            
-        #---------------------------[Set time expand]---------------------------
-        self.set_time_expand(self.time_expand)
-                   
+
+        # ------------------------[Test specific setup]------------------------
+        self.test_setup()
+        # ------------------[Check for correct audio channels]------------------
+        self.check_channels()
         #---------------------[Generate csv format strings]---------------------
 
         self.data_header, dat_format = self.csv_header_fmt(self.data_fields)
@@ -507,9 +532,9 @@ class measure:
         #--------------------------[Fill log entries]--------------------------
         
         #set test name
-        self.info['test'] = 'Access'
-        #add abcmrt version
-        self.info['abcmrt version'] = abcmrt.version
+        self.info['test'] = self.measurement_name
+        #add any extra entries
+        self.log_extra()
         #fill in standard stuff
         self.info.update(mcvqoe.base.write_log.fill_log(self))
 
@@ -1474,36 +1499,6 @@ class measure:
             #self.audio_clip_check()
 
         return data
-
-    #get the clip index given a partial clip name
-    def find_clip_index(self,name):
-        """
-        find the inex of the matching transmit clip.
-
-        Parameters
-        ----------
-        name : string
-            base name of audio clip
-
-        Returns
-        -------
-        int
-            index of matching tx clip
-
-        """
-
-        #match a string that has the chars that are in name
-        name_re=re.compile(re.escape(name)+'(?![^.])')
-        #get all matching indices
-        match=[idx for idx,clip in enumerate(self.audio_files) if  name_re.search(clip)]
-        #check that a match was found
-        if(not match):
-            raise RuntimeError(f'no audio clips found matching \'{name}\' found in {self.audio_files}')
-        #check that only one match was found
-        if(len(match)!=1):
-            raise RuntimeError(f'multiple audio clips found matching \'{name}\' found in {self.audio_files}')
-        #return matching index
-        return match[0]
 
     @staticmethod
     def unzip_audio(audio_path):
