@@ -288,7 +288,7 @@ def compare_uncs(x):
     )
 
 
-def improved_autocorrelation(x):
+def improved_autocorrelation(x, lag_max=None):
     """
     Detect lags at which there is likely autocorrelation.
 
@@ -306,20 +306,36 @@ def improved_autocorrelation(x):
         Array of indices for lags where this is likely autocorrelation.
 
     """
+    # Force x to behave be a numpy array
+    x = np.array(x)
     # Calculate sample autocorrelation estimate
     N = len(x)
-    corrs = np.zeros(N)
+    if lag_max is None:
+        # TODO: Experiment more with the best lag_max to use
+        # # Zhang NF (2006) recommends using a maximum lag of N/4
+        lag_max = int(np.floor(N/4))
+        
+        # However that feels it can give some fairly noisey results, we instead use
+        # the maximum lag used by R acf method
+        # lag_max = int(np.floor(10*np.log10(N)))
+    
+    # Initialize correlation estimates
+    corrs = np.zeros(lag_max)
+    # Get mean of data
     m = np.mean(x)
-    d = x - m
-    for ii in range(N):
-        corrs[ii] = np.sum(d[ii:] * d[:(N-ii)])
-    corrs = corrs/corrs[0]
-
+    denom = np.sum(np.power(x-m, 2))
+    for k in range(lag_max):
+        numerator = np.sum((x[:(N-k)] - m) * (x[k:] - m))
+        corrs[k] = numerator/denom
+    
     # Respective uncertainties
-    sigmas = np.zeros(N)
+    sigmas = np.zeros(lag_max)
     sigmas[0] = 1/np.sqrt(N)
-    for ii in range(1, N):
-        sigmas[ii] = np.sqrt((1 + 2 * np.sum(corrs[:ii]**2))/N)
+    for k in range(1, lag_max):
+        summer = np.sum(np.power(corrs[1:k], 2))
+        nummer = 1 + 2* summer
+        sigmas[k] = np.sqrt(nummer/N)
+    
 
     return np.argwhere(np.abs(corrs) > 1.96 * sigmas)
 
