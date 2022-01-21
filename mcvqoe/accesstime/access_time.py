@@ -186,8 +186,8 @@ class measure(mcvqoe.base.Measure):
     bad_fields = {'FileName'    : str,
                   'trial_count' : int,
                   'clip_count'  : int,
-                  'try#'        : int,
-                  'p2A-weight'  : float,
+                  'try_num'     : int,
+                  'p2_A_weight'  : float,
                   'm2e_latency' : float,
                   'channels'    : mcvqoe.base.parse_audio_channels,
                   'TimeStart'   : str,
@@ -982,14 +982,14 @@ class measure(mcvqoe.base.Measure):
                             
                             #----------------------[Check A-weight of P2]---------------------
                                                      
-                            low_p2_aw = data['p2Aweight'] <= self.s_thresh
+                            low_p2_aw = data['p2_A_weight'] <= self.s_thresh
                                                      
                             if low_p2_aw:
                                 if(not self.progress_update(
                                         'check-fail',
                                         total_trials,
                                         trial_count,
-                                        msg=f'A-weight power for P2 is {data["p2Aweight"]:.2f}dB',
+                                        msg=f'A-weight power for P2 is {data["p2_A_weight"]:.2f}dB',
                                     )):
                                     raise SystemExit()
                                 
@@ -1016,9 +1016,9 @@ class measure(mcvqoe.base.Measure):
                                     csv_file.write(
                                         bad_format.format(
                                             FileName=wav_name,
-                                            trialcount=trial_count,
-                                            clipcount=clip_count,
-                                            rtry=retries,
+                                            trial_count=trial_count,
+                                            clip_count=clip_count,
+                                            try_num=retries,
                                             **data,
                                         )
                                     )
@@ -1033,7 +1033,7 @@ class measure(mcvqoe.base.Measure):
                                         'check-resume',
                                         total_trials,
                                         trial_count,
-                                        msg=f'A-weight power of {data["p2Aweight"]:.2f} dB for P2',
+                                        msg=f'A-weight power of {data["p2_A_weight"]:.2f} dB for P2',
                                     )):
                                 raise SystemExit()
                             
@@ -1282,8 +1282,8 @@ class measure(mcvqoe.base.Measure):
               'P2_Int' : success[1],
              }
     
-        #compute a weight power of word two here, because we have the cut audio
-        data['p2Aweight'] = mcvqoe.base.a_weighted_power(word_audio[1],self.audio_interface.sample_rate)
+        #compute A-weight power of word two here, because we have the cut audio
+        data['p2_A_weight'] = mcvqoe.base.a_weighted_power(word_audio[1],self.audio_interface.sample_rate)
         
         return data
         
