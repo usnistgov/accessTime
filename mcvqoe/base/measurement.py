@@ -73,6 +73,18 @@ class Measure:
         #dummy function, override if needed
         pass
 
+    def param_check(self):
+        """
+        Check that parameters are correct.
+        
+        Raises
+        ------
+        ValueError
+            If there is an incorrect parameter.
+        """
+        #dummy function, override if needed
+        pass
+
     def test_setup(self):
         """
         Extra things that need to be setup for a specific test
