@@ -470,7 +470,7 @@ class Measure:
                 #generate dummy values for format
                 trial_dat = {}
                 for _, field, _, _ in string.Formatter().parse(dat_format):
-                    if field not in data_fields:
+                    if field not in self.data_fields:
                         #not in data fields, fill with NaN
                         trial_dat[field] = np.NaN
                     elif data_fields[field] is float:
