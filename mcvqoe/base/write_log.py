@@ -7,6 +7,7 @@ import traceback
 import warnings
 
 import mcvqoe.base.version
+import numpy as np
 
 
 def fill_log(test_obj):
@@ -45,9 +46,7 @@ def fill_log(test_obj):
     tb = tb[:-1]
 
     # extract important info from traceback
-    tb_info = [
-        (os.path.basename(fs.filename), fs.name if fs.name != "<module>" else None) for fs in tb
-    ]
+    tb_info = [(os.path.basename(fs.filename), fs.name if fs.name != "<module>" else None) for fs in tb]
 
     # add entry for calling file
     info["filename"] = tb_info[-1][0]
@@ -61,22 +60,22 @@ def fill_log(test_obj):
 
     # ----------------------[Add Measurement class version]----------------------
 
-    if test_obj.__class__.__name__ == 'measure':
+    if test_obj.__class__.__name__ == "measure":
         # get module for test_obj
         module = test_obj.__class__.__module__
     else:
-        #TESTING : print base classes
+        # TESTING : print base classes
         for base in test_obj.__class__.__bases__:
-            #see if we have subclassed a measure class
-            if base.__name__ == 'measure':
-                #get module from this class
+            # see if we have subclassed a measure class
+            if base.__name__ == "measure":
+                # get module from this class
                 module = base.__module__
-                #we are done
-                break;
+                # we are done
+                break
         else:
-            #could not find module
+            # could not find module
             module = None
-            warnings.warn(f'Unable to find measure class for {test_obj.__class__.__name__}',category=RuntimeWarning)
+            warnings.warn(f"Unable to find measure class for {test_obj.__class__.__name__}", category=RuntimeWarning)
 
     # set default version
     info["version"] = "Unknown"
@@ -87,23 +86,25 @@ def fill_log(test_obj):
         try:
             info["version"] = mod.version
         except AttributeError as e:
-            warnings.warn(f'Unable to get version {e}',category=RuntimeWarning)
+            warnings.warn(f"Unable to get version {e}", category=RuntimeWarning)
             pass
     # ------------------------------[Add OS info]------------------------------
 
-    info["os name"] =  platform.system()
-    info["os release"] =  platform.release()
-    info["os version"] =  platform.version()
+    info["os name"] = platform.system()
+    info["os release"] = platform.release()
+    info["os version"] = platform.version()
 
     # ---------------------------[Fill Arguments list]---------------------------
 
     # class properties to skip in all cases
-    standard_skip = ["no_log", "info", "progress_update", "user_check"]
+    standard_skip = ["no_log", "info", "progress_update", "rng", "user_check"]
     arg_list = []
 
+    np.set_string_function(lambda x: f"np.ndarray(dtype={x.dtype}, shape={x.shape})")
     for k, v in vars(test_obj).items():
-        if not k.startswith('_') and k not in test_obj.no_log and k not in standard_skip:
+        if not k.startswith("_") and k not in test_obj.no_log and k not in standard_skip:
             arg_list.append(k + " = " + repr(v))
+    np.set_string_function(None)
 
     info["Arguments"] = ",".join(arg_list)
 
@@ -111,26 +112,26 @@ def fill_log(test_obj):
 
     return info
 
+
 def format_text_block(text):
     """
     format text block for log.
-    
+
     This writes out a, possibly, multi line text block to the log. It is used to
     write out both pre and post test notes.
-    
+
     Parameters
     ----------
     text : str
         String containing the block of text to format.
     """
-    
-    if(text is None):
-        return ''
-    
-    return ''.join(['\t'+line+'\n' for line in text.splitlines(keepends=False)])
-    
-    
-    
+
+    if text is None:
+        return ""
+
+    return "".join(["\t" + line + "\n" for line in text.splitlines(keepends=False)])
+
+
 def pre(info={}, outdir=""):
     """
     Take in M2E class info dictionary and write pre-test to tests.log.
@@ -156,9 +157,7 @@ def pre(info={}, outdir=""):
     # Write all necessary arguments/test params into tests.log
     with open(log_datadir, "a") as file:
 
-        file.write(
-            f"\n>>{info['test']} started at {info['Tstart'].strftime('%d-%b-%Y %H:%M:%S')}\n"
-        )
+        file.write(f"\n>>{info['test']} started at {info['Tstart'].strftime('%d-%b-%Y %H:%M:%S')}\n")
         for key in info:
             if key not in skip_keys:
                 file.write(f"\t{key:<{pad_len}} : {info[key]}\n")
@@ -193,8 +192,8 @@ def post(info={}, outdir=""):
             header = "===Post-Test Notes==="
             notes = info.get("Post Test Notes", "")
 
-        #write header
-        file.write(header+'\n')
+        # write header
+        file.write(header + "\n")
         # write notes
         file.write(format_text_block(notes))
         # write end
