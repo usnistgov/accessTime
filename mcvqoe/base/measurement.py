@@ -473,10 +473,10 @@ class Measure:
                     if field not in self.data_fields:
                         #not in data fields, fill with NaN
                         trial_dat[field] = np.NaN
-                    elif data_fields[field] is float:
+                    elif self.data_fields[field] is float:
                         #float, fill with NaN
                         trial_dat[field] = np.NaN
-                    elif data_fields[field] is int:
+                    elif self.data_fields[field] is int:
                         #int, fill with zero
                         trial_dat[field] = 0
                     else:
