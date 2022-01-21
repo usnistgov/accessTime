@@ -398,7 +398,7 @@ class Measure:
             audio_write(out_name + ".wav", int(self.audio_interface.sample_rate), dat)
             #write cutpoints, if present
             if cp:
-                mcvqoe.base.write_cp(out_name+'.csv',cp)
+                write_cp(out_name+'.csv',cp)
 
         # -------------------------[Generate CSV header]-------------------------
 
