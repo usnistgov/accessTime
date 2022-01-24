@@ -75,7 +75,22 @@ class Diagnostics_Eval():
         fsf_flag = diagnostics_dat.FSF_flag
         self.fsf_flag = fsf_flag.to_numpy() 
         
-        # TODO add json part here
+    # TODO add json part here
+    def to_json(self, filename=None):
+        """
+        Create json representation of diagnostics data
+
+        Parameters
+        ----------
+        filename : str, optional
+            If given save to json file. Otherwise returns json string. The default is None.
+
+        Returns
+        -------
+        None.
+
+        """
+        test_info = {}
     
     def fsf_plot(self):
         """
