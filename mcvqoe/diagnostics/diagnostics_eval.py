@@ -1,9 +1,9 @@
 import plotly.graph_objects as go
 import plotly.io as pio
 import pandas as pd
-import plotly.express as px
 # TODO for my testing, not in final 
 pio.renderers.default = 'browser'
+import json
 
 
 class Diagnostics_Eval():
@@ -74,6 +74,8 @@ class Diagnostics_Eval():
         self.clip_flag = clip_flag.to_numpy()
         fsf_flag = diagnostics_dat.FSF_flag
         self.fsf_flag = fsf_flag.to_numpy() 
+        
+        # TODO add json part here
     
     def fsf_plot(self):
         """
@@ -88,34 +90,44 @@ class Diagnostics_Eval():
         x_axis = list(range(1,self.trials+1))
         dfFSF = pd.DataFrame({"FSF Score": self.fsf_all,
                               "Trial": x_axis,
-                              "fsf_flag": self.fsf_flag})  
+                              "fsf_flag": self.fsf_flag})
+        # Separate out flagged trials for easy plotting
+        df_flag = dfFSF[dfFSF['fsf_flag'] == 1]
         fig = go.Figure()
+        # plot all trials
         fig.add_trace(
             go.Scatter(
             x = dfFSF['Trial'],    
             y = dfFSF['FSF Score'],
             mode = 'markers',
             showlegend = True,
-            name = 'FSF score'
-        )), 
-        # TODO update legend to show flagged trials
-        fig.update_traces(marker = dict(
-            size = 10, 
-            color = (
-                (dfFSF.fsf_flag == 1)
-                ).astype('int'),
-            colorscale = [[0, '#0000FF'], [1, 'red']],
+            name = 'FSF score',
+            marker = dict(
+                size = 10,
+                color = '#0000FF',
             symbol = dfFSF.fsf_flag
+                )
             )
-        )
+        ), 
+        # Plot all flagged trials
+        fig.add_trace(
+            go.Scatter(
+            x = df_flag['Trial'],    
+            y = df_flag['FSF Score'],
+            mode = 'markers',
+            showlegend = True,
+            name = 'FSF score - flagged',
+            marker = dict(
+                size = 10,
+                color ='red',
+                symbol = 'square'
+                )
+            )
+        ),        
         fig.update_layout(title_text='FSF Score of Received Audio')
         fig.update_xaxes(title_text='Trial Number')
         fig.update_yaxes(title_text='FSF Score')
-        fig.show()
-
-            # If approaching clipping, flag as a bad trial
-         #   if self.fsf_flag == 1:       
-
+        fig.show()      
         
     def aw_plot(self):
         """
@@ -129,25 +141,41 @@ class Diagnostics_Eval():
         # Plot a-weighted power for all trials    
         x_axis = list(range(1,self.trials+1))
         dfAW = pd.DataFrame({"A-Weight": self.a_weight,
-                             "Trials": x_axis,
-                             "aw_flag":self.aw_flag})  
+                             "Trial": x_axis,
+                             "aw_flag":self.aw_flag})
+        # Separate out flagged trials for easy plotting
+        df_flag = dfAW[dfAW['aw_flag'] == 1]
         fig = go.Figure()
+        # plot all trials
         fig.add_trace(
             go.Scatter(
-                x = dfAW['Trials'], 
+                x = dfAW['Trial'], 
                 y = dfAW['A-Weight'],
-                mode = 'markers'
-            )
-        )
-        fig.update_traces(marker = dict(
-            size = 10, 
-            color = (
-                (dfAW.aw_flag == 1)
-                ).astype('int'),
-            colorscale = [[0, '#0000FF'], [1, 'red']],
+                mode = 'markers',
+            showlegend = True,
+            name = 'A-weight',
+            marker = dict(
+                size = 10,
+                color = '#0000FF',
             symbol = dfAW.aw_flag
+                )
             )
-        )
+        ), 
+        # Plot all flagged trials
+        fig.add_trace(
+            go.Scatter(
+            x = df_flag['Trial'],    
+            y = df_flag['A-Weight'],
+            mode = 'markers',
+            showlegend = True,
+            name = 'A-weight - flagged',
+            marker = dict(
+                size = 10,
+                color ='red',
+                symbol = 'square'
+                )
+            )
+        ),
         fig.update_layout(title_text='A-Weighted Power of Received Audio')
         fig.update_xaxes(title_text='Trial Number')
         fig.update_yaxes(title_text='A-Weight (dBA)')
@@ -165,25 +193,41 @@ class Diagnostics_Eval():
         # Plot the peak amplitude (dbfs) for all trials   
         x_axis = list(range(1,self.trials+1))
         df_peak = pd.DataFrame({"Peak_dbfs": self.peak_dbfs,
-                             "Trials": x_axis,
+                             "Trial": x_axis,
                              "clip_flag": self.clip_flag})  
+        # Separate out flagged trials for easy plotting
+        df_flag = df_peak[df_peak['clip_flag'] == 1]        
         fig = go.Figure()
+        # Plot all trials
         fig.add_trace(
             go.Scatter(
-                x = df_peak['Trials'], 
+                x = df_peak['Trial'], 
                 y = df_peak['Peak_dbfs'],
-                mode = 'markers'
+                mode = 'markers',
+                showlegend = True,
+                name = 'Peak amplitude',
+                marker = dict(
+                size = 10,
+                color = '#0000FF',
+                symbol = df_peak.clip_flag
+                )
             )
-        )   
-        fig.update_traces(marker = dict(
-            size = 10, 
-            color = (
-                (df_peak.clip_flag == 1)
-                ).astype('int'),
-            colorscale = [[0, '#0000FF'], [1, 'red']],
-            symbol = df_peak.clip_flag
+        ), 
+        # Plot all flagged trials
+        fig.add_trace(
+            go.Scatter(
+            x = df_flag['Trial'],    
+            y = df_flag['Peak_dbfs'],
+            mode = 'markers',
+            showlegend = True,
+            name = 'Peak amplitude - flagged',
+            marker = dict(
+                size = 10,
+                color ='red',
+                symbol = 'square'
+                )
             )
-        )
+        ),       
         fig.update_layout(title_text='Peak Amplitude of Received Audio')
         fig.update_xaxes(title_text='Trial Number')
         fig.update_yaxes(title_text='Peak Amplitude (dBfs)')
