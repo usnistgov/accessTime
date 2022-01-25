@@ -3,7 +3,7 @@ import os.path
 import re
 
 repocess_detect = r'(?P<reprocess>R)?'
-base_start = r'(?P<base>capture+_'
+base_start = r'(?P<base>capture2?_'
 test_type = r'(?P<type>.*)'
 timestamp = r'_(?P<date>\d{2}-[A-z][a-z]{2}-\d{2,4})_(?P<time>\d{2}-\d{2}-\d{2})'
 access_word = r'_(?P<clip>(?P<talker>[MF]\d)_b(?P<batch>\d+)'\
