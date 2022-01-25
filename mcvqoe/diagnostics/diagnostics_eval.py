@@ -58,21 +58,21 @@ class Diagnostics_Eval():
         self.csv_dir = csv_dir
         # Read in a diagnostics csv path.  
         # Read csv, convert to dataframe
-        diagnostics_dat = pd.read_csv(self.csv_dir)
-        rx_name = diagnostics_dat.RX_Name
+        self.diagnostics_dat = pd.read_csv(self.csv_dir)
+        rx_name = self.diagnostics_dat.RX_Name
         self.rx_name = rx_name.to_numpy()
-        a_weight = diagnostics_dat.A_Weight
+        a_weight = self.diagnostics_dat.A_Weight
         self.a_weight = a_weight.to_numpy()
-        fsf_all = diagnostics_dat.FSF_Scores
+        fsf_all = self.diagnostics_dat.FSF_Scores
         self.fsf_all = fsf_all.to_numpy()
-        peak_dbfs = diagnostics_dat.Peak_Amplitude
+        peak_dbfs = self.diagnostics_dat.Peak_Amplitude
         self.peak_dbfs = peak_dbfs.to_numpy()
-        self.trials = len(diagnostics_dat) 
-        aw_flag = diagnostics_dat.AW_flag
+        self.trials = len(self.diagnostics_dat) 
+        aw_flag = self.diagnostics_dat.AW_flag
         self.aw_flag = aw_flag.to_numpy()
-        clip_flag = diagnostics_dat.Clip_flag
+        clip_flag = self.diagnostics_dat.Clip_flag
         self.clip_flag = clip_flag.to_numpy()
-        fsf_flag = diagnostics_dat.FSF_flag
+        fsf_flag =self.diagnostics_dat.FSF_flag
         self.fsf_flag = fsf_flag.to_numpy() 
         
     # TODO add json part here
@@ -87,10 +87,24 @@ class Diagnostics_Eval():
 
         Returns
         -------
-        None.
+        diagnostics_json: json
+            json version of diagnotsic data and flag conditions
 
         """
         test_info = {}
+            
+        out_json = {
+            'measurement': self.diagnostics_dat.to_json(),
+            'test_info': test_info
+            }
+            
+        # Final json representation of all data
+        diagnostics_json = json.dumps(out_json)
+        if filename is not None:
+            with open(filename, 'w') as f:
+                json.dump(out_json, f)
+                
+        return diagnostics_json    
     
     def fsf_plot(self):
         """
