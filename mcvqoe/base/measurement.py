@@ -376,10 +376,10 @@ class Measure:
         if not hasattr(self, "y"):
             self.load_audio()
 
+        self.audio_clip_check()
+
         # generate clip index
         self.clipi = self.rng.permutation(self.trials) % len(self.y)
-
-        self.audio_clip_check()
 
         # -----------------------[Add Tx audio to wav dir]-----------------------
 
