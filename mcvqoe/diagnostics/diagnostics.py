@@ -317,16 +317,13 @@ class Diagnose():
                         "FSF_flag":fsf_flag})
         # Get session name and use that to name files 
         test_path, test_name =re.split("wav/+", self.wav_dir)
-        # Create json
-        diagnostics_json = df_diagnostics.to_json()
-        with open(os.path.join(self.wav_dir,'diagnostics.json'),'w') as f:
-            f.write(diagnostics_json) 
+
         # Create csv    
         diagnostics_csv = df_diagnostics.to_csv(index=False, line_terminator='\n')
         with open(os.path.join(self.wav_dir,'diagnostics.csv'),'w') as f:
             f.write(diagnostics_csv)
             
-        return diagnostics_json, diagnostics_csv 
+        return diagnostics_csv 
 
 def main():   
     """
