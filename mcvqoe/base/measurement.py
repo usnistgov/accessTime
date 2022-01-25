@@ -471,8 +471,20 @@ class Measure:
                 trial_dat = {}
                 for _, field, _, _ in string.Formatter().parse(dat_format):
                     if field not in self.data_fields:
-                        #not in data fields, fill with NaN
-                        trial_dat[field] = np.NaN
+                        if field is None:
+                            #we got None, skip this one
+                            continue
+                        #check for array
+                        m = re.match(r'(?P<name>.+)\[(?P<index>\d+)\]',field)
+                        if not m:
+                            #not in data fields, fill with NaN
+                            trial_dat[field] = np.NaN
+                        else:
+                            field_name = m.group("name")
+                            index = int(m.group("index"))
+                            if field_name not in trial_dat or \
+                                len(trial_dat[field_name]) < index + 1:
+                                trial_dat[field_name] = (np.NaN,) * (index +1)
                     elif self.data_fields[field] is float:
                         #float, fill with NaN
                         trial_dat[field] = np.NaN
