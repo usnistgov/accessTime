@@ -1,3 +1,5 @@
+import os
+import numpy as np
 import plotly.graph_objects as go
 import plotly.io as pio
 import pandas as pd
@@ -54,26 +56,58 @@ class evaluate():
     
     """
     def __init__(self, 
-                 csv_dir = ''):
-        self.csv_dir = csv_dir
-        # Read in a diagnostics csv path.  
-        # Read csv, convert to dataframe
-        self.data = pd.read_csv(self.csv_dir)
-        rx_name = self.data.RX_Name
-        self.rx_name = rx_name.to_numpy()
-        a_weight = self.data.A_Weight
-        self.a_weight = a_weight.to_numpy()
-        fsf_all = self.data.FSF_Scores
-        self.fsf_all = fsf_all.to_numpy()
-        peak_dbfs = self.data.Peak_Amplitude
-        self.peak_dbfs = peak_dbfs.to_numpy()
-        self.trials = len(self.data) 
-        aw_flag = self.data.AW_flag
-        self.aw_flag = aw_flag.to_numpy()
-        clip_flag = self.data.Clip_flag
-        self.clip_flag = clip_flag.to_numpy()
-        fsf_flag =self.data.FSF_flag
-        self.fsf_flag = fsf_flag.to_numpy() 
+                 csv_dir = '',
+                 test_names=None,
+                 json_data=None):
+        if json_data is None:
+            # If only one test, make a list for iterating
+            if isinstance(test_names, str):
+                test_names = [test_names]
+            # Initialize full paths attribute
+            self.full_paths = []
+            self.test_names = []
+            for test_name in test_names:
+                # If no extension given use csv
+                fname, fext = os.path.splitext(test_name)
+                if fext == '':
+                    tname = fname + '.csv'
+                else:
+                    tname = fname + fext
+                fpath = os.path.join(csv_dir, 'csv', tname)
+                self.full_paths.append(fpath)
+                self.test_names.append(os.path.basename(fname))   
+            
+            # Initialize attributes
+            self.data = pd.DataFrame()
+            for path, name in zip(self.full_paths, self.test_names):
+                df = pd.read_csv(path)
+                # Force timestamp to be datetime
+                df['name'] = name
+                self.data = self.data.append(df)
+            nrow, _ = self.data.shape
+            self.data.index = np.arange(nrow)
+        else:
+            self.data, self.test_names, self.full_paths = evaluate.load_json_data(json_data)
+          
+            self.csv_dir = csv_dir
+            # Read in a diagnostics csv path.  
+            # Read csv, convert to dataframe
+            self.data = pd.read_csv(self.csv_dir)
+            rx_name = self.data.RX_Name
+            self.rx_name = rx_name.to_numpy()
+            a_weight = self.data.A_Weight
+            self.a_weight = a_weight.to_numpy()
+            fsf_all = self.data.FSF_Scores
+            self.fsf_all = fsf_all.to_numpy()
+            peak_dbfs = self.data.Peak_Amplitude
+            self.peak_dbfs = peak_dbfs.to_numpy()
+            self.trials = len(self.data) 
+            aw_flag = self.data.AW_flag
+            self.aw_flag = aw_flag.to_numpy()
+            clip_flag = self.data.Clip_flag
+            self.clip_flag = clip_flag.to_numpy()
+            fsf_flag =self.data.FSF_flag
+            self.fsf_flag = fsf_flag.to_numpy() 
         
     def to_json(self, filename=None):
         """
@@ -105,7 +139,7 @@ class evaluate():
                 
         return final_json    
     
-    def load_json_data(json_data):
+    def load_json_data(final_json):
         """
         Do all data loading from input json_data
 
@@ -122,25 +156,9 @@ class evaluate():
             DESCRIPTION.
         data : pd.DataFrame
             DESCRIPTION.
-        cps : dict
-            DESCRIPTION.
 
-        """    
-        if isinstance(json_data, str):
-            json_data = json.loads(json_data)
-        # Extract data, cps, and test_info from json_data
-        data = pd.read_json(json_data['measurement'])
-        
-        test_info = json_data['test_info']
-        
-        test_names = []
-        test_paths = []
-        for tname, tpath in test_info.items():
-            test_names.append(tname)
-            test_paths.append(tpath)
-            
-        # Return data attributes
-        return data
+        """  
+
             
     def fsf_plot(self):
         """
