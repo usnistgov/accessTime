@@ -551,6 +551,13 @@ def get_measurement_from_file(filepath, module=True):
         df = pd.read_csv(filepath, skiprows=3)
         if 'P1_Int' in df.columns:
             measurement = 'access'
+        else:
+            # Check if TVO data
+            df = pd.read_csv(filepath, skiprows=2)
+            if 'FSF' in df.columns:
+                measurement = 'tvo'
+        
+            
     
     if module and measurement is not None:
         measurement_dir_modules = {    
@@ -558,6 +565,7 @@ def get_measurement_from_file(filepath, module=True):
             'intell' : 'mcvqoe.intelligibility',
             'm2e' : 'mcvqoe.mouth2ear',
             'psud' : 'mcvqoe.psud',
+            'tvo': 'mcvqoe.tvo',
         }
         measurement = measurement_dir_modules[measurement]
     return measurement
