@@ -1,3 +1,5 @@
+import os
+import numpy as np
 import plotly.graph_objects as go
 import plotly.io as pio
 import pandas as pd
@@ -6,7 +8,7 @@ pio.renderers.default = 'browser'
 import json
 
 
-class Diagnostics_Eval():
+class evaluate():
     """
     Plot diagnostics and inform user of potential problems in collected
     data.
@@ -54,28 +56,59 @@ class Diagnostics_Eval():
     
     """
     def __init__(self, 
-                 csv_dir = ''):
-        self.csv_dir = csv_dir
-        # Read in a diagnostics csv path.  
-        # Read csv, convert to dataframe
-        diagnostics_dat = pd.read_csv(self.csv_dir)
-        rx_name = diagnostics_dat.RX_Name
-        self.rx_name = rx_name.to_numpy()
-        a_weight = diagnostics_dat.A_Weight
-        self.a_weight = a_weight.to_numpy()
-        fsf_all = diagnostics_dat.FSF_Scores
-        self.fsf_all = fsf_all.to_numpy()
-        peak_dbfs = diagnostics_dat.Peak_Amplitude
-        self.peak_dbfs = peak_dbfs.to_numpy()
-        self.trials = len(diagnostics_dat) 
-        aw_flag = diagnostics_dat.AW_flag
-        self.aw_flag = aw_flag.to_numpy()
-        clip_flag = diagnostics_dat.Clip_flag
-        self.clip_flag = clip_flag.to_numpy()
-        fsf_flag = diagnostics_dat.FSF_flag
-        self.fsf_flag = fsf_flag.to_numpy() 
+                 csv_dir = '',
+                 test_names=None,
+                 json_data=None):
+        if json_data is None:
+            # If only one test, make a list for iterating
+            if isinstance(test_names, str):
+                test_names = [test_names]
+            # Initialize full paths attribute
+            self.full_paths = []
+            self.test_names = []
+            for test_name in test_names:
+                # If no extension given use csv
+                fname, fext = os.path.splitext(test_name)
+                if fext == '':
+                    tname = fname + '.csv'
+                else:
+                    tname = fname + fext
+                fpath = os.path.join(csv_dir, 'csv', tname)
+                self.full_paths.append(fpath)
+                self.test_names.append(os.path.basename(fname))   
+            
+            # Initialize attributes
+            self.data = pd.DataFrame()
+            for path, name in zip(self.full_paths, self.test_names):
+                df = pd.read_csv(path)
+                # Force timestamp to be datetime
+                df['name'] = name
+                self.data = self.data.append(df)
+            nrow, _ = self.data.shape
+            self.data.index = np.arange(nrow)
+        else:
+            self.data, self.test_names, self.full_paths = evaluate.load_json_data(json_data)
+          
+            self.csv_dir = csv_dir
+            # Read in a diagnostics csv path.  
+            # Read csv, convert to dataframe
+            self.data = pd.read_csv(self.csv_dir)
+            rx_name = self.data.RX_Name
+            self.rx_name = rx_name.to_numpy()
+            a_weight = self.data.A_Weight
+            self.a_weight = a_weight.to_numpy()
+            fsf_all = self.data.FSF_Scores
+            self.fsf_all = fsf_all.to_numpy()
+            peak_dbfs = self.data.Peak_Amplitude
+            self.peak_dbfs = peak_dbfs.to_numpy()
+            self.trials = len(self.data) 
+            aw_flag = self.data.AW_flag
+            self.aw_flag = aw_flag.to_numpy()
+            clip_flag = self.data.Clip_flag
+            self.clip_flag = clip_flag.to_numpy()
+            fsf_flag =self.data.FSF_flag
+            self.fsf_flag = fsf_flag.to_numpy() 
         
-    # TODO add json part here
     def to_json(self, filename=None):
         """
         Create json representation of diagnostics data
@@ -87,11 +120,46 @@ class Diagnostics_Eval():
 
         Returns
         -------
-        None.
+        final_json: json
+            json version of diagnotsic data and flag conditions
 
         """
         test_info = {}
+            
+        out_json = {
+            'measurement': self.data.to_json(),
+            'test_info': test_info
+            }
+            
+        # Final json representation of all data
+        final_json = json.dumps(out_json)
+        if filename is not None:
+            with open(filename, 'w') as f:
+                json.dump(out_json, f)
+                
+        return final_json    
     
+    def load_json_data(final_json):
+        """
+        Do all data loading from input json_data
+
+        Parameters
+        ----------
+        json_data : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        test_names : list
+            DESCRIPTION.
+        test_paths : dict
+            DESCRIPTION.
+        data : pd.DataFrame
+            DESCRIPTION.
+
+        """  
+
+            
     def fsf_plot(self):
         """
         Plot the FSF of every trial.  

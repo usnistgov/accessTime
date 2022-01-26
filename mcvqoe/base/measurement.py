@@ -165,19 +165,21 @@ class Measure:
         # get name with out path or ext
         clip_names = [os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files]
 
-        if self.save_tx_audio and self.save_audio:
-            if hasattr(self, 'cutpoints'):
-                cutpoints = self.cutpoints
-            else:
-                #placeholder for zip
-                cutpoints = cycle((None,))
-            # write out Tx clips to files
-            for dat, name, cp in zip(self.y, clip_names, cutpoints):
-                out_name = os.path.join(wavdir, f"Tx_{name}")
+
+        if hasattr(self, 'cutpoints'):
+            cutpoints = self.cutpoints
+        else:
+            #placeholder for zip
+            cutpoints = cycle((None,))
+        # write out Tx clips to files
+        # cutpoints, if present, are always written
+        for dat, name, cp in zip(self.y, clip_names, cutpoints):
+            out_name = os.path.join(wavdir, f"Tx_{name}")
+            if self.save_tx_audio and self.save_audio:
                 audio_write(out_name + ".wav", int(self.audio_interface.sample_rate), dat)
-                #write cutpoints, if present
-                if cp:
-                    write_cp(out_name+'.csv',cp)
+            #write cutpoints, if present
+            if cp:
+                write_cp(out_name+'.csv',cp)
 
 
         # -------------------------[Generate CSV header]-------------------------
@@ -376,10 +378,10 @@ class Measure:
         if not hasattr(self, "y"):
             self.load_audio()
 
+        self.audio_clip_check()
+
         # generate clip index
         self.clipi = self.rng.permutation(self.trials) % len(self.y)
-
-        self.audio_clip_check()
 
         # -----------------------[Add Tx audio to wav dir]-----------------------
 
@@ -471,8 +473,20 @@ class Measure:
                 trial_dat = {}
                 for _, field, _, _ in string.Formatter().parse(dat_format):
                     if field not in self.data_fields:
-                        #not in data fields, fill with NaN
-                        trial_dat[field] = np.NaN
+                        if field is None:
+                            #we got None, skip this one
+                            continue
+                        #check for array
+                        m = re.match(r'(?P<name>.+)\[(?P<index>\d+)\]',field)
+                        if not m:
+                            #not in data fields, fill with NaN
+                            trial_dat[field] = np.NaN
+                        else:
+                            field_name = m.group("name")
+                            index = int(m.group("index"))
+                            if field_name not in trial_dat or \
+                                len(trial_dat[field_name]) < index + 1:
+                                trial_dat[field_name] = (np.NaN,) * (index +1)
                     elif self.data_fields[field] is float:
                         #float, fill with NaN
                         trial_dat[field] = np.NaN
