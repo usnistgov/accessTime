@@ -570,6 +570,9 @@ class Measure:
             # finish log entry
             log_post(outdir=self.outdir, info=info)
 
+        #return filename in a list
+        return (self.data_filename,)
+
     def run_2loc_rx(self):
         """
         Two location recive basic test.
