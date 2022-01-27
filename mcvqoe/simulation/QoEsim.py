@@ -108,6 +108,11 @@ class QoEsim:
         For compatibility with RadioInterface, the number of the radio to use
         when none is given. Doesn't really have an effect on simulation, but the
         ptt_wait_delay is tracked for each radio.
+    allow_all_rec : bool, default=False
+        Accept all recording channels, even if we don't know how to generate
+        data for them. If an unexpected channel is found, it will be filled with
+        random data. This is usefull for basic functionality tests for two
+        location.
 
     See Also
     --------
@@ -175,6 +180,9 @@ class QoEsim:
         self.PTT_sig_freq = 409.6  # TODO : VERIFY!
         self.PTT_sig_amplitude = 0.7
         self.default_radio = 1
+
+        #allow any channel type to be recorded, fill with random data, if needed
+        self.allow_all_rec = False
 
         #get properties from kwargs
         for k, v in kwargs.items():
@@ -977,7 +985,10 @@ class QoEsim:
         # loop through rec_chans and detect keys that we can't produce
         for (k, v) in self.rec_chans.items():
             if k not in ("rx_voice", "PTT_signal"):
-                raise RuntimeError(f"{__class__} can not generate recordings of type '{k}'")
+                if self.allow_all_rec:
+                    warnings.warn(f"Got unexpected recording type : '{k}'")
+                else:
+                    raise RuntimeError(f"{__class__} can not generate recordings of type '{k}'")
             outputs.append(k)
 
         # get the module for the chosen channel tech
@@ -1098,6 +1109,10 @@ class QoEsim:
             elif o_type == "rx_voice":
                 # add data to the array
                 rx_data[:, n] = rx_voice
+            #fallback if allow_all_rec is true
+            elif self.allow_all_rec:
+                #don't know how to generate this signal, fill with noise
+                rx_data[:, n] = np.random.normal((rx_voice.shape[0],))
             else:
                 raise RuntimeError("Internal error")
 
