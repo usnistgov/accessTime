@@ -89,25 +89,25 @@ class evaluate():
         else:
             self.data, self.test_names, self.full_paths = evaluate.load_json_data(json_data)
           
-            self.csv_dir = csv_dir
-            # Read in a diagnostics csv path.  
-            # Read csv, convert to dataframe
-            self.data = pd.read_csv(self.csv_dir)
-            rx_name = self.data.RX_Name
-            self.rx_name = rx_name.to_numpy()
-            a_weight = self.data.A_Weight
-            self.a_weight = a_weight.to_numpy()
-            fsf_all = self.data.FSF_Scores
-            self.fsf_all = fsf_all.to_numpy()
-            peak_dbfs = self.data.Peak_Amplitude
-            self.peak_dbfs = peak_dbfs.to_numpy()
-            self.trials = len(self.data) 
-            aw_flag = self.data.AW_flag
-            self.aw_flag = aw_flag.to_numpy()
-            clip_flag = self.data.Clip_flag
-            self.clip_flag = clip_flag.to_numpy()
-            fsf_flag =self.data.FSF_flag
-            self.fsf_flag = fsf_flag.to_numpy() 
+        self.csv_dir = csv_dir
+        # Read in a diagnostics csv path.  
+        # Read csv, convert to dataframe
+        self.data = pd.read_csv(self.csv_dir)
+        rx_name = self.data.RX_Name
+        self.rx_name = rx_name.to_numpy()
+        a_weight = self.data.A_Weight
+        self.a_weight = a_weight.to_numpy()
+        fsf_all = self.data.FSF_Scores
+        self.fsf_all = fsf_all.to_numpy()
+        peak_dbfs = self.data.Peak_Amplitude
+        self.peak_dbfs = peak_dbfs.to_numpy()
+        self.trials = len(self.data) 
+        aw_flag = self.data.AW_flag
+        self.aw_flag = aw_flag.to_numpy()
+        clip_flag = self.data.Clip_flag
+        self.clip_flag = clip_flag.to_numpy()
+        fsf_flag =self.data.FSF_flag
+        self.fsf_flag = fsf_flag.to_numpy() 
         
     def to_json(self, filename=None):
         """
@@ -137,9 +137,10 @@ class evaluate():
             with open(filename, 'w') as f:
                 json.dump(out_json, f)
                 
-        return final_json    
+        return final_json  
     
-    def load_json_data(final_json):
+    @staticmethod
+    def load_json_data(json_data):
         """
         Do all data loading from input json_data
 
@@ -158,6 +159,22 @@ class evaluate():
             DESCRIPTION.
 
         """  
+        if isinstance(json_data, str):
+            json_data = json.loads(json_data)
+        # Extract data, cps, and test_info from json_data
+        data = pd.read_json(json_data['measurement'])
+        test_info = json_data['test_info']
+        
+        test_names = []
+        test_paths = []
+        for tname, tpath in test_info.items():
+            test_names.append(tname)
+            test_paths.append(tpath)
+        
+        
+        # Return normal Access data attributes from these
+        return data, test_names, test_paths 
+ 
 
             
     def fsf_plot(self):
