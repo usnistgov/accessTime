@@ -165,19 +165,21 @@ class Measure:
         # get name with out path or ext
         clip_names = [os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files]
 
-        if self.save_tx_audio and self.save_audio:
-            if hasattr(self, 'cutpoints'):
-                cutpoints = self.cutpoints
-            else:
-                #placeholder for zip
-                cutpoints = cycle((None,))
-            # write out Tx clips to files
-            for dat, name, cp in zip(self.y, clip_names, cutpoints):
-                out_name = os.path.join(wavdir, f"Tx_{name}")
+
+        if hasattr(self, 'cutpoints'):
+            cutpoints = self.cutpoints
+        else:
+            #placeholder for zip
+            cutpoints = cycle((None,))
+        # write out Tx clips to files
+        # cutpoints, if present, are always written
+        for dat, name, cp in zip(self.y, clip_names, cutpoints):
+            out_name = os.path.join(wavdir, f"Tx_{name}")
+            if self.save_tx_audio and self.save_audio:
                 audio_write(out_name + ".wav", int(self.audio_interface.sample_rate), dat)
-                #write cutpoints, if present
-                if cp:
-                    write_cp(out_name+'.csv',cp)
+            #write cutpoints, if present
+            if cp:
+                write_cp(out_name+'.csv',cp)
 
 
         # -------------------------[Generate CSV header]-------------------------
@@ -568,6 +570,9 @@ class Measure:
             # finish log entry
             log_post(outdir=self.outdir, info=info)
 
+        #return filename in a list
+        return (self.data_filename,)
+
     def run_2loc_rx(self):
         """
         Two location recive basic test.
@@ -634,6 +639,8 @@ class Measure:
                 info = {}
             # finish log entry
             log_post(outdir=self.outdir, info=info)
+
+        return (self.data_filename,)
 
     def load_test_data(self, fname, load_audio=True, audio_path=None):
         """
