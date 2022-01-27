@@ -640,6 +640,8 @@ class Measure:
             # finish log entry
             log_post(outdir=self.outdir, info=info)
 
+        return (self.data_filename,)
+
     def load_test_data(self, fname, load_audio=True, audio_path=None):
         """
         load test data from .csv file.
