@@ -1171,6 +1171,8 @@ class measure(mcvqoe.base.Measure):
             #finish log entry
             mcvqoe.base.post(outdir=self.outdir, info=info)
 
+        return self.data_filenames
+
     def get_dly_idx(self, clip_num):
 
 
