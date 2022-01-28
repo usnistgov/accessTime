@@ -19,6 +19,15 @@ except ModuleNotFoundError:
     from importlib_metadata import entry_points
 
 
+def _get_entry_points(group):
+    if sys.version_info >= (3, 10):
+        #use new selection mechanism
+        return entry_points(group=group)
+    else:
+        #use the old way
+        return entry_points()[group]
+
+
 class QoEsim:
     """
     Class to use for simulations.
@@ -565,7 +574,7 @@ class QoEsim:
         ("clean")
         """
         chan_types = []
-        for c in entry_points()["mcvqoe.channel"]:
+        for c in _get_entry_points("mcvqoe.channel"):
             chan_types.append(c.name)
 
         return tuple(chan_types)
@@ -694,7 +703,7 @@ class QoEsim:
 
         chan_types = []
         # locate any channel plugins installed
-        for c in entry_points()["mcvqoe.channel"]:
+        for c in _get_entry_points("mcvqoe.channel"):
             if c.name == tech:
                 #load module and return
                 return c.load()
@@ -716,7 +725,7 @@ class QoEsim:
             Tuple with one EntryPoint object for each impairment plugin.
         '''
         # locate any impairment plugins installed
-        return entry_points()["mcvqoe.impairment"]
+        return _get_entry_points("mcvqoe.impairment")
 
     # =========================[get impairment plugins]=========================
     def _get_impairment_module(name):
