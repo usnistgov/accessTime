@@ -1121,6 +1121,34 @@ class QoEsim:
 
         return outputs
 
+    def record(self, filename):
+        """
+        Record audio based on rec_chans.
+
+        There is no connection to the Tx side, so fixed length noise will be
+        recorded.
+
+        Parameters
+        ----------
+        filename : str
+            The file name to write audio to.
+
+        """
+
+        if not self.allow_all_rec:
+            raise RuntimeError("Data can not be generated for record.")
+
+        samples = 10 * int(self.sample_rate)
+
+        #generate data
+        rx_data = np.random.normal((samples,len(self.rec_chans)))
+
+        # write out audio file
+        mcvqoe.base.audio_write(filename, int(self.sample_rate), rx_data)
+
+        #return a tuple of channels
+        return tuple(self.rec_chans.keys())
+
 class ImpairmentParam:
     '''
     Class for defining parameters to impairments.
