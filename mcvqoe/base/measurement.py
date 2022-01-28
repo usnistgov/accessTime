@@ -2,6 +2,7 @@ import csv
 import datetime
 import os
 import json
+import mcvqoe.timing
 import re
 import shutil
 import string
@@ -10,7 +11,6 @@ import time
 import numpy as np
 
 from itertools import cycle
-from mcvqoe.timing import require_timecode
 from .misc import audio_write, write_cp
 from .naming import get_meas_basename
 from .write_log import fill_log, pre as log_pre, post as log_post
@@ -336,7 +336,7 @@ class Measure:
         # ------------------[Check for correct audio channels]------------------
         self.check_channels()
         # we need to be recording a timecode
-        require_timecode(self.audio_interface)
+        mcvqoe.timing.require_timecode(self.audio_interface)
         # -------------------------[Get Test Start Time]-------------------------
 
         self.info["Tstart"] = datetime.datetime.now()
@@ -586,7 +586,7 @@ class Measure:
         # ------------------[Check for correct audio channels]------------------
         self.check_channels()
         # we need to be recording a timecode
-        require_timecode(self.audio_interface)
+        mcvqoe.timing.require_timecode(self.audio_interface)
 
         # -------------------------[Get Test Start Time]-------------------------
         self.info["Tstart"] = datetime.datetime.now()
