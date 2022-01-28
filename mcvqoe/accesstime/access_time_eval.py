@@ -394,7 +394,7 @@ class evaluate:
                                lam=fit_data[0][1],
                                covar=fit_data[1],
                                )
-        elif fit_type == "COR":
+        elif fit_type in ["COR", "NoCOR"]:
             # Explicitly grab correction data
             cor_data = self.cor_data.data
             
@@ -412,14 +412,20 @@ class evaluate:
                 
                 # Determine I0 for correction data (should alwyas be 1, so we don't track it after this)
                 I0 = np.mean(cor_word_data['P2_Int'])
-                
-                # Get correction fit
-                cor_fit = curve_fit(
-                    logistic_fit,
-                    cor_word_data['time_to_P1'],
-                    cor_word_data['P1_Int'],
-                    p0=init,
-                    )
+                if fit_type == "COR":
+                    # Get correction fit
+                    cor_fit = curve_fit(
+                        logistic_fit,
+                        cor_word_data['time_to_P1'],
+                        cor_word_data['P1_Int'],
+                        p0=init,
+                        )
+                else:
+                    cor_fit = (
+                        (0, 0),
+                        ((0, 0), (0, 0))
+                        )
+                                 
                 
                 # Get word data for given talker word combo for SUT
                 sut_word_data = self.data[self.data['talker_word'] == tw]
@@ -643,7 +649,7 @@ class evaluate:
         # Return normal Access data attributes from these
         return test_info.keys(), test_info, data, cps
     
-    def plot(self, raw_intell=False, talkers=None,
+    def plot(self, raw_intell=False, talkers=None, fit_type="COR",
              title='Access delay'):
         """
         Plot access delay curve with uncertainty
@@ -676,10 +682,10 @@ class evaluate:
         
         if talkers is None:
             # Default is to use all talkers
-            fit_data = None
+            fit_data = self.fit_curve_data(fit_type)
         else:
             # Otherwise get corrected curve data for a subset determined by talkers
-            fit_data = self.fit_curve_data(fit_type='COR',
+            fit_data = self.fit_curve_data(fit_type=fit_type,
                                            talker_words=talkers,
                                            )
         # Initialize dict for storing access info
@@ -745,7 +751,7 @@ class evaluate:
         )
         return fig
     
-    def plot_intell(self, show_raw=True, talkers=None,
+    def plot_intell(self, show_raw=True, talkers=None, fit_type="COR",
                     title='Intelligibility Curves'):
         """
         Plot intelligibility curves
@@ -776,7 +782,7 @@ class evaluate:
         
         if talkers is None:
             # Default is use all talkers
-            talkers = tw_fits.keys()
+            talkers = list(tw_fits.keys())
         else:
             if isinstance(talkers, str):
                 talkers = [talkers]
@@ -795,9 +801,17 @@ class evaluate:
         colors = px.colors.qualitative.Plotly
         # Initizialize index tracker for which color to use
         color_ix = 0
+        
+        if len(talkers) > 1:
+            talkers.append(tuple(talkers))
         for talker in talkers:
-            # Get fit data for talker word combo
-            talker_fit = tw_fits[talker]
+            if isinstance(talker, tuple):
+                talker_fit = self.fit_curve_data(fit_type, talker_words=talker)
+                talkergroup = fit_type + ': ' + ', '.join(talker)
+            else:
+                # Get fit data for talker word combo
+                talker_fit = tw_fits[talker]
+                talkergroup = talker
             
             # Evaluate intelligibility for talker word combo
             talker_intell = self.eval_intell(ptt_times=ptt_times, fit_data=talker_fit)
@@ -814,12 +828,12 @@ class evaluate:
                         'width': 6,
                         'color': color,
                         },
-                    legendgrouptitle_text=talker,
-                    legendgroup=talker,
+                    legendgrouptitle_text=talkergroup,
+                    legendgroup=talkergroup,
                     name= 'intelligibility curve',
                     )
                 )
-            if show_raw == True:
+            if show_raw == True and isinstance(talker, str):
                 # Get raw data for talker word combo
                 talker_data = self.data[self.data['talker_word'] == talker]
                 # Plot raw P1 intelligibility data
@@ -830,7 +844,7 @@ class evaluate:
                         line={
                             'color': color,
                             },
-                        legendgroup=talker,
+                        legendgroup=talkergroup,
                         mode='markers',
                         name='raw data'
                         )
