@@ -932,7 +932,7 @@ class QoEsim:
 
         if delay_samples < 0:
             raise ValueError(
-                f"Unable to simulate {name} of {self.m2e_latency}. Minimum simulated {name} for technology '{self.channel_tech}' is {m2e_offset}"
+                f"Unable to simulate {name} of {value}. Minimum simulated {name} for technology '{self.channel_tech}' is {offset}"
             )
 
         return delay_samples
