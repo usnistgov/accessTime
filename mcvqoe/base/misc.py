@@ -1,5 +1,4 @@
 import csv
-import math
 
 import numpy as np
 import pandas as pd
@@ -508,7 +507,7 @@ def a_weighted_power(x, fs=48000):
         raise ValueError(f"Unsupported sample rate of {fs}.\n")
 
     x = sig.lfilter(b, a, x)
-    return 10 * (math.log10(np.mean(np.square(x))))
+    return 10 * (np.log10(np.mean(np.square(x))))
 
 def get_measurement_from_file(filepath, module=True):
     """
