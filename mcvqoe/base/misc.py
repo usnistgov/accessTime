@@ -542,8 +542,11 @@ def get_measurement_from_file(filepath, module=True):
         elif 'Intelligibility' in colnames:
             # Intelligibility only in intelligibility tests
             measurement = 'intell'
+        elif 'ptt_st_dly' in colnames:
+            # ptt_st_dly only in access time
+            measurement = 'access'
         elif 'm2e_latency' in colnames:
-            # m2e_latency in all tests, but if it's here and the others didn't work it's probably m2e latency
+            # m2e_latency in many tests, but if it's here and the others didn't work it's probably m2e latency
             measurement = 'm2e'
     except pd.errors.ParserError:
         # If parsing failed, check access data, skip 3 rows
