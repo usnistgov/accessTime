@@ -858,7 +858,7 @@ class evaluate:
         fig.update_layout(            
             title=title,
             xaxis_title='Time from PTT to P1 [seconds]',
-            yaxis_title='Access time [seconds]',
+            yaxis_title='Intelligibility',
         )
         
         return fig
