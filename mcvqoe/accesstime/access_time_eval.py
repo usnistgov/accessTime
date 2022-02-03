@@ -171,7 +171,7 @@ class AccessData():
 
         """
         
-        tests = pd.DataFrame()
+        tests = []
         tests_cp = {}
         for session, sesh_info in self.test_info.items():
             tests_cp[session] = {}
@@ -224,9 +224,8 @@ class AccessData():
                 
                 # Store PTT time relative to start of P1 
                 test['time_to_P1'] = T - test['PTT_time']
-                tests = tests.append(test)
-        nrow, _ = tests.shape
-        tests.index = np.arange(nrow)
+                tests.append(test)
+        tests = pd.concat(tests, ignore_index=True)
         
         return tests, tests_cp
     
