@@ -10,6 +10,7 @@ import pickle
 import re
 import scipy.interpolate
 import scipy.signal
+import string
 import time
 import timeit
 import zipfile
@@ -171,7 +172,22 @@ class measure(mcvqoe.base.Measure):
     #TODO : figure out how to fix this, string works for now but this should work too:
     #row[k]=datetime.datetime.strptime(row[k],'%d-%b-%Y_%H-%M-%S')
     data_fields={
-                 'PTT_time'    : str,
+                 'PTT_time'    : float,
+                 'PTT_start'   : float,
+                 'ptt_st_dly'  : float,
+                 'P1_Int'      : float,
+                 'P2_Int'      : float,
+                 'm2e_latency' : float,
+                 'channels'    : mcvqoe.base.parse_audio_channels,
+                 'TimeStart'   : str,
+                 'TimeEnd'     : str,
+                 'TimeGap'     : str,
+                }
+
+    #save filename for 2 location so the csv can be parted out later
+    data_2loc_fields={
+                 'Filename'    : str,
+                 'PTT_time'    : float,
                  'PTT_start'   : float,
                  'ptt_st_dly'  : float,
                  'P1_Int'      : float,
@@ -187,7 +203,7 @@ class measure(mcvqoe.base.Measure):
                   'trial_count' : int,
                   'clip_count'  : int,
                   'try_num'     : int,
-                  'p2_A_weight'  : float,
+                  'p2_A_weight' : float,
                   'm2e_latency' : float,
                   'channels'    : mcvqoe.base.parse_audio_channels,
                   'TimeStart'   : str,
@@ -204,7 +220,7 @@ class measure(mcvqoe.base.Measure):
                     # NOTE : for 2 location, recording inputs will be checked
                     #        to see if they include a timecode channel
                     '2loc_tx' : {
-                                "rec" : ("PTT_signal"),
+                                "rec" : ("PTT_signal",),
                                 "pb" : ("tx_voice","start_signal"),
                                 },
                     '2loc_rx' : {
@@ -453,9 +469,561 @@ class measure(mcvqoe.base.Measure):
         self.set_time_expand(self.time_expand)
 
 
-    # the generic two location tx code won't work, but does not exist yet
     def run_2loc_tx(self, recovery=False):
-        raise NotImplementedError("Two location Access Time code has yet to be written")
+        """
+        Run an Access Time test 2 location test.
+
+        ...
+
+        Parameters
+        ----------
+        recovery : Boolean
+            Is this a recovery from a previous test?
+
+        """
+
+        #----------------[List of Vars to Save in Pickle File]----------------
+
+        save_vars = ( 'clip_names', 'temp_data_filename',
+                      'ptt_st_dly', 'wavdir' , 'ptt_step_counts' )
+
+        # Initialize clip end time for gap time calculation
+        time_e = np.nan
+        tg_e = np.nan
+
+
+        # ------------------------[Test specific setup]------------------------
+        self.test_setup()
+        #warn that this is untested
+        self.progress_update('warning',0,0, msg='2 location access delay is '                               'untested! use at your own risk!')
+        # ------------------[Check for correct audio channels]------------------
+        self.check_channels()
+        #---------------------[Generate csv format strings]---------------------
+
+        self.data_header, dat_format = self.csv_header_fmt(self.data_2loc_fields)
+
+        #------------------[Load In Old Data File If Given]-------------------
+
+        if recovery:
+            #warn that this is untested
+            self.progress_update('warning',0,0, msg='2 location recovery is '                               'untested! use at your own risk!')
+
+            trial_count = 0
+
+            #compare versions
+            if('version' not in self.rec_file):
+                #no version, so it must be old, give warning
+                self.progress_update('warning',0,0,
+                                        msg='recovery file missing version')
+            elif version != self.rec_file['version']:
+                #warn on version mismatch, recovery could have issues
+                self.progress_update('warning',0,0,
+                                        msg='recovery file version mismatch!')
+
+            # Restore saved class properties
+            for k in self.rec_file:
+                if k.startswith('self.') and not k == 'self.rec_file':
+                    varname=k[len('self.'):]
+                    self.__dict__[varname]=self.rec_file[k]
+
+            # Copy recovery variables to current test
+            ptt_st_dly = self.rec_file['ptt_st_dly']
+            ptt_step_counts = self.rec_file['ptt_step_counts']
+
+        # Only read in data if this is the first time
+        else:
+
+            # Set initial loop indices
+            clip_start = 0
+            k_start = 0
+            kk_start = 0
+
+            self.load_audio()
+
+        #-------------------------[Get Test Start Time]-------------------------
+
+        self.info['Tstart'] = datetime.datetime.now()
+        dtn = self.info['Tstart'].strftime('%d-%b-%Y_%H-%M-%S')
+
+        #--------------------------[Fill log entries]--------------------------
+
+        # set test name, needs to match log_search.datafilenames
+        self.info["test"] = "Tx Two Loc Test"
+        #add any extra entries
+        self.log_extra()
+        #fill in standard stuff
+        self.info.update(mcvqoe.base.write_log.fill_log(self))
+
+        #-----------------[Initialize Folders and Filenames]------------------
+
+        #generate data dir names
+        data_dir     = os.path.join(self.outdir,'data')
+        tx_dat_fold = os.path.join(data_dir, "2loc_tx-data")
+        rec_data_dir = os.path.join(data_dir, 'recovery')
+
+
+        # generate base file name to use for all files
+        base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
+
+        wavdir = os.path.join(tx_dat_fold, "Tx_" + base_filename)
+
+        #create data directories
+        os.makedirs(wavdir, exist_ok=True)
+        os.makedirs(rec_data_dir, exist_ok=True)
+
+        # Put .csv files in wav dir
+        csv_data_dir = wavdir
+
+        # generate csv name
+        self.data_filename = os.path.join(csv_data_dir, f"{base_filename}.csv")
+
+        # generate temp csv name
+        temp_data_filename = os.path.join(csv_data_dir, f"{base_filename}_TEMP.csv")
+
+        #-----------------------[Do more recovery things]-----------------------
+
+        if recovery:
+            # Save old names to copy to new names
+            old_filenames = self.rec_file['temp_data_filenames']
+            # Save old .wav folder
+            old_wavdir = self.rec_file['wavdir']
+            # Save old bad file name
+            old_bad_name = self.rec_file['bad_name']
+            #count the number of files loaded
+            load_count = 0
+            # List of tuples of filenames to copy
+            copy_files = []
+            #check if bad file exists
+            if os.path.exists(old_bad_name):
+                #add to list
+                copy_files.append((old_bad_name, bad_name))
+
+            for k, (new_name, old_name) in enumerate(zip(temp_data_filenames,old_filenames)):
+                save_dat = self.load_dat(old_name)
+                if not save_dat:
+                    self.progress_update(
+                                'status',
+                                len(temp_data_filenames),
+                                k,
+                                f"No data file found for {name}"
+                            )
+                    #if file exists, we have a problem, throw an error
+                    if os.path.exists(old_name):
+                        raise RuntimeError(f'Problem loading data in \'{old_name}\'')
+                else:
+                    self.progress_update(
+                                'status',
+                                len(temp_data_filenames),
+                                k,
+                                f"initializing with data from {old_name}"
+                            )
+                    #file found, increment count
+                    load_count += 1
+                    copy_files.append((old_name, new_name))
+                    # Get number of "rows" from CSV
+                    clen = len(save_dat)
+                    # Initialize success with zeros
+                    success = np.zeros((2, (len(ptt_st_dly[k])*self.ptt_rep)))
+                    # Fill in success from file
+                    for p in range(clen):
+                        success[0, p] = save_dat[p]['P1_Int']
+                        success[1, p] = save_dat[p]['P2_Int']
+                    # Stop flag is computed every delay step
+                    stop_flag = np.empty(len(ptt_st_dly[k]))
+                    stop_flag[:] = np.nan
+                    # Trial count is the sum of all trial counts from each file
+                    trial_count = trial_count + clen
+                    # Set clip start to curren index
+                    # If another datafile is found it will be overwritten
+                    clip_start = k
+                    # Initialize k_start
+                    k_start = 0
+
+                    # Loop through data and evaluate stop condition
+                    for kk in range(self.ptt_rep, clen, self.ptt_rep):
+
+                        # Identify trials calculated at last timestep
+                        ts_ix = np.arange((kk-(self.ptt_rep)), kk)
+                        p1_intell = success[0, ts_ix]
+                        p2_intell = success[1, :]
+                        stop_flag[k] = not approx_permutation_test(p2_intell, p1_intell, tail = 'right')
+                        k_start = k_start
+
+                    # Assign kk_start point for inner loop
+                    if (clen == 0):
+                        kk_start = 0
+                    else:
+                        kk_start = ((clen-1) % self.ptt_rep)
+
+            #check that we loaded some data
+            if load_count == 0:
+                raise RuntimeError('Could not find files to load')
+
+            wav_list = os.listdir(old_wavdir)
+            num_files = len(wav_list)
+            for n, file in enumerate(wav_list):
+                self.progress_update(
+                                'status',
+                                num_files,
+                                n+1,
+                                f"Coppying old test audio : {file}"
+                            )
+                new_name=os.path.join(wavdir, file)
+                old_name=os.path.join(old_wavdir, file)
+                shutil.copyfile(old_name, new_name)
+
+            for n, (old_name, new_name) in enumerate(copy_files):
+                self.progress_update(
+                                    'status',
+                                    len(copy_files),
+                                    n+1,
+                                    f"Coppying old test csvs : {old_name}"
+                                )
+                shutil.copyfile(old_name, new_name)
+
+
+        #---------[Write Transmit Audio File(s) and cutpoint File(s)]----------
+
+        # get name with out path or ext
+        clip_names = [os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files]
+
+        #write out Tx clips and cutpoints to files
+        #cutpoints are always written, they are needed for eval
+        for dat,name,cp in zip(self.y,clip_names,self.cutpoints):
+            out_name=os.path.join(wavdir,f'Tx_{name}')
+            #check if saving audio, cutpoints are needed for processing
+            if(self.save_tx_audio and self.save_audio):
+                mcvqoe.base.audio_write(out_name+'.wav', int(self.audio_interface.sample_rate), dat)
+            mcvqoe.base.write_cp(out_name+'.csv',cp)
+
+        #-----------------------[Generate PTT Delays]-------------------------
+
+        if not recovery:
+
+            ptt_st_dly = []
+            ptt_step_counts = []
+
+            if (len(self.ptt_delay) == 1):
+                for num in range(len(self.cutpoints)):
+                    # Word start time from end of first silence
+                    w_st = (self.cutpoints[num][0]['End']/self.audio_interface.sample_rate)
+                    # Word end time from end of word
+                    w_end = (self.cutpoints[num][1]['End']/self.audio_interface.sample_rate)
+                    # Delay during word (.0001 added to w_end ensures w_end's use)
+                    w_dly = np.arange(w_st, (w_end+.0001), self.ptt_step)
+                    # Delay during silence (.0001 decrement to ensure ptt_delay usage)
+                    s_dly = np.arange(w_st, (self.ptt_delay[0]-.0001), -self.ptt_step)
+                    # Generate delay from word delay and silence delay
+                    # Word delay must be reversed
+                    ptt_st_dly.append(np.concatenate((w_dly[::-1], s_dly[1:])))
+                    # Ensure that final delay time will not be negative
+                    if(ptt_st_dly[-1][-1] < 0.0):
+                        ptt_st_dly[-1][-1] = 0.0
+                    ptt_step_counts.append(len(ptt_st_dly[-1]))
+            else:
+                for _ in range(len(self.cutpoints)):
+                    dly_steps = np.arange(self.ptt_delay[1], self.ptt_delay[0], -self.ptt_step)
+                    ptt_st_dly.append(dly_steps)
+                    ptt_step_counts.append(len(dly_steps))
+
+            # Running count of the number of completed trials
+            trial_count = 0
+
+        #----------------[Pickle important data for restart]------------------
+
+        # Initialize error file
+        recovery_file = os.path.join(rec_data_dir,base_filename+'.pickle')
+
+        # Error dictionary, add version
+        err_dict = {'version' : version}
+
+        for var in save_vars:
+            err_dict[var] = locals()[var]
+
+        # Add all access_time object parameters to error dictionary
+        for i in self.__dict__:
+            skip = ['no_log', 'audio_interface', 'ri',
+                    'inter_word_diff', 'get_post_notes',
+                    'progress_update', 'user_check']
+            if (i not in skip):
+                err_dict['self.'+i] = self.__dict__[i]
+
+        # Place dictionary into pickle file
+        with open(recovery_file, 'wb') as pkl:
+            pickle.dump(err_dict, pkl)
+
+        #---------------------------[write log entry]---------------------------
+
+        mcvqoe.base.pre(info=self.info, outdir=self.outdir)
+
+        #-----------------------[Notify User of Start]------------------------
+
+        # Turn on LED
+        self.ri.led(1, True)
+
+        try:
+
+            #---------------------[Save Time for Set Timing]----------------------
+
+            set_start = datetime.datetime.now().replace(microsecond=0)
+
+            #----------------------------[Clip Loop]------------------------------
+
+            #load templates outside the loop so we take the hit here
+            abcmrt.load_templates()
+
+
+            #------------------------[Set Total Trials]------------------------
+            #total trials doesn't change, set here
+            total_trials = sum(ptt_step_counts)*self.ptt_rep
+            #------------------------[Write CSV Header]------------------------
+
+            with open(temp_data_filename, 'w', newline='') as csv_file:
+                csv_file.write(self.data_header)
+
+            for clip in range(clip_start, len(self.y)):
+
+                # Initialize clip count
+                clip_count = 0
+
+                #-----------------------[Delay Step Loop]-----------------------
+
+                for k in range(k_start, len(ptt_st_dly[clip])):
+
+                    #-------------[Update Current Clip and Delay]---------------
+
+                    if(not self.progress_update(
+                                'acc-clip-update',
+                                total_trials,
+                                trial_count,
+                                clip_name=clip_names[clip],
+                                delay=ptt_st_dly[clip][k],
+                            )):
+                        raise SystemExit()
+
+                    #-------------------------[Measurement Loop]--------------------------
+
+                    for kk in range(kk_start, self.ptt_rep):
+
+                        #---------------[Update User Progress]-----------------
+
+                        if(not self.progress_update(
+                                    'test',
+                                    total_trials,
+                                    trial_count,
+                                )):
+                            raise SystemExit()
+                        #-----------------------[Increment Trial Count]-----------------------
+
+                        trial_count = trial_count + 1
+
+                        #------------------------[Increment Clip Count]-----------------------
+
+                        clip_count = clip_count + 1
+
+                        #---------------------[Key Radio and Play Audio]----------------------
+
+                        # Setup the push to talk to trigger
+                        self.ri.ptt_delay(ptt_st_dly[clip][k], use_signal=True)
+
+                        # Save end time of previous clip
+                        time_last = time_e
+                        tg_last = tg_e
+
+                        # Create audiofile name/path for recording
+                        audioname = f"Rx{trial_count}_{clip_names[clip]}.wav"
+                        audioname = os.path.join(wavdir, audioname)
+
+                        # Get start timestamp
+                        time_s = datetime.datetime.now().replace(microsecond=0)
+                        tg_s = timeit.default_timer()
+
+                        # Play and record audio data
+                        rec_chans = self.audio_interface.play_record(self.y[clip], audioname)
+
+                        # Get start time
+                        time_e = datetime.datetime.now().replace(microsecond=0)
+                        tg_e = timeit.default_timer()
+
+                        # Get the wait state from radio interface
+                        state = self.ri.waitState()
+
+                        # unpush the push to talk button
+                        self.ri.ptt(False)
+
+                        # Check wait state to see if PTT was triggered properly
+                        if (state == 'Idle'):
+                            # Everything is good, do nothing
+                            pass
+                        elif (state == 'Signal Wait'):
+                            # Still waiting for start signal, give error
+                            raise RuntimeError(f"Radio interface did not receive "
+                                                "the start signal. Check "
+                                                "connections and output levels.")
+                        elif (state == 'Delay'):
+                            # Still waiting for delay time to expire, give warning
+                            if(not self.progress_update(
+                                        'warning',
+                                        total_trials,
+                                        trial_count,
+                                        msg='PTT Delay longer than clip',
+                                    )):
+                                raise SystemExit()
+                        else:
+                            # Unknown state
+                            raise RuntimeError(f"Unknown radio interface wait state: {state}")
+
+                        #------------------------[Pause Between Runs]-------------------------
+
+                        time.sleep(self.ptt_gap)
+
+                        #-------------------------[Data Processing]---------------------------
+
+                        #generate dummy values for format
+                        trial_dat = {}
+                        for _, field, _, _ in string.Formatter().parse(dat_format):
+                            if field not in self.data_fields:
+                                if field is None:
+                                    #we got None, skip this one
+                                    continue
+                                #check for array
+                                m = re.match(r'(?P<name>.+)\[(?P<index>\d+)\]',field)
+                                if not m:
+                                    #not in data fields, fill with NaN
+                                    trial_dat[field] = np.NaN
+                                else:
+                                    field_name = m.group("name")
+                                    index = int(m.group("index"))
+                                    if field_name not in trial_dat or \
+                                        len(trial_dat[field_name]) < index + 1:
+                                        trial_dat[field_name] = (np.NaN,) * (index +1)
+                            elif self.data_fields[field] is float:
+                                #float, fill with NaN
+                                trial_dat[field] = np.NaN
+                            elif self.data_fields[field] is int:
+                                #int, fill with zero
+                                trial_dat[field] = 0
+                            else:
+                                #something else, fill with None
+                                trial_dat[field] = None
+
+                        trial_dat['ptt_st_dly'] = ptt_st_dly[clip][k]
+
+                        #----------------------[Add times to data]---------------------
+
+                        # Calculate gap time (try/except here for nan exception)
+                        try:
+                            time_gap = tg_s - tg_last
+                        except:
+                            time_gap = np.nan
+
+                        # Format time_gap for CSV file
+                        if np.isnan(time_gap):
+                            trial_dat['TimeGap'] = 'nan'
+                        else:
+                            trial_dat['TimeGap'] = f"{(time_gap//3600):.0f}:{((time_gap//60)%60):.0f}:{(time_gap%60):.3f}"
+
+                        trial_dat['TimeStart'] = time_s.strftime('%H:%M:%S')
+                        trial_dat['TimeEnd'] = time_e.strftime('%H:%M:%S')
+
+                        # --------------------------[Write CSV]--------------------------
+
+                        chan_str = "(" + (";".join(rec_chans)) + ")"
+
+                        #fill in known values
+                        trial_dat['Filename'] = clip_names[clip]
+                        trial_dat['channels'] = chan_str
+
+                        with open(temp_data_filename, "at") as f:
+                            f.write(
+                                dat_format.format(
+                                    **trial_dat
+                                )
+                            )
+
+                        #------------------------[Check Trial Limit]--------------------------
+
+                        if ((trial_count % self.pause_trials) == 0):
+
+                            # Calculate set time
+                            time_diff = datetime.datetime.now().replace(microsecond=0)
+                            set_time = time_diff - set_start
+
+                            # Turn on LED when waiting for user input
+                            self.ri.led(2, True)
+
+                            # wait for user
+                            user_exit = self.user_check(
+                                    'normal-stop',
+                                    'check batteries.',
+                                    trials=self.pause_trials,
+                                    time=set_time,
+                                )
+
+                            # Turn off LED, resuming
+                            self.ri.led(2, False)
+
+                            if(user_exit):
+                                raise SystemExit()
+
+                            # Save time for next set
+                            set_start = datetime.datetime.now().replace(microsecond=0)
+
+                    #-----------------------[End Measurement Loop]------------------------
+
+                    # Reset start index so we start at the beginning
+                    kk_start = 0
+
+                #-----------------------[End Delay Step Loop]-------------------------
+
+                # Reset start index so we start at the beginning
+                k_start = 0
+
+            #--------------------------[End Clip Loop]----------------------------
+
+            #--------------------[Change Name of Data Files]----------------------
+
+            os.rename(temp_data_filename, self.data_filename)
+
+            #------------------------[Zip audio data]--------------------------
+
+            if self.save_audio and self.zip_audio:
+                with zipfile.ZipFile(
+                        os.path.join(wavdir,zip_name),
+                        mode='w',
+                        compression=zipfile.ZIP_LZMA,
+                    ) as audio_zip:
+                    #find all the rx wav files
+                    rx_wavs = glob.glob(os.path.join(wavdir,'Rx*.wav'))
+                    #fid all bad files
+                    bad_wavs = glob.glob(os.path.join(wavdir,'Bad*.wav'))
+                    #zip bad files and Rx files
+                    zip_wavs = rx_wavs + bad_wavs
+                    #get number of files
+                    num_zip_files = len(zip_wavs)
+                    for n, name in enumerate(zip_wavs):
+                        bname =  os.path.basename(name)
+                        self.progress_update('compress',num_zip_files,n)
+                        audio_zip.write(name,arcname=bname)
+
+                #zip file has been written, delete files
+                self.progress_update('status',num_zip_files,num_zip_files,msg='Deleting compressed audio...')
+                for name in zip_wavs:
+                    os.remove(name)
+            #----------------------[Delete recovery file]----------------------
+
+            os.remove(recovery_file)
+
+        finally:
+            if (self.get_post_notes):
+                #get notes
+                info = self.get_post_notes()
+            else:
+                info = {}
+            #finish log entry
+            mcvqoe.base.post(outdir=self.outdir, info=info)
+
+        return (self.data_filename,)
 
     def run_1loc(self, recovery=False):
         """Run an Access Time test
@@ -1444,19 +2012,33 @@ class measure(mcvqoe.base.Measure):
                 m = re.match(r'(?:\s*(?P<var>\w+)\s*=\s*(?P<val>\S+))|(?P<sep>-{4,})',line)
 
                 if not m:
+                    #check if this is the first line (if we have found a header)
+                    if n == 0:
+                        has_header = False
+                        break
+                    #otherwise raise error
                     raise RuntimeError(f'Unexpected line in file \'{line}\'')
+                else:
+                    has_header = True
 
                 if not m.group('sep'):
                     top_items[m.group('var')] = m.group('val')
 
-            audio_name = os.path.splitext(top_items['Audiofile'])[0]
+            if has_header:
+                audio_name = os.path.splitext(top_items['Audiofile'])[0]
 
-            #audio clips from top items
-            clips = set((audio_name,))
+                #audio clips from top items
+                clips = set((audio_name,))
+            else:
+                #seek to the beginning of the file
+                csv_f.seek(0, 0)
+                #empty set for clips
+                clips = set()
             #create dict reader
             reader=csv.DictReader(csv_f)
-            #create empty list
-            data=[]
+            #create empty dict
+            data={}
+            trial_count = 0
             for row in reader:
                 #convert values proper datatype
                 for k in row:
@@ -1469,26 +2051,38 @@ class measure(mcvqoe.base.Measure):
                             #convert using function from data_fields
                             row[k]=self.data_fields[k](row[k])
                     except KeyError:
-                        #not in data_fields, convert to float
-                        row[k]=float(row[k]);
+                        #not in data_fields, keep as string
+                        pass
 
                 if 'Filename' not in row:
                     #add audio name from top items
                     row['Filename'] = audio_name
+                else:
+                    #add filename to set of used clips
+                    clips.add(row['Filename'])
 
-                #append row to data
-                data.append(row)
+                #increment trial count
+                trial_count += 1
 
+                #add trial number to data (1 based)
+                row['Tnum'] = trial_count
+
+                if row['Filename'] in data:
+                    #append row to data
+                    data[row['Filename']].append(row)
+                else:
+                    # add data for new clip
+                    data[row['Filename']] = [row,]
 
         #set total number of trials, this gives better progress updates
-        self.trials=len(data)
+        self.trials = trial_count
 
         #check if we should load audio
         if(load_audio):
             #set audio file names to Tx file names
             self.audio_files=['Tx_'+name+'.wav' for name in clips]
 
-            dat_name = mcvqoe.base.get_meas_basename(fname, re_type="access_csv")
+            dat_name = mcvqoe.base.get_meas_basename(fname)
 
             if(audio_path is not None):
                 self.audio_path=audio_path
@@ -1528,76 +2122,76 @@ class measure(mcvqoe.base.Measure):
 
         """
 
-        # Set time expand
-        self.set_time_expand(self.time_expand)
+        #do extra setup things
+        self.test_setup()
 
         #get .csv header and data format
         self.data_header,dat_format=self.csv_header_fmt()
 
-        with open(fname,'wt') as f_out:
+        #empty list for filenames
+        self.data_filenames = []
 
-            if len(self.audio_files) == 1:
-                clip = 0
-            else:
-                raise RuntimeError('Expecting to reprocess with one audio file, '
-                        f'however audio files is {self.audio_files}')
+        for tx_clip, clip_data in test_dat.items():
 
-            self.write_data_header(f_out, clip)
+            #TODO : make this better!!!!
+            fname_clip = fname + tx_clip + '.csv'
 
-            for n,trial in enumerate(test_dat):
+            #add name to the list
+            self.data_filenames.append(fname_clip)
 
-                #update progress
-                self.progress_update('proc',self.trials,n)
+            # find clip index
+            clip_index = self.find_clip_index(tx_clip)
 
-                #find clip index
-                clip_index=self.find_clip_index(trial['Filename'])
-                #create clip file name
-                clip_name='Rx'+str(n+1)+'_'+trial['Filename']+'.wav'
-                #create full path
-                clip_path = os.path.join(audio_path,clip_name)
+            with open(fname_clip,'wt') as f_out:
 
-                #check if file exists
-                if not os.path.exists(clip_path):
+                self.write_data_header(f_out, clip_index)
+
+                for n,trial in enumerate(clip_data):
+
                     #update progress
-                    self.progress_update('status', self.trials, n,
-                        msg = 'Attempting to decompress audio...')
-                    #unzip audio if it exists
-                    self.unzip_audio(audio_path)
-                try:
-                    #attempt to get channels from data
-                    rec_chans=trial['channels']
-                except KeyError:
-                    #fall back to only one channel
-                    rec_chans=('rx_voice',)
+                    self.progress_update('proc',self.trials,n)
 
-                #calculate delay start index
-                dly_st_idx = self.get_dly_idx(clip_index)
+                    #create clip file name
+                    clip_name='Rx'+str(trial['Tnum'])+'_'+tx_clip+'.wav'
+                    #create full path
+                    clip_path = os.path.join(audio_path,clip_name)
 
-                def warn_user( warn_str):
-                    '''
-                    Function to send a warning to the user.
+                    #check if file exists
+                    if not os.path.exists(clip_path):
+                        #update progress
+                        self.progress_update('status', self.trials, n,
+                            msg = 'Attempting to decompress audio...')
+                        #unzip audio if it exists
+                        self.unzip_audio(audio_path)
 
-                    Defined here so that we know the current trial
-                    and trial count.
-                    '''
-                    if(not self.progress_update(
-                                    'warning',
-                                    self.trials,
-                                    n,
-                                    msg = warn_str,
-                        )):
-                        raise SystemExit()
+                    #calculate delay start index
+                    dly_st_idx = self.get_dly_idx(clip_index)
 
-                new_dat=self.process_audio(
-                        clip_index,
-                        clip_path,
-                        rec_chans,
-                        dly_st_idx,
-                        warn_func = warn_user,
-                        )
+                    def warn_user( warn_str):
+                        '''
+                        Function to send a warning to the user.
 
-                #overwrite new data with old and merge
-                merged_dat={**trial, **new_dat}
+                        Defined here so that we know the current trial
+                        and trial count.
+                        '''
+                        if(not self.progress_update(
+                                        'warning',
+                                        self.trials,
+                                        n,
+                                        msg = warn_str,
+                            )):
+                            raise SystemExit()
 
-                #write line with new data
-                f_out.write(dat_format.format(**merged_dat))
+                    new_dat=self.process_audio(
+                            clip_index,
+                            clip_path,
+                            trial["channels"],
+                            dly_st_idx,
+                            warn_func = warn_user,
+                            )
+
+                    #overwrite new data with old and merge
+                    merged_dat={**trial, **new_dat}
+
+                    #write line with new data
+                    f_out.write(dat_format.format(**merged_dat))
