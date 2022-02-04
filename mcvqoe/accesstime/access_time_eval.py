@@ -835,11 +835,13 @@ class evaluate:
             if show_raw == True and isinstance(talker, str):
                 # Get raw data for talker word combo
                 talker_data = self.data[self.data['talker_word'] == talker]
+                nrow, _ = talker_data.shape
                 # Plot raw P1 intelligibility data
                 fig.add_trace(
                     go.Scatter(
                         x=talker_data['time_to_P1'],
                         y=talker_data['P1_Int'],
+                        hovertext=np.array([f'Trial: {i}' for i in np.arange(1, nrow+1)]),
                         line={
                             'color': color,
                             },
