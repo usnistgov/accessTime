@@ -1,4 +1,5 @@
 import csv
+import glob
 import datetime
 import os
 import json
@@ -7,6 +8,7 @@ import re
 import shutil
 import string
 import time
+import zipfile
 
 import numpy as np
 
@@ -38,6 +40,9 @@ class Measure:
                                 "pb" : (),
                              },
                       }
+
+    #filename for zipped audio
+    _zip_name = 'audio.zip'
 
     @staticmethod
     def channel_check(expected, given):
@@ -748,6 +753,47 @@ class Measure:
             raise RuntimeError(f"multiple audio clips found matching '{name}' found in {self.audio_files}")
         # return matching index
         return match[0]
+
+    @staticmethod
+    def unzip_audio(audio_path):
+        zip_path = os.path.join(audio_path,Measure._zip_name)
+        if zipfile.is_zipfile(zip_path):
+            audio_zip = zipfile.ZipFile(zip_path,mode='r')
+            #extract all files into the audio dir
+            audio_zip.extractall(audio_path)
+
+    def zip_wavdir(self, path):
+        """
+        Replace the receive audio files in `path` with a zip file.
+
+        Parameters
+        ----------
+        path : string
+            A path to the directory where the test .wav files are stored.
+
+        """
+        with zipfile.ZipFile(
+                    os.path.join(path,self._zip_name),
+                    mode='w',
+                    compression=zipfile.ZIP_LZMA,
+                ) as audio_zip:
+            #find all the rx wav files
+            rx_wavs = glob.glob(os.path.join(path,'Rx*.wav'))
+            #fid all bad files
+            bad_wavs = glob.glob(os.path.join(path,'Bad*.wav'))
+            #zip bad files and Rx files
+            zip_wavs = rx_wavs + bad_wavs
+            #get number of files
+            num_zip_files = len(zip_wavs)
+            for n, name in enumerate(zip_wavs):
+                bname =  os.path.basename(name)
+                self.progress_update('compress',num_zip_files,n)
+                audio_zip.write(name,arcname=bname)
+
+        #zip file has been written, delete files
+        self.progress_update('status',num_zip_files,num_zip_files,msg='Deleting compressed audio...')
+        for name in zip_wavs:
+            os.remove(name)
 
     def post_process(self, test_dat, fname, audio_path):
         """
