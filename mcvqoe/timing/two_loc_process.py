@@ -340,10 +340,10 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
                 tx_rec_tca = tx_rec_dat[:,tx_time_idx]
 
                 #extra channels
-                tx_extra_audio = np.remove(tx_rec_dat,tx_time_idx,1)
+                tx_extra_audio = np.delete(tx_rec_dat,tx_time_idx,1)
 
                 #copy to new array without timecode channel
-                tx_extra_chans = tx_rec_chans.copy()
+                tx_extra_chans = list(tx_rec_chans)
                 del tx_extra_chans[tx_time_idx]
             
             #decode timecode
@@ -418,15 +418,26 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
             rx_rec=rx_dat[first:last+1,:]
             #remove timecode
             rx_rec = np.delete(rx_rec,rx_tc_idx,1)
-            
-            if(tx_extra_audio):
-                #add in channels from Tx side
-                rx_rec = np.append(rx_rec,tx_extra_audio,1)
-            
+
             if tx_extra_chans:
                 #add tx extra chans to rx extra chans
-                out_chans=rx_extra_chans+tx_extra_chans
-                out_audio=np.row_stack((rx_rec,tx_extra_audio))
+                out_chans=tuple(rx_extra_chans+tx_extra_chans)
+
+                #get the length of the longest array
+                new_len = np.max((rx_rec.shape[0],tx_extra_audio.shape[0]))
+
+                #resize recording
+                rec_shape = list(rx_rec.shape)
+                rec_shape[0] = new_len
+                rx_rec.resize( tuple(rec_shape))
+
+                #resize tx extra
+                tx_shape = list(tx_extra_audio.shape)
+                tx_shape[0] = new_len
+                tx_extra_audio.resize( tuple(tx_shape))
+
+                #both arrays should now be the same length (in time)
+                out_audio=np.column_stack((rx_rec,tx_extra_audio))
             else:
                 #no extra chans, all out chans from rx
                 out_chans=rx_extra_chans
