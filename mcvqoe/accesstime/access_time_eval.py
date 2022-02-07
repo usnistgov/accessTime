@@ -147,7 +147,7 @@ class AccessData():
                 # Remove possible R in t_name
                 wt_name = t_name.replace('Rcapture', 'capture')
                 
-                sesh_search_str = re.compile('(capture_.+_\d{2}-\w{3}-\d{4}_\d{2}-\d{2}-\d{2})')
+                sesh_search_str = re.compile('(capture2?_.+_\d{2}-\w{3}-\d{4}_\d{2}-\d{2}-\d{2})')
                 sesh_search = sesh_search_str.search(wt_name)
                 sesh_id = sesh_search.groups()[0]
                 cp_path = os.path.join(cp_path, sesh_id)
@@ -184,7 +184,7 @@ class AccessData():
                 test = pd.read_csv(fname, skiprows=3)
                 
                 # Store test name as column in test
-                sesh_search_str = re.compile('(capture_.+_\d{2}-\w{3}-\d{4}_\d{2}-\d{2}-\d{2})')
+                sesh_search_str = re.compile('(capture2?_.+_\d{2}-\w{3}-\d{4}_\d{2}-\d{2}-\d{2})')
                 sesh_search = sesh_search_str.search(session)
                 sesh_id = sesh_search.groups()[0]
                 test['name'] = sesh_id
