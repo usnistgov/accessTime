@@ -29,9 +29,6 @@ def chans_to_string(chans):
     # channel string
     return '('+(';'.join(chans))+')'
 
-#filename for zipped audio
-zip_name = 'audio.zip'
-
 
 #generate filter for PTT signal
 #NOTE : this relies on fs being fixed!!
@@ -988,28 +985,7 @@ class measure(mcvqoe.base.Measure):
             #------------------------[Zip audio data]--------------------------
 
             if self.save_audio and self.zip_audio:
-                with zipfile.ZipFile(
-                        os.path.join(wavdir,zip_name),
-                        mode='w',
-                        compression=zipfile.ZIP_LZMA,
-                    ) as audio_zip:
-                    #find all the rx wav files
-                    rx_wavs = glob.glob(os.path.join(wavdir,'Rx*.wav'))
-                    #fid all bad files
-                    bad_wavs = glob.glob(os.path.join(wavdir,'Bad*.wav'))
-                    #zip bad files and Rx files
-                    zip_wavs = rx_wavs + bad_wavs
-                    #get number of files
-                    num_zip_files = len(zip_wavs)
-                    for n, name in enumerate(zip_wavs):
-                        bname =  os.path.basename(name)
-                        self.progress_update('compress',num_zip_files,n)
-                        audio_zip.write(name,arcname=bname)
-
-                #zip file has been written, delete files
-                self.progress_update('status',num_zip_files,num_zip_files,msg='Deleting compressed audio...')
-                for name in zip_wavs:
-                    os.remove(name)
+                self.zip_wavdir(wavdir)
             #----------------------[Delete recovery file]----------------------
 
             os.remove(recovery_file)
@@ -1704,28 +1680,7 @@ class measure(mcvqoe.base.Measure):
             #------------------------[Zip audio data]--------------------------
 
             if self.save_audio and self.zip_audio:
-                with zipfile.ZipFile(
-                        os.path.join(wavdir,zip_name),
-                        mode='w',
-                        compression=zipfile.ZIP_LZMA,
-                    ) as audio_zip:
-                    #find all the rx wav files
-                    rx_wavs = glob.glob(os.path.join(wavdir,'Rx*.wav'))
-                    #fid all bad files
-                    bad_wavs = glob.glob(os.path.join(wavdir,'Bad*.wav'))
-                    #zip bad files and Rx files
-                    zip_wavs = rx_wavs + bad_wavs
-                    #get number of files
-                    num_zip_files = len(zip_wavs)
-                    for n, name in enumerate(zip_wavs):
-                        bname =  os.path.basename(name)
-                        self.progress_update('compress',num_zip_files,n)
-                        audio_zip.write(name,arcname=bname)
-                
-                #zip file has been written, delete files
-                self.progress_update('status',num_zip_files,num_zip_files,msg='Deleting compressed audio...')
-                for name in zip_wavs:
-                    os.remove(name)
+                self.zip_wavdir(wavdir)
             #----------------------[Delete recovery file]----------------------
             
             os.remove(recovery_file)
@@ -2095,14 +2050,6 @@ class measure(mcvqoe.base.Measure):
             #self.audio_clip_check()
 
         return data
-
-    @staticmethod
-    def unzip_audio(audio_path):
-        zip_path = os.path.join(audio_path,zip_name)
-        if zipfile.is_zipfile(zip_path):
-            audio_zip = zipfile.ZipFile(zip_path,mode='r')
-            #extract all files into the audio dir
-            audio_zip.extractall(audio_path)
 
     def post_process(self,test_dat,fname,audio_path):
         """
