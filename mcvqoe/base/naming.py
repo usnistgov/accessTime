@@ -33,6 +33,47 @@ def _normalize(name):
     else:
         return basename
 
+def match_name(name, re_type="universal", raise_error=True):
+    """
+    Return a match object for a test filename.
+
+    Match name with one of the regular expressions and return the match object.
+
+    Parameters
+    ----------
+    name : str
+        The name of the measurement file. This can be a fully qualified path or
+        just the name of the file.
+
+    re_type : str, default="universal"
+        The type of re to use for the match. Currently the only valid values are
+        "universal" (default) and "access_csv". Universal should match any name.
+        While access_csv will only match access time csv files that contain a
+        clip name.
+
+    Returns
+    -------
+    match object
+        The match object for the filename.
+
+    Raises
+    ------
+    RuntimeError
+        If the file name could not be matched.
+
+    KeyError
+        If an invalid `re_type` is passed.
+
+    """
+    name = _normalize(name)
+
+    m = re.match(match_res[re_type], name)
+
+    if not m and raise_error:
+        raise RuntimeError(f'Unable to get base name from \'{name}\'')
+
+    #return match object
+    return m
 
 def get_meas_basename(name, re_type="universal"):
     """
@@ -47,6 +88,12 @@ def get_meas_basename(name, re_type="universal"):
         The name of the measurement file. This can be a fully qualified path or
         just the name of the file.
 
+    re_type : str, default="universal"
+        The type of re to use for the match. Currently the only valid values are
+        "universal" (default) and "access_csv". Universal should match any name.
+        While access_csv will only match access time csv files that contain a
+        clip name.
+
     Returns
     -------
     str
@@ -56,14 +103,12 @@ def get_meas_basename(name, re_type="universal"):
     ------
     RuntimeError
         If the file name could not be matched.
+
+    KeyError
+        If an invalid `re_type` is passed.
     """
 
-    name = _normalize(name)
-
-    m = re.match(match_res[re_type], name)
-
-    if not m:
-        raise RuntimeError(f'Unable to get base name from \'{name}\'')
+    m = match_name(name, re_type=re_type)
 
     return m.group('base')
 
@@ -95,12 +140,8 @@ def get_access_clip_info(name):
     RuntimeError
         If the filename could not be matched.
     """
-    name = _normalize(name)
 
-    m = re.match(match_res["access_csv"], name)
-
-    if not m:
-        raise RuntimeError(f'Unable to get access info from \'{name}\'')
+    m = match_name(name, re_type="access_csv")
 
     return m.group("talker"), int(m.group("batch")), int(m.group("word")), m.group("cname")
 
@@ -125,11 +166,6 @@ def get_meas_date_str(name):
         If the file name could not be matched.
     """
 
-    name = _normalize(name)
-
-    m = re.match(match_res["universal"], name)
-
-    if not m:
-        raise RuntimeError(f'Unable to get date from \'{name}\'')
+    m = match_name(name)
 
     return "_".join(m.group('date','time'))
