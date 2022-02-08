@@ -2080,8 +2080,14 @@ class measure(mcvqoe.base.Measure):
 
         for tx_clip, clip_data in test_dat.items():
 
-            #TODO : make this better!!!!
-            fname_clip = fname + tx_clip + '.csv'
+            #split clip from folder
+            fold, name = os.path.split(fname)
+
+            #match name to extract info
+            m = mcvqoe.base.match_name(name)
+
+            #construct new filename
+            fname_clip = os.path.join(fold, "R" + m.group("base") + tx_clip + '.csv')
 
             #add name to the list
             self.data_filenames.append(fname_clip)
