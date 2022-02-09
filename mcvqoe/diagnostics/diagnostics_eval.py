@@ -67,7 +67,7 @@ class evaluate():
                 if len(wav_dir) > 1:
                     raise ValueError(f'Can only process one TVO measurement at a time, {len(wav_dir)} passed.')
                 else:
-                    test_name = wav_dir[0]
+                    wav_dir = wav_dir[0]
             diag_name = 'diagnostics.csv'
             fname = os.path.basename(wav_dir)
             if fname == diag_name:
@@ -85,23 +85,7 @@ class evaluate():
             self.data, self.test_name = evaluate.load_json_data(json_data)
           
         self.csv_dir = os.path.dirname(self.test_name)
-        # Read in a diagnostics csv path.  
-        
-        # rx_name = self.data.RX_Name
-        # self.rx_name = rx_name.to_numpy()
-        # a_weight = self.data.A_Weight
-        # self.a_weight = a_weight.to_numpy()
-        # fsf_all = self.data.FSF_Scores
-        # self.fsf_all = fsf_all.to_numpy()
-        # peak_dbfs = self.data.Peak_Amplitude
-        # self.peak_dbfs = peak_dbfs.to_numpy()
-        # self.trials = len(self.data) 
-        # aw_flag = self.data.AW_flag
-        # self.aw_flag = aw_flag.to_numpy()
-        # clip_flag = self.data.Clip_flag
-        # self.clip_flag = clip_flag.to_numpy()
-        # fsf_flag =self.data.FSF_flag
-        # self.fsf_flag = fsf_flag.to_numpy() 
+
         
     def to_json(self, filename=None):
         """
@@ -118,11 +102,10 @@ class evaluate():
             json version of diagnotsic data and flag conditions
 
         """
-        test_info = {}
             
         out_json = {
             'measurement': self.data.to_json(),
-            'test_info': test_info
+            'test_info': self.test_name,
             }
             
         # Final json representation of all data
@@ -157,17 +140,11 @@ class evaluate():
             json_data = json.loads(json_data)
         # Extract data, cps, and test_info from json_data
         data = pd.read_json(json_data['measurement'])
-        test_info = json_data['test_info']
-        
-        test_names = []
-        test_paths = []
-        for tname, tpath in test_info.items():
-            test_names.append(tname)
-            test_paths.append(tpath)
+        test_name = json_data['test_info']
         
         
         # Return normal Access data attributes from these
-        return data, test_names, test_paths 
+        return data, test_name
  
 
             
