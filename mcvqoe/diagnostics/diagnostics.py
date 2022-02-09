@@ -52,6 +52,11 @@ class Diagnose():
     """
     def __init__(self, 
                  wav_dir = ''):
+        # TODO: add measurement as a parameter in the init
+        # That will help you handle different cases (e.g. load tx audio from mcvqoe.intelligibility)
+        
+        # TODO: Handle intelligbility (never has tx data)
+        # TODO: Handle when tx audio has not been saved out (throw error)
         self.wav_dir = wav_dir
         # Read in a directory of test trial wav files.
         # Get all the Rx wav files 
