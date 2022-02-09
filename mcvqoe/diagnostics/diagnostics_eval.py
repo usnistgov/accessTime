@@ -1,10 +1,11 @@
 import os
 import numpy as np
 import plotly.graph_objects as go
-import plotly.io as pio
+
 import pandas as pd
 # TODO for my testing, not in final 
-pio.renderers.default = 'browser'
+# import plotly.io as pio
+# pio.renderers.default = 'browser'
 import json
 
 
@@ -55,59 +56,52 @@ class evaluate():
     -------
     
     """
-    def __init__(self, 
-                 csv_dir = '',
-                 test_names=None,
+    def __init__(self,
+                 wav_dir = None,
+                 # csv_dir = '',
+                 # test_name=None,
                  json_data=None):
         if json_data is None:
-            # If only one test, make a list for iterating
-            if isinstance(test_names, str):
-                test_names = [test_names]
-            # Initialize full paths attribute
-            self.full_paths = []
-            self.test_names = []
-            #for test_name in test_names:
-                # If no extension given use csv
-                fname, fext = os.path.splitext(test_name)
-                if fext == '':
-                    tname = fname + '.csv'
+            # Ensure there is only one test passed
+            if isinstance(wav_dir, list):
+                if len(wav_dir) > 1:
+                    raise ValueError(f'Can only process one TVO measurement at a time, {len(wav_dir)} passed.')
                 else:
-                    tname = fname + fext
-                fpath = os.path.join(csv_dir, 'csv', tname)
-                self.full_paths.append(fpath)
-                self.test_names.append(os.path.basename(fname))   
+                    test_name = wav_dir[0]
+            diag_name = 'diagnostics.csv'
+            fname = os.path.basename(wav_dir)
+            if fname == diag_name:
+                # I got the full path to the diagnostics csv 
+                fpath = wav_dir
+            else:
+                fpath = os.path.join(wav_dir, diag_name)
             
-            # Initialize attributes
-            self.data = pd.DataFrame()
-            for path, name in zip(self.full_paths, self.test_names):
-                df = pd.read_csv(path)
-                # Force timestamp to be datetime
-                df['name'] = name
-                self.data = self.data.append(df)
-            nrow, _ = self.data.shape
-            self.data.index = np.arange(nrow)
+            self.test_name = fpath
+            
+            # Grab the data
+            self.data = pd.read_csv(fpath)
+            
         else:
-            self.data, self.test_names, self.full_paths = evaluate.load_json_data(json_data)
+            self.data, self.test_name = evaluate.load_json_data(json_data)
           
-        self.csv_dir = csv_dir
+        self.csv_dir = os.path.dirname(self.test_name)
         # Read in a diagnostics csv path.  
-        # Read csv, convert to dataframe
-        self.data = pd.read_csv(self.csv_dir)
-        rx_name = self.data.RX_Name
-        self.rx_name = rx_name.to_numpy()
-        a_weight = self.data.A_Weight
-        self.a_weight = a_weight.to_numpy()
-        fsf_all = self.data.FSF_Scores
-        self.fsf_all = fsf_all.to_numpy()
-        peak_dbfs = self.data.Peak_Amplitude
-        self.peak_dbfs = peak_dbfs.to_numpy()
-        self.trials = len(self.data) 
-        aw_flag = self.data.AW_flag
-        self.aw_flag = aw_flag.to_numpy()
-        clip_flag = self.data.Clip_flag
-        self.clip_flag = clip_flag.to_numpy()
-        fsf_flag =self.data.FSF_flag
-        self.fsf_flag = fsf_flag.to_numpy() 
+        
+        # rx_name = self.data.RX_Name
+        # self.rx_name = rx_name.to_numpy()
+        # a_weight = self.data.A_Weight
+        # self.a_weight = a_weight.to_numpy()
+        # fsf_all = self.data.FSF_Scores
+        # self.fsf_all = fsf_all.to_numpy()
+        # peak_dbfs = self.data.Peak_Amplitude
+        # self.peak_dbfs = peak_dbfs.to_numpy()
+        # self.trials = len(self.data) 
+        # aw_flag = self.data.AW_flag
+        # self.aw_flag = aw_flag.to_numpy()
+        # clip_flag = self.data.Clip_flag
+        # self.clip_flag = clip_flag.to_numpy()
+        # fsf_flag =self.data.FSF_flag
+        # self.fsf_flag = fsf_flag.to_numpy() 
         
     def to_json(self, filename=None):
         """
@@ -187,33 +181,41 @@ class evaluate():
     
         """
         # Plot FSF values   
-        x_axis = list(range(1,self.trials+1))
-        dfFSF = pd.DataFrame({"FSF Score": self.fsf_all,
-                              "Trial": x_axis,
-                              "fsf_flag": self.fsf_flag})
-        # Separate out flagged trials for easy plotting
-        df_flag = dfFSF[dfFSF['fsf_flag'] == 1]
+        # x_axis = list(range(1,self.trials+1))
+        # dfFSF = pd.DataFrame({"FSF Score": self.fsf_all,
+        #                       "Trial": x_axis,
+        #                       "fsf_flag": self.fsf_flag})
+        # # Separate out flagged trials for easy plotting
+        # df_flag = dfFSF[dfFSF['fsf_flag'] == 1]
+        nrow, _ = self.data.shape
+        
+        df_flag = self.data[self.data['FSF_flag'] == 1]
+        flag_indices = np.array([f'Trial: {i}' for i in df_flag.index+1])
+        # df_flag.index + 1
+        
         fig = go.Figure()
         # plot all trials
         fig.add_trace(
             go.Scatter(
-            x = dfFSF['Trial'],    
-            y = dfFSF['FSF Score'],
+            x = self.data.index,    
+            y = self.data['FSF_Scores'],
+            hovertext=np.array([f'Trial: {i}' for i in np.arange(1, nrow+1)]),
             mode = 'markers',
             showlegend = True,
             name = 'FSF score',
             marker = dict(
                 size = 10,
                 color = '#0000FF',
-            symbol = dfFSF.fsf_flag
+            symbol = self.data['FSF_flag']
                 )
             )
         ), 
         # Plot all flagged trials
         fig.add_trace(
             go.Scatter(
-            x = df_flag['Trial'],    
-            y = df_flag['FSF Score'],
+            x = df_flag.index,    
+            y = df_flag['FSF_Scores'],
+            hovertext=flag_indices,
             mode = 'markers',
             showlegend = True,
             name = 'FSF score - flagged',
@@ -238,34 +240,38 @@ class evaluate():
         None.
     
         """
-        # Plot a-weighted power for all trials    
-        x_axis = list(range(1,self.trials+1))
-        dfAW = pd.DataFrame({"A-Weight": self.a_weight,
-                             "Trial": x_axis,
-                             "aw_flag":self.aw_flag})
+        # # Plot a-weighted power for all trials    
+        # x_axis = list(range(1,self.trials+1))
+        # dfAW = pd.DataFrame({"A-Weight": self.a_weight,
+        #                      "Trial": x_axis,
+        #                      "AW_flag":self.aw_flag})
         # Separate out flagged trials for easy plotting
-        df_flag = dfAW[dfAW['aw_flag'] == 1]
+        nrow, _ = self.data.shape
+        df_flag = self.data[self.data['AW_flag'] == 1]
+        flag_indices = np.array([f'Trial: {i}' for i in df_flag.index+1])
         fig = go.Figure()
         # plot all trials
         fig.add_trace(
             go.Scatter(
-                x = dfAW['Trial'], 
-                y = dfAW['A-Weight'],
+                x = self.data.index, 
+                y = self.data['A_Weight'],
+                hovertext=np.array([f'Trial: {i}' for i in np.arange(1, nrow+1)]),
                 mode = 'markers',
             showlegend = True,
             name = 'A-weight',
             marker = dict(
                 size = 10,
                 color = '#0000FF',
-            symbol = dfAW.aw_flag
+            symbol = self.data['AW_flag']
                 )
             )
         ), 
         # Plot all flagged trials
         fig.add_trace(
             go.Scatter(
-            x = df_flag['Trial'],    
-            y = df_flag['A-Weight'],
+            x = df_flag.index,    
+            y = df_flag['A_Weight'],
+            hovertext=flag_indices,
             mode = 'markers',
             showlegend = True,
             name = 'A-weight - flagged',
@@ -291,33 +297,39 @@ class evaluate():
     
         """
         # Plot the peak amplitude (dbfs) for all trials   
-        x_axis = list(range(1,self.trials+1))
-        df_peak = pd.DataFrame({"Peak_dbfs": self.peak_dbfs,
-                             "Trial": x_axis,
-                             "clip_flag": self.clip_flag})  
+        # x_axis = list(range(1,self.trials+1))
+        # df_peak = pd.DataFrame({"Peak_Amplitude": self.peak_dbfs,
+        #                      "Trial": x_axis,
+        #                      "Clip_flag": self.Clip_flag})  
         # Separate out flagged trials for easy plotting
-        df_flag = df_peak[df_peak['clip_flag'] == 1]        
+        nrow, _ = self.data.shape
+        
+        df_flag = self.data[self.data['Clip_flag'] == 1]        
+        flag_indices = np.array([f'Trial: {i}' for i in df_flag.index+1])
+        
         fig = go.Figure()
         # Plot all trials
         fig.add_trace(
             go.Scatter(
-                x = df_peak['Trial'], 
-                y = df_peak['Peak_dbfs'],
+                x = self.data.index, 
+                y = self.data['Peak_Amplitude'],
+                hovertext=np.array([f'Trial: {i}' for i in np.arange(1, nrow+1)]),
                 mode = 'markers',
                 showlegend = True,
                 name = 'Peak amplitude',
                 marker = dict(
                 size = 10,
                 color = '#0000FF',
-                symbol = df_peak.clip_flag
+                symbol = self.data['Clip_flag']
                 )
             )
         ), 
         # Plot all flagged trials
         fig.add_trace(
             go.Scatter(
-            x = df_flag['Trial'],    
-            y = df_flag['Peak_dbfs'],
+            x = df_flag.index,    
+            y = df_flag['Peak_Amplitude'],
+            hovertext=flag_indices,
             mode = 'markers',
             showlegend = True,
             name = 'Peak amplitude - flagged',
