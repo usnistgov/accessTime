@@ -12,17 +12,6 @@ import tempfile
 #expected path components for csv files
 csv_path_names = (('csv','2loc_tx-data'),('data'))
 
-measurement_dir_modules = {
-    'Access_Time' : 'mcvqoe.accesstime',
-    'Intelligibility' : 'mcvqoe.intelligibility',
-    'Mouth_2_Ear' : 'mcvqoe.mouth2ear',
-    'PSuD' : 'mcvqoe.psud',
-
-    #alternate names
-    'Access-Time' : 'mcvqoe.accesstime',
-    'mouth2ear' : 'mcvqoe.mouth2ear',
-}
-
 def make_parser():
 
     #-----------------------[Setup ArgumentParser object]-----------------------
