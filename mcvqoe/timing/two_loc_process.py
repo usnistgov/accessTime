@@ -313,6 +313,15 @@ def twoloc_process(tx_name, extra_play=0, rx_name = None, outdir="",
             
             tx_rec_name = f'Rx{trial+1}_{row["Filename"]}.wav'
             full_tx_rec_name = os.path.join(tx_wav_path, tx_rec_name)
+
+            #check if file exists
+            if not os.path.exists(clip_path):
+                #update progress
+                progress_update('status', total_trials, trial,
+                msg = 'Attempting to decompress audio...')
+                #unzip audio if it exists
+                mcvqoe.base.Measure.unzip_audio(audio_path)
+
             tx_rec_fs, tx_rec_dat = mcvqoe.base.audio_read(full_tx_rec_name)
             #make floating point for processing purposes
             tx_rec_dat=mcvqoe.base.audio_float(tx_rec_dat)
