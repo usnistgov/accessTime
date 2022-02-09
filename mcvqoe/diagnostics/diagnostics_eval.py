@@ -83,8 +83,6 @@ class evaluate():
             
         else:
             self.data, self.test_name = evaluate.load_json_data(json_data)
-          
-        self.csv_dir = os.path.dirname(self.test_name)
 
         
     def to_json(self, filename=None):
@@ -102,10 +100,11 @@ class evaluate():
             json version of diagnotsic data and flag conditions
 
         """
-            
+        test_info = dict([(self.test_name, '')])
+        
         out_json = {
             'measurement': self.data.to_json(),
-            'test_info': self.test_name,
+            'test_info': test_info,
             }
             
         # Final json representation of all data
@@ -140,7 +139,7 @@ class evaluate():
             json_data = json.loads(json_data)
         # Extract data, cps, and test_info from json_data
         data = pd.read_json(json_data['measurement'])
-        test_name = json_data['test_info']
+        test_name = set(json_data['test_info'].keys())
         
         
         # Return normal Access data attributes from these
@@ -204,9 +203,9 @@ class evaluate():
             )
         ),        
         fig.update_layout(title_text='FSF Score of Received Audio')
-        fig.update_xaxes(title_text='Trial Number')
+        fig.update_xaxes(title_text='Index')
         fig.update_yaxes(title_text='FSF Score')
-        fig.show()      
+        return fig      
         
     def aw_plot(self):
         """
@@ -260,9 +259,9 @@ class evaluate():
             )
         ),
         fig.update_layout(title_text='A-Weighted Power of Received Audio')
-        fig.update_xaxes(title_text='Trial Number')
+        fig.update_xaxes(title_text='Index')
         fig.update_yaxes(title_text='A-Weight (dBA)')
-        fig.show()
+        return fig
     
     def peak_dbfs_plot(self):
         """
@@ -318,6 +317,6 @@ class evaluate():
             )
         ),       
         fig.update_layout(title_text='Peak Amplitude of Received Audio')
-        fig.update_xaxes(title_text='Trial Number')
+        fig.update_xaxes(title_text='Index')
         fig.update_yaxes(title_text='Peak Amplitude (dBfs)')
-        fig.show()      
+        return fig      
