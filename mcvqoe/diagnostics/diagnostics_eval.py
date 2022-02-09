@@ -66,7 +66,7 @@ class evaluate():
             # Initialize full paths attribute
             self.full_paths = []
             self.test_names = []
-            for test_name in test_names:
+            #for test_name in test_names:
                 # If no extension given use csv
                 fname, fext = os.path.splitext(test_name)
                 if fext == '':
