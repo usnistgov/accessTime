@@ -14,8 +14,7 @@ setuptools.setup(
     packages=setuptools.find_namespace_packages(include=["mcvqoe.*"]),
     include_package_data=True,
     package_data={
-        "mcvqoe": ["audio_clips", "test.wav"],
-        "mcvqoe": ["gui", "MCV-sm.png"],
+        "mcvqoe": ["audio_clips/test.wav", "gui/MCV-sm.png"],
     },
     use_scm_version={"write_to": "mcvqoe/base/version.py"},
     setup_requires=["setuptools_scm"],
@@ -26,14 +25,15 @@ setuptools.setup(
     ],
     license="NIST software License",
     install_requires=[
-        "numpy",
-        "scipy",
-        "sounddevice",
-        "pyserial",
-        "soundfile",
         "appdirs",
         'importlib-metadata ; python_version < "3.8"',
+        "numpy",
         "pandas",
+        "plotly",
+        "pyserial",
+        "scipy",
+        "sounddevice",
+        "soundfile",
     ],
     entry_points={
         "console_scripts": [
