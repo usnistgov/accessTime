@@ -1,13 +1,9 @@
-import os
-import numpy as np
-import plotly.graph_objects as go
-
-import pandas as pd
-# TODO for my testing, not in final 
-# import plotly.io as pio
-# pio.renderers.default = 'browser'
 import json
+import os
 
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
 
 class evaluate():
     """

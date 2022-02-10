@@ -1,12 +1,13 @@
-import os
-import fnmatch
-import mcvqoe.base
 import argparse
-import pandas as pd
+import fnmatch
 import math
+import mcvqoe.base
+import os
 import re
-import numpy as np
 import statistics
+
+import numpy as np
+import pandas as pd
 
 class Diagnose():
     """
