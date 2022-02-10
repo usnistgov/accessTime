@@ -670,7 +670,6 @@ class Measure:
         with open(fname, "rt") as csv_f:
             # create dict reader
             reader = csv.DictReader(csv_f)
-            print(f"reader header: {reader.fieldnames}")
             # create empty list
             data = []
             # create set for audio clips
