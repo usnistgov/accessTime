@@ -57,6 +57,15 @@ class measure(mcvqoe.base.Measure):
     auto_stop : bool, default=True
         Determines if tests are automatically stopped when the intelligibility
         of P1 is determined to be equivalent to P2.
+    bisect_midpoint : bool, default=True
+        If true PTT times will be determined iteratively and will attempt to 
+        converge around the PTT time associated with the intelligibility midpoint
+        of the intelligibility curve. This will generally result in a much faster test,
+        but may be more susceptible to generating an invalid intelligibility curve and
+        access delay result in extreme circumstances. If false PTT times will 
+        be uniformly spaced, and are predetermined based on other settings. 
+        This is the "safest" option in some ways, but generally results in much 
+        longer tests.
     bgnoise_file : string
         Name of audio file to use as background noise during measurement.
     bgnoise_snr : float, default=50
