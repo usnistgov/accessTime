@@ -254,8 +254,8 @@ class measure(mcvqoe.base.Measure):
         self.audio_path = ""
         self.audio_interface = None
         self.auto_stop = True
-        # TODO: Think about default here....
-        self.bisect_midpoint = True
+        # TODO: Once tested and verified default this to True
+        self.bisect_midpoint = False
         self.bgnoise_file = ""
         self.bgnoise_snr = 50
         self.data_file = ""
