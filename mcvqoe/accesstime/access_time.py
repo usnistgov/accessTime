@@ -57,6 +57,15 @@ class measure(mcvqoe.base.Measure):
     auto_stop : bool, default=True
         Determines if tests are automatically stopped when the intelligibility
         of P1 is determined to be equivalent to P2.
+    bisect_midpoint : bool, default=True
+        If true PTT times will be determined iteratively and will attempt to 
+        converge around the PTT time associated with the intelligibility midpoint
+        of the intelligibility curve. This will generally result in a much faster test,
+        but may be more susceptible to generating an invalid intelligibility curve and
+        access delay result in extreme circumstances. If false PTT times will 
+        be uniformly spaced, and are predetermined based on other settings. 
+        This is the "safest" option in some ways, but generally results in much 
+        longer tests.
     bgnoise_file : string
         Name of audio file to use as background noise during measurement.
     bgnoise_snr : float, default=50
@@ -245,6 +254,8 @@ class measure(mcvqoe.base.Measure):
         self.audio_path = ""
         self.audio_interface = None
         self.auto_stop = True
+        # TODO: Once tested and verified default this to True
+        self.bisect_midpoint = False
         self.bgnoise_file = ""
         self.bgnoise_snr = 50
         self.data_file = ""
@@ -1022,6 +1033,10 @@ class measure(mcvqoe.base.Measure):
         time_e = np.nan
         tg_e = np.nan
         
+        # TODO: Decide where this should go...
+        # Define bisection tolerance (only used if self.bisect_midpoint == True)
+        # 5 ms should be fine, minimum it could go (hardware constraint) is 1 ms
+        bisect_tol = 5e-3
 
         # ------------------------[Test specific setup]------------------------
         self.test_setup()
@@ -1243,29 +1258,67 @@ class measure(mcvqoe.base.Measure):
         
             ptt_st_dly = []
             ptt_step_counts = []
-    
-            if (len(self.ptt_delay) == 1):
-                for num in range(len(self.cutpoints)):
-                    # Word start time from end of first silence
-                    w_st = (self.cutpoints[num][0]['End']/self.audio_interface.sample_rate)
-                    # Word end time from end of word
-                    w_end = (self.cutpoints[num][1]['End']/self.audio_interface.sample_rate)
-                    # Delay during word (.0001 added to w_end ensures w_end's use)
-                    w_dly = np.arange(w_st, (w_end+.0001), self.ptt_step)
-                    # Delay during silence (.0001 decrement to ensure ptt_delay usage)
-                    s_dly = np.arange(w_st, (self.ptt_delay[0]-.0001), -self.ptt_step)
-                    # Generate delay from word delay and silence delay
-                    # Word delay must be reversed
-                    ptt_st_dly.append(np.concatenate((w_dly[::-1], s_dly[1:])))
-                    # Ensure that final delay time will not be negative
-                    if(ptt_st_dly[-1][-1] < 0.0):
-                        ptt_st_dly[-1][-1] = 0.0
-                    ptt_step_counts.append(len(ptt_st_dly[-1]))
+            if self.bisect_midpoint:
+                # We are bisecting the midpoint implies: we generate ptt_st_dlys on the fly
+                if len(self.ptt_delay) == 1:
+                    for cp in self.cutpoints:
+                        # Find end of first word + a bit of offset
+                        w_end = cp[1]['End']/self.audio_interface.sample_rate + 0.001
+                        
+                        middle = np.mean([0, w_end])
+                        # Inititalize clip start delays as 0, end of word, and midpoint
+                        ptt_st_dly.append([0, w_end, middle])
+                        
+                        # Determine number of bisection iterations required to reach toleranace
+                        # Add 2 cause we will evaluate initial endpoints to help estimate I0
+                        niters_raw = np.log(bisect_tol/(ptt_st_dly[-1][1] - ptt_st_dly[-1][0]))/np.log(1/2) + 2
+                        niters = int(np.floor(niters_raw))
+                        ptt_step_counts.append(niters)
+                        # Fill out rest of ptt_st_dly with nan
+                        # (-3 cause we already set the edges and midpoint)
+                        for k in range(niters-3):
+                            ptt_st_dly[-1].append(np.nan)
+                else:
+                    for _ in self.cutpoints:
+                        # Need first element to always be less than second
+                        sort_delays = np.sort([self.ptt_delay[0], self.ptt_delay[1]])
+                        # Get midpoint of intial delays
+                        middle = np.mean(sort_delays)
+                        # Set first three ptt times
+                        ptt_st_dly.append([sort_delays[0], sort_delays[1], middle])
+                        # Determine number of bisection iterations required to reach toleranace
+                        # Add 2 cause we will evaluate initial endpoints to help estimate I0
+                        niters_raw = np.log(bisect_tol/(sort_delays[1] - sort_delays[0]))/np.log(1/2) + 2
+                        niters = int(np.floor(niters_raw))
+                        ptt_step_counts.append(niters)
+                        # Fill out rest of ptt_st_dly with nan
+                        # (-3 cause we already set the edges and midpoint)
+                        for k in range(niters-3):
+                            ptt_st_dly[-1].append(np.nan)
+                        
             else:
-                for _ in range(len(self.cutpoints)):
-                    dly_steps = np.arange(self.ptt_delay[1], self.ptt_delay[0], -self.ptt_step)
-                    ptt_st_dly.append(dly_steps)
-                    ptt_step_counts.append(len(dly_steps))
+                if (len(self.ptt_delay) == 1):
+                    for num in range(len(self.cutpoints)):
+                        # Word start time from end of first silence
+                        w_st = (self.cutpoints[num][0]['End']/self.audio_interface.sample_rate)
+                        # Word end time from end of word
+                        w_end = (self.cutpoints[num][1]['End']/self.audio_interface.sample_rate)
+                        # Delay during word (.0001 added to w_end ensures w_end's use)
+                        w_dly = np.arange(w_st, (w_end+.0001), self.ptt_step)
+                        # Delay during silence (.0001 decrement to ensure ptt_delay usage)
+                        s_dly = np.arange(w_st, (self.ptt_delay[0]-.0001), -self.ptt_step)
+                        # Generate delay from word delay and silence delay
+                        # Word delay must be reversed
+                        ptt_st_dly.append(np.concatenate((w_dly[::-1], s_dly[1:])))
+                        # Ensure that final delay time will not be negative
+                        if(ptt_st_dly[-1][-1] < 0.0):
+                            ptt_st_dly[-1][-1] = 0.0
+                        ptt_step_counts.append(len(ptt_st_dly[-1]))
+                else:
+                    for _ in range(len(self.cutpoints)):
+                        dly_steps = np.arange(self.ptt_delay[1], self.ptt_delay[0], -self.ptt_step)
+                        ptt_st_dly.append(dly_steps)
+                        ptt_step_counts.append(len(dly_steps))
     
             # Running count of the number of completed trials
             trial_count = 0
@@ -1357,6 +1410,48 @@ class measure(mcvqoe.base.Measure):
                 #-----------------------[Delay Step Loop]-----------------------
                 
                 for k in range(k_start, len(ptt_st_dly[clip])):
+                    
+                    #-------------[Determine current ptt start delay]-----------
+                    if self.bisect_midpoint and np.isnan(ptt_st_dly[clip][k]):
+                        if k == 3:
+                            # Set us up for bisection
+                            # Smallest time
+                            time_a = ptt_st_dly[clip][0]
+                            # Largest time
+                            time_b = ptt_st_dly[clip][1]
+                            # Midpoint of our starting times
+                            time_c = ptt_st_dly[clip][2]
+                            # Note: time_a < time_c < time_b most always hold
+                            
+                        # We haven't determined this start delay yet
+                        # Identify trials calculated at last timestep ptt_st_dly[k]
+                        ts_ix = np.arange((clip_count-(self.ptt_rep)), clip_count)
+                         
+                        # P1 intelligibility for last time step
+                        p1_intell = success[0, ts_ix]
+                        # All observed P2 intelligibility
+                        p2_intell = success[1, :clip_count]
+                        
+                        # Determine current curve intelligibility midpoint value
+                        half_I0_est = 0.5 * np.mean(p2_intell)
+                        
+                        # Get average P1 estimation at last timestep
+                        p1_est = np.mean(p1_intell)
+                        # Get current I0 estimation
+                        # I0_est = np.mean(p2s)
+                        if p1_est < half_I0_est:
+                            # If p1 estimate is less than our halfway point, 
+                            # then time_a is closer than time_b
+                            # Make our new right side of the interval: b = c
+                            time_b = time_c
+                        else:
+                            # If p1 estimate is greater than our halfway point 
+                            # then b is closer than a
+                            # Make our new left side of the interval a =c
+                            time_a = time_c
+                        # Find new midpoint for next evaluation
+                        time_c = np.mean([time_a, time_b])
+                        ptt_st_dly[clip][k] = time_c
 
                     #-------------[Update Current Clip and Delay]---------------
 
