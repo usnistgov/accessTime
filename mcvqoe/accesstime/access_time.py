@@ -10,6 +10,7 @@ import pickle
 import re
 import scipy.interpolate
 import scipy.signal
+import shutil
 import string
 import time
 import timeit
@@ -409,7 +410,7 @@ class measure(mcvqoe.base.Measure):
             #check cutpoints
             words = len(cp)
             if (words != 4):
-                raise ValueError(f"Loading {cutpoint}: 4 'words' expected but, {words} found")
+                raise ValueError(f"Loading {fcsv}: 4 'words' expected but, {words} found")
             
             if not np.isnan(cp[0]['Clip']) or not np.isnan(cp[2]['Clip']):
                 raise ValueError(f"Loading {fcsv}: Words 1 and 3 must be silence")
@@ -591,6 +592,7 @@ class measure(mcvqoe.base.Measure):
         #-----------------------[Do more recovery things]-----------------------
 
         if recovery:
+            # TODO: Recovery things seem to be riddled with bugs, this needs serious attention
             # Save old names to copy to new names
             old_filenames = self.rec_file['temp_data_filenames']
             # Save old .wav folder
@@ -601,6 +603,9 @@ class measure(mcvqoe.base.Measure):
             load_count = 0
             # List of tuples of filenames to copy
             copy_files = []
+            # BUG: A lot of these variables seem to have gotten moved out of order from where they are needed:
+            # bad_name, temp_data_filenames, name
+            
             #check if bad file exists
             if os.path.exists(old_bad_name):
                 #add to list
@@ -633,6 +638,7 @@ class measure(mcvqoe.base.Measure):
                     # Initialize success with zeros
                     success = np.zeros((2, (len(ptt_st_dly[k])*self.ptt_rep)))
                     # Fill in success from file
+                    # BUG: This will throw a key error for P1_Int. Something seems pretty wrong about this logic
                     for p in range(clen):
                         success[0, p] = save_dat[p]['P1_Int']
                         success[1, p] = save_dat[p]['P2_Int']
@@ -1027,7 +1033,9 @@ class measure(mcvqoe.base.Measure):
         #----------------[List of Vars to Save in Pickle File]----------------
         
         save_vars = ( 'clip_names', 'bad_name', 'temp_data_filenames',
-                      'ptt_st_dly', 'wavdir' , 'ptt_step_counts' )
+                      'ptt_st_dly', 'wavdir' , 'ptt_step_counts',
+                      'time_a', 'time_b', 'time_c',
+                      )
         
         # Initialize clip end time for gap time calculation
         time_e = np.nan
@@ -1037,6 +1045,10 @@ class measure(mcvqoe.base.Measure):
         # Define bisection tolerance (only used if self.bisect_midpoint == True)
         # 5 ms should be fine, minimum it could go (hardware constraint) is 1 ms
         bisect_tol = 5e-3
+        # Initialize bisection time variables so that things can be recovered if needed with no extra checks
+        time_a = None
+        time_b = None
+        time_c = None
 
         # ------------------------[Test specific setup]------------------------
         self.test_setup()
@@ -1072,6 +1084,10 @@ class measure(mcvqoe.base.Measure):
             # Copy recovery variables to current test
             ptt_st_dly = self.rec_file['ptt_st_dly']
             ptt_step_counts = self.rec_file['ptt_step_counts']
+            
+            time_a = self.rec_file['time_a']
+            time_b = self.rec_file['time_b']
+            time_c = self.rec_file['time_c']
 
         # Only read in data if this is the first time
         else:
