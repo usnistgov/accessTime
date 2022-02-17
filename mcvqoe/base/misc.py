@@ -548,6 +548,8 @@ def get_measurement_from_file(filepath, module=True):
         elif 'm2e_latency' in colnames:
             # m2e_latency in many tests, but if it's here and the others didn't work it's probably m2e latency
             measurement = 'm2e'
+        elif 'FSF_flag' in colnames:
+            measurement = 'diagnostics'
     except pd.errors.ParserError:
         # If parsing failed, check access data, skip 3 rows
         df = pd.read_csv(filepath, skiprows=3)
@@ -568,6 +570,7 @@ def get_measurement_from_file(filepath, module=True):
             'm2e' : 'mcvqoe.mouth2ear',
             'psud' : 'mcvqoe.psud',
             'tvo': 'mcvqoe.tvo',
+            'diagnostics': 'mcvqoe.diagnostics'
         }
         measurement = measurement_dir_modules[measurement]
     return measurement

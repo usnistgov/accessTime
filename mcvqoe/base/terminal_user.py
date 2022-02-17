@@ -42,6 +42,11 @@ def terminal_progress_update(
               f'--Storing data in: \'{file}\'')
     elif (prog_type == 'csv-rename'):
         print(f"Renaming '{file}' to '{new_file}'")
+    elif prog_type == 'diagnose':
+        if current_trial == 0:
+            print(msg)
+        if current_trial % 10 == 0:
+            print(f'-----Trial {current_trial} of {num_trials}')
     elif prog_type == "status":
         print(msg)
         
