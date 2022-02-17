@@ -4,10 +4,11 @@ import math
 import mcvqoe.base
 import os
 import re
-import statistics
 
 import numpy as np
 import pandas as pd
+
+from mcvqoe.base.terminal_user import terminal_progress_update
 
 class Diagnose():
     """
@@ -22,7 +23,11 @@ class Diagnose():
     ----------
     wav_dir : string
         directory of WAV files
-    
+    progress_update : function, default=mcvqoe.base.terminal_user.terminal_progress_update
+        function to call to provide updates on test progress. This function
+        takes three positional arguments, prog_type, total number of trials, current
+        trial number. Depending on prog_type, different information is displayed to the user.
+
     Attributes
     ----------
     tx_filename : list
@@ -52,13 +57,28 @@ class Diagnose():
    
     """
     def __init__(self, 
-                 wav_dir = ''):
+                 wav_dir = '',
+                 progress_update=terminal_progress_update,
+                 ):
         # TODO: add measurement as a parameter in the init
         # That will help you handle different cases (e.g. load tx audio from mcvqoe.intelligibility)
         
         # TODO: Handle intelligbility (never has tx data)
         # TODO: Handle when tx audio has not been saved out (throw error)
+        # Assign wav_dir
         self.wav_dir = wav_dir
+        # Assign progress update
+        self.progress_update = progress_update
+        
+        self.trials = None
+        
+        # Create empty list for rx recordings 
+        self.rx_rec = []
+        self.rx_dat = []
+        
+            
+        self.outname = None
+    def load_audio(self):
         # Read in a directory of test trial wav files.
         # Get all the Rx wav files 
         dir_files = os.listdir(self.wav_dir)
@@ -66,18 +86,26 @@ class Diagnose():
         all_wavs = fnmatch.filter(dir_files, naming)
         # Get total number of trials
         self.trials = len(all_wavs)
-        # Create empty list for rx recordings 
-        self.rx_rec = []
-        self.rx_dat = []
+        if self.trials == 0:
+            raise RuntimeError(f'No recorded audio detected in {self.wav_dir}')
         # Cycle through, in order
         # TODO: be clear about testing file formats. This gets confused if
         # the RX numbers reset for each file like in access time
         for n in range(1,self.trials+1):
+            self.progress_update(
+                prog_type="diagnose",
+                num_trials=self.trials,
+                current_trial=n,
+                msg='Loading Audio',
+                )
             start = 'Rx'+str(n)+'_'
             rx_name = [s for s in all_wavs if start in s]
             rx_path = self.wav_dir + '/' + rx_name[0]
             # Check how many channels we have 
             self.fs,y_rec = mcvqoe.base.audio_read(rx_path)
+            if len(y_rec.shape) > 1:
+                # If more than one channel, just grab the first channel
+                y_rec = y_rec[:, 0]
             self.rx_rec.append(y_rec[:]) 
             self.rx_dat.append(rx_name[0])
             # Find all the Tx files in the wav_dir, strip 
@@ -96,7 +124,6 @@ class Diagnose():
             # TODO be robust to scenarios where TX audio is not
             # saved to the data folder        
             # if there are no TX files in the dat dir, find them
-    
     def aw_calc(self):
         """
         Calculates the a-weight (dBA) of each trial.
@@ -111,6 +138,12 @@ class Diagnose():
           
         # Get A-weight
         for k in range(0,self.trials): 
+            self.progress_update(
+                prog_type="diagnose",
+                num_trials=self.trials,
+                current_trial=k,
+                msg='Calculating A-weight power',
+                )
             # Calculate the A-weighted power of each recording 
             aw = mcvqoe.base.a_weighted_power(self.rx_rec[k], self.fs) 
             a_weight.append(aw)
@@ -136,15 +169,31 @@ class Diagnose():
             tx_justname = re.sub('\.wav$', '', self.tx_filename[n])
             tx_justname = tx_justname[3:]
             tx_base.append(tx_justname)   
-    
+        if tx_base == []:
+            # TODO: If this is intelligibility try to find the audio otherwise display same message below
+            self.progress_update(
+                prog_type='diagnose',
+                num_trials=0,
+                current_trial=0,
+                msg='Unable to calculate FSF -- no transmit audio found'
+                )
+            return -np.Inf
         for j in range(0,self.trials): 
+            self.progress_update(
+                prog_type="diagnose",
+                num_trials=self.trials,
+                current_trial=j,
+                msg='Calculating FSF',
+                )
             # Find RX files with the matching tx name, create groups 
             match_wavs = re.match(r'(Rx\d+_(?P<tx_base_name>[^.]+))',self.rx_dat[j])
             # find the index of the TX and RX clips to match with the lists of 
             # wav data
+            
             tx_idx = tx_base.index(match_wavs.group('tx_base_name'))
             tx_wav = self.tx_wavs[tx_idx]
             rx_wav = self.rx_rec[j]
+            
             # Get FSF scores for each tx-rx pair
             get_fsf = mcvqoe.base.fsf(rx_wav,tx_wav,self.fs)
             # Get just the FSF score
@@ -165,6 +214,12 @@ class Diagnose():
         # Create empty list for peak volume
         peak_dbfs = []
         for n in range(0,self.trials):
+            self.progress_update(
+                prog_type="diagnose",
+                num_trials=self.trials,
+                current_trial=n,
+                msg='Calculating Peak Amplitude',
+                )
             # check for positive and negative clipping
             peak = max(abs(self.rx_rec[n]))
             peak_db = round(20 * math.log10(peak), 2)
@@ -216,12 +271,14 @@ class Diagnose():
             Trials that have low FSF scores or otherwise deviate 
             from the patterns of the dataset
         """
+        if np.isinf(fsf_all):
+            return 0
         # Create empty list for FSF flag    
         fsf_flag = []
         # Gather metrics for FSF scores
         fsf_array = np.array(fsf_all)
-        fsf_mean = round(statistics.mean(fsf_array),3)
-        fsf_std = round(statistics.stdev(fsf_array),3)
+        fsf_mean = round(np.mean(fsf_array),3)
+        fsf_std = round(np.std(fsf_array),3)
         for m in range(0,self.trials):
             # Cycle through FSF scores, look for trials where the score
             # stands out by being a certain distance from the mean
@@ -266,8 +323,8 @@ class Diagnose():
         aw_array = np.array(a_weight)
         aw_lin = 10**(aw_array/20)
         aw_low = 10**(-60/20)
-        aw_mean = round(statistics.mean(aw_lin),3)
-        aw_std = round(statistics.stdev(aw_lin),3)
+        aw_mean = round(np.mean(aw_lin),3)
+        aw_std = round(np.std(aw_lin),3)
         for m in range(0,self.trials):
             # Cycle through AW values, look for trials where the values
             # stand out by being a certain distance from the mean
@@ -286,7 +343,10 @@ class Diagnose():
         
         return aw_flag
         
-    def gather_diagnostics(self,a_weight,fsf_all,peak_dbfs,clip_flag,fsf_flag,aw_flag):
+    def gather_diagnostics(self, a_weight, fsf_all, peak_dbfs,
+                           clip_flag, fsf_flag, aw_flag,
+                           filename='diagnostics.csv'):
+        
         """
         Create a dataframe of all diagnostic data. A-weight,
         FSF scores, max clip amplitude. Convert to json, csv
@@ -312,24 +372,49 @@ class Diagnose():
         -------
         diagnostics_csv : csv 
             CSV containing all the dat for diagnostics measurements
-       """
-       # Create dataframe of info
+        """
+        outname = os.path.join(self.wav_dir, filename)
+        self.progress_update(
+               prog_type="status",
+               msg=f'Writing {outname}',
+               num_trials=0,
+               current_trial=0,
+           )
+        # Create dataframe of info
         df_diagnostics = pd.DataFrame({"RX_Name":self.rx_dat, 
-                        "A_Weight":a_weight,
-                        "FSF_Scores":fsf_all,
-                        "Peak_Amplitude":peak_dbfs,
-                        "AW_flag":aw_flag,
-                        "Clip_flag":clip_flag,
-                        "FSF_flag":fsf_flag})
-        # Get session name and use that to name files 
-        test_path, test_name =re.split("wav/+", self.wav_dir)
-
-        # Create csv    
-        diagnostics_csv = df_diagnostics.to_csv(index=False, line_terminator='\n')
-        with open(os.path.join(self.wav_dir,'diagnostics.csv'),'w') as f:
-            f.write(diagnostics_csv)
-            
-        return diagnostics_csv 
+                     "A_Weight":a_weight,
+                     "FSF_Scores":fsf_all,
+                     "Peak_Amplitude":peak_dbfs,
+                     "AW_flag":aw_flag,
+                     "Clip_flag":clip_flag,
+                     "FSF_flag":fsf_flag})
+     
+        outname = os.path.join(self.wav_dir, filename)
+        # Write csv    
+        df_diagnostics.to_csv(outname, index=False)
+        return outname
+    
+    def run_diagnostics(self, filename='diagnostics.csv'):
+        # print("Measuring a-weight") 
+        a_weight = self.aw_calc()   
+        aw_flag = self.aw_flag(a_weight)
+        # print("Measuring FSF") 
+        fsf_all = self.fsf_calc()
+        fsf_flag = self.fsf_flag(fsf_all)
+        # print("Measuring peak amplitude") 
+        peak_dbfs = self.peak_amp_calc()
+        clip_flag = self.clip_flag(peak_dbfs)
+        # print("Creating json and csv") 
+        
+        self.outname = self.gather_diagnostics(a_weight,
+                                               fsf_all,
+                                               peak_dbfs,
+                                               clip_flag,
+                                               fsf_flag,
+                                               aw_flag,
+                                               filename=filename,
+                                               )
+        
 
 def main():   
     """
