@@ -19,6 +19,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+from itertools import cycle
 from scipy.optimize import curve_fit
 from scipy.stats import norm
 import mcvqoe.math
@@ -751,6 +752,7 @@ class evaluate:
         return fig
     
     def plot_intell(self, show_raw=True, talkers=None, fit_type="COR",
+                    color_palette=px.colors.qualitative.Plotly,
                     title='Intelligibility Curves'):
         """
         Plot intelligibility curves
@@ -774,7 +776,7 @@ class evaluate:
         fig : TYPE
             DESCRIPTION.
 
-        """
+        """        
         # Get individual fits for each talker word combo
         tw_fits = self.fit_curve_data("SUT")
         
@@ -796,13 +798,13 @@ class evaluate:
         # TODO: Come up with better ptt_times?
         ptt_times = np.arange(-0.6, 2.5, 0.02)
         
-        # Get default plotly colors
-        colors = px.colors.qualitative.Plotly
-        # Initizialize index tracker for which color to use
-        color_ix = 0
+        # Create cycle for colors
+        palette = cycle(color_palette)
+        
         
         if len(talkers) > 1:
             talkers.append(tuple(talkers))
+        
         for talker in talkers:
             if isinstance(talker, tuple):
                 talker_fit = self.fit_curve_data(fit_type, talker_words=talker)
@@ -816,7 +818,7 @@ class evaluate:
             talker_intell = self.eval_intell(ptt_times=ptt_times, fit_data=talker_fit)
             
             # Set color
-            color = colors[color_ix]
+            color = next(palette)
             
             # Plot intelligibility curve
             fig.add_trace(
@@ -850,11 +852,7 @@ class evaluate:
                         name='raw data'
                         )
                     )
-            # Iterate color
-            if color_ix == len(colors) - 1:
-                color_ix = 0
-            else:
-                color_ix += 1
+            
         # Add title, axes labels
         fig.update_layout(            
             title=title,
