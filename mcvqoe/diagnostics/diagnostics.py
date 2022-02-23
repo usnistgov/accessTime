@@ -271,7 +271,7 @@ class Diagnose():
             Trials that have low FSF scores or otherwise deviate 
             from the patterns of the dataset
         """
-        if np.isinf(fsf_all):
+        if np.isinf(fsf_all).all():
             return 0
         # Create empty list for FSF flag    
         fsf_flag = []
