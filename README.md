@@ -35,6 +35,19 @@ to measure and quantify the access time of any PTT communication system.
 
 # RUNNING MEASUREMENT SOFTWARE
 
+To install the software run
+```
+pip install mcvqoe-accesstime
+```
+
+Alternatively, one could clone this repository and run the following from the 
+root of the git repository:
+
+```
+pip install .
+```
+
+
 The easiest way to use the measurement system is to run the GUI (https://github.com/usnistgov/mcvqoe).
 
 # Post Processing
