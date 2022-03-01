@@ -14,9 +14,13 @@ The `mcvqoe-base` package includes libraries to play audio through a Push To
 Talk (PTT) communication system. Also included are equivalent libraries to 
 simulate sending audio through a PTT communication system.
 
-# Building and Instally the Package Locally
+# Installing the Package
+To install the package run
+```
+pip install mcvqoe-base
+```
 
-To build and install the package, clone this repository and run the following
+Alternatively, to build and install the package, clone this repository and run the following
 from the root of the git repository :
 
 ```
