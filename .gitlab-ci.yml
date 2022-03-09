@@ -5,6 +5,10 @@ stages:
   - test-downstream
   - deploy
 
+include:
+  - project: 'PSCR/MCV/mcvqoe-measurements'
+    file: '/templates/upload-pypi.yml'
+
 variables:
   IMAGE_MCVQOE_BASE: $CI_REGISTRY_IMAGE/mcvqoe-base:$CI_COMMIT_REF_SLUG
   IMAGE_MCVQOE_BASE_RELEASE: $CI_REGISTRY_IMAGE/mcvqoe-base:latest
@@ -91,15 +95,7 @@ test-mouth2ear:
     project: PSCR/MCV/device-tst
     strategy: depend
 
-release:pypi:
-  stage: deploy
-  image: python:3.8
-  script:
-    - pip install twine
-    - python setup.py bdist_wheel
-    - TWINE_PASSWORD=${CI_JOB_TOKEN} TWINE_USERNAME=gitlab-ci-token python -m twine upload --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi --skip-existing dist/*
-
-release:docker:
+register:docker:
   stage: deploy
   image:
     name: gcr.io/go-containerregistry/crane:debug
