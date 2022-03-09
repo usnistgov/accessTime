@@ -1,0 +1,6 @@
+stages:
+  - deploy
+
+include:
+  - project: 'PSCR/MCV/mcvqoe-measurements'
+    file: '/templates/upload-pypi.yml'
