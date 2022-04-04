@@ -199,7 +199,7 @@ class evaluate():
             )
         ),        
         fig.update_layout(title_text='FSF Score of Received Audio')
-        fig.update_xaxes(title_text='Index')
+        fig.update_xaxes(title_text='Trial')
         fig.update_yaxes(title_text='FSF Score')
         return fig      
         
@@ -255,7 +255,7 @@ class evaluate():
             )
         ),
         fig.update_layout(title_text='A-Weighted Power of Received Audio')
-        fig.update_xaxes(title_text='Index')
+        fig.update_xaxes(title_text='Trial')
         fig.update_yaxes(title_text='A-Weight (dBA)')
         return fig
     
@@ -313,6 +313,6 @@ class evaluate():
             )
         ),       
         fig.update_layout(title_text='Peak Amplitude of Received Audio')
-        fig.update_xaxes(title_text='Index')
+        fig.update_xaxes(title_text='Trial')
         fig.update_yaxes(title_text='Peak Amplitude (dBfs)')
         return fig      
