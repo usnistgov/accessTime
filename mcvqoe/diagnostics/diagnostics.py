@@ -60,16 +60,10 @@ class Diagnose():
                  wav_dir = '',
                  progress_update=terminal_progress_update,
                  ):
-        # TODO: add measurement as a parameter in the init
-        # That will help you handle different cases (e.g. load tx audio from mcvqoe.intelligibility)
-        
-        # TODO: Handle intelligbility (never has tx data)
-        # TODO: Handle when tx audio has not been saved out (throw error)
         # Assign wav_dir
         self.wav_dir = wav_dir
         # Assign progress update
         self.progress_update = progress_update
-        
         self.trials = None
         
         # Create empty list for rx recordings 
@@ -88,42 +82,70 @@ class Diagnose():
         self.trials = len(all_wavs)
         if self.trials == 0:
             raise RuntimeError(f'No recorded audio detected in {self.wav_dir}')
-        # Cycle through, in order
-        # TODO: be clear about testing file formats. This gets confused if
-        # the RX numbers reset for each file like in access time
-        for n in range(1,self.trials+1):
-            self.progress_update(
-                prog_type="diagnose",
-                num_trials=self.trials,
-                current_trial=n,
-                msg='Loading Audio',
-                )
-            start = 'Rx'+str(n)+'_'
-            rx_name = [s for s in all_wavs if start in s]
-            rx_path = self.wav_dir + '/' + rx_name[0]
-            # Check how many channels we have 
-            self.fs,y_rec = mcvqoe.base.audio_read(rx_path)
-            if len(y_rec.shape) > 1:
-                # If more than one channel, just grab the first channel
-                y_rec = y_rec[:, 0]
-            self.rx_rec.append(y_rec[:]) 
-            self.rx_dat.append(rx_name[0])
-            # Find all the Tx files in the wav_dir, strip 
-            # the Tx and .wav off 
-            tx_names = 'Tx*'
-            tx_obj = fnmatch.filter(dir_files, tx_names)
-            self.tx_filename =fnmatch.filter(tx_obj, '*.wav')
-            # Create empty list for tx wavs 
-            self.tx_wavs = []
-            if tx_obj:
-                # Cycle through and get all the TX files
-                for k in range(0,len(self.tx_filename)):
-                    tx_path = self.wav_dir + '/' + self.tx_filename[k]
-                    self.fs,tx_wavfile = mcvqoe.base.audio_read(tx_path)
-                    self.tx_wavs.append(tx_wavfile)
-            # TODO be robust to scenarios where TX audio is not
-            # saved to the data folder        
-            # if there are no TX files in the dat dir, find them
+        # If an access time test, naming varies. Rx numbering resets by talker
+        if 'Access_Time' in self.wav_dir:
+            # Get unique talker lists
+            f1_list = [s for s in all_wavs if 'F1' in s]
+            f3_list = [s for s in all_wavs if 'F3' in s]
+            m3_list = [s for s in all_wavs if 'M3' in s]
+            m4_list = [s for s in all_wavs if 'M4' in s]
+            # Store the lists together
+            talkers_dat = [f1_list, f3_list, m3_list, m4_list]
+            # Iterate through each talker's set and read in separately
+            for talkers in talkers_dat:
+                #for audio_dat in talkers:
+                trials = len(talkers)
+                # Cycle through Rx files, in order, for all other measurements
+                for n in range(1,trials+1):
+                    self.progress_update(
+                        prog_type="diagnose",
+                        num_trials=trials,
+                        current_trial=n,
+                        msg='Loading Audio',
+                        )
+                    start = 'Rx'+str(n)+'_'
+                    rx_name = [s for s in talkers if start in s]
+                    rx_path = self.wav_dir + '/' + rx_name[0]
+                    # Check how many channels we have 
+                    self.fs,y_rec = mcvqoe.base.audio_read(rx_path)
+                    if len(y_rec.shape) > 1:
+                        # If more than one channel, just grab the first channel
+                        y_rec = y_rec[:, 0]
+                    self.rx_rec.append(y_rec[:]) 
+                    self.rx_dat.append(rx_name[0])
+            
+        else:     
+            # Cycle through Rx files, in order, for all other measurements
+            for n in range(1,self.trials+1):
+                self.progress_update(
+                    prog_type="diagnose",
+                    num_trials=self.trials,
+                    current_trial=n,
+                    msg='Loading Audio',
+                    )
+                start = 'Rx'+str(n)+'_'
+                rx_name = [s for s in all_wavs if start in s]
+                rx_path = self.wav_dir + '/' + rx_name[0]
+                # Check how many channels we have 
+                self.fs,y_rec = mcvqoe.base.audio_read(rx_path)
+                if len(y_rec.shape) > 1:
+                    # If more than one channel, just grab the first channel
+                    y_rec = y_rec[:, 0]
+                self.rx_rec.append(y_rec[:]) 
+                self.rx_dat.append(rx_name[0])
+        # Find all the Tx files in the wav_dir, strip the Tx and .wav off 
+        tx_names = 'Tx*'
+        tx_obj = fnmatch.filter(dir_files, tx_names)
+        self.tx_filename =fnmatch.filter(tx_obj, '*.wav')
+        # Create empty list for tx wavs 
+        self.tx_wavs = []
+        if tx_obj:
+            # Cycle through and get all the TX files
+            for k in range(0,len(self.tx_filename)):
+                tx_path = self.wav_dir + '/' + self.tx_filename[k]
+                self.fs,tx_wavfile = mcvqoe.base.audio_read(tx_path)
+                self.tx_wavs.append(tx_wavfile)
+
     def aw_calc(self):
         """
         Calculates the a-weight (dBA) of each trial.
@@ -170,7 +192,6 @@ class Diagnose():
             tx_justname = tx_justname[3:]
             tx_base.append(tx_justname)   
         if tx_base == []:
-            # TODO: If this is intelligibility try to find the audio otherwise display same message below
             self.progress_update(
                 prog_type='diagnose',
                 num_trials=0,
