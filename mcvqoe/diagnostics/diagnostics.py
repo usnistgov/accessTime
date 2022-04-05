@@ -360,7 +360,7 @@ class Diagnose():
             if aw_lin[m] < aw_low:
                 aw_low = 1
                 # Add it to the bad list
-                aw_flag.add(aw_low)   
+                aw_flag.append(aw_low)   
         
         return aw_flag
         
