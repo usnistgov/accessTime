@@ -4,6 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.express as px
 
 class evaluate():
     """
@@ -54,8 +55,6 @@ class evaluate():
     """
     def __init__(self,
                  wav_dir = None,
-                 # csv_dir = '',
-                 # test_name=None,
                  json_data=None):
         if json_data is None:
             # Ensure there is only one test passed
@@ -79,7 +78,9 @@ class evaluate():
             
         else:
             self.data, self.test_name = evaluate.load_json_data(json_data)
-
+        
+        # Set color palette
+        self.color_palette = px.colors.qualitative.Plotly
         
     def to_json(self, filename=None):
         """
@@ -152,18 +153,10 @@ class evaluate():
         None.
     
         """
-        # Plot FSF values   
-        # x_axis = list(range(1,self.trials+1))
-        # dfFSF = pd.DataFrame({"FSF Score": self.fsf_all,
-        #                       "Trial": x_axis,
-        #                       "fsf_flag": self.fsf_flag})
-        # # Separate out flagged trials for easy plotting
-        # df_flag = dfFSF[dfFSF['fsf_flag'] == 1]
         nrow, _ = self.data.shape
         
         df_flag = self.data[self.data['FSF_flag'] == 1]
         flag_indices = np.array([f'Trial: {i}' for i in df_flag.index+1])
-        # df_flag.index + 1
         
         fig = go.Figure()
         # plot all trials
@@ -177,7 +170,7 @@ class evaluate():
             name = 'FSF score',
             marker = dict(
                 size = 10,
-                color = '#0000FF',
+                color = 'black',
             symbol = self.data['FSF_flag']
                 )
             )
@@ -193,7 +186,7 @@ class evaluate():
             name = 'FSF score - flagged',
             marker = dict(
                 size = 10,
-                color ='red',
+                color = '#CC0000',
                 symbol = 'square'
                 )
             )
@@ -212,12 +205,6 @@ class evaluate():
         None.
     
         """
-        # # Plot a-weighted power for all trials    
-        # x_axis = list(range(1,self.trials+1))
-        # dfAW = pd.DataFrame({"A-Weight": self.a_weight,
-        #                      "Trial": x_axis,
-        #                      "AW_flag":self.aw_flag})
-        # Separate out flagged trials for easy plotting
         nrow, _ = self.data.shape
         df_flag = self.data[self.data['AW_flag'] == 1]
         flag_indices = np.array([f'Trial: {i}' for i in df_flag.index+1])
@@ -233,7 +220,7 @@ class evaluate():
             name = 'A-weight',
             marker = dict(
                 size = 10,
-                color = '#0000FF',
+                color = 'black',
             symbol = self.data['AW_flag']
                 )
             )
@@ -249,7 +236,7 @@ class evaluate():
             name = 'A-weight - flagged',
             marker = dict(
                 size = 10,
-                color ='red',
+                color ='#CC0000',
                 symbol = 'square'
                 )
             )
@@ -268,12 +255,6 @@ class evaluate():
         None.
     
         """
-        # Plot the peak amplitude (dbfs) for all trials   
-        # x_axis = list(range(1,self.trials+1))
-        # df_peak = pd.DataFrame({"Peak_Amplitude": self.peak_dbfs,
-        #                      "Trial": x_axis,
-        #                      "Clip_flag": self.Clip_flag})  
-        # Separate out flagged trials for easy plotting
         nrow, _ = self.data.shape
         
         df_flag = self.data[self.data['Clip_flag'] == 1]        
@@ -291,7 +272,7 @@ class evaluate():
                 name = 'Peak amplitude',
                 marker = dict(
                 size = 10,
-                color = '#0000FF',
+                color = 'black',
                 symbol = self.data['Clip_flag']
                 )
             )
@@ -307,7 +288,7 @@ class evaluate():
             name = 'Peak amplitude - flagged',
             marker = dict(
                 size = 10,
-                color ='red',
+                color ='#CC0000',
                 symbol = 'square'
                 )
             )
