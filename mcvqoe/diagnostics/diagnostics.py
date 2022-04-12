@@ -315,7 +315,7 @@ class Diagnose():
                 fsf_flag.append(fsf_flag_wav)   
             # Add a flag for low FSF scores that may be a sign of 
             # dropped audio
-            if fsf_array[m] < 0.25:
+            if fsf_array[m] < 0.4:
                 # Flag the trial due to low FSF
                 fsf_flag_wav = 1
                 # Add it to the bad list
