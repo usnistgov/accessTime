@@ -83,7 +83,7 @@ class Diagnose():
         if self.trials == 0:
             raise RuntimeError(f'No recorded audio detected in {self.wav_dir}')
         # If an access time test, naming varies. Rx numbering resets by talker
-        if 'Access_Time' in self.wav_dir:
+        if 'Access_Time' or 'Access-Time' in self.wav_dir:
             # Get unique talker lists
             f1_list = [s for s in all_wavs if 'F1' in s]
             f3_list = [s for s in all_wavs if 'F3' in s]
