@@ -4,7 +4,6 @@ import math
 import mcvqoe.base
 import os
 import re
-
 import numpy as np
 import pandas as pd
 
@@ -69,9 +68,9 @@ class Diagnose():
         # Create empty list for rx recordings 
         self.rx_rec = []
         self.rx_dat = []
-        
             
         self.outname = None
+        
     def load_audio(self):
         # Read in a directory of test trial wav files.
         # Get all the Rx wav files 
@@ -83,7 +82,7 @@ class Diagnose():
         if self.trials == 0:
             raise RuntimeError(f'No recorded audio detected in {self.wav_dir}')
         # If an access time test, naming varies. Rx numbering resets by talker
-        if 'Access_Time' or 'Access-Time' in self.wav_dir:
+        if 'Access' in self.wav_dir:
             # Get unique talker lists
             f1_list = [s for s in all_wavs if 'F1' in s]
             f3_list = [s for s in all_wavs if 'F3' in s]
@@ -94,12 +93,12 @@ class Diagnose():
             # Iterate through each talker's set and read in separately
             for talkers in talkers_dat:
                 #for audio_dat in talkers:
-                trials = len(talkers)
+                talker_trials = len(talkers)
                 # Cycle through Rx files, in order, for all other measurements
-                for n in range(1,trials+1):
+                for n in range(1,talker_trials+1):
                     self.progress_update(
                         prog_type="diagnose",
-                        num_trials=trials,
+                        num_trials=talker_trials,
                         current_trial=n,
                         msg='Loading Audio',
                         )
@@ -267,7 +266,7 @@ class Diagnose():
         peak = np.array(peak_dbfs)
         for n in range(0,self.trials):
             # If approaching clipping, flag as a bad trial
-            if peak[n] > vol_high:
+            if peak[n] >= vol_high:
                 # Flag as a clipped trial
                 clip_wav = 1
                 # Add it to the bad list
@@ -401,6 +400,7 @@ class Diagnose():
                num_trials=0,
                current_trial=0,
            )
+
         # Create dataframe of info
         df_diagnostics = pd.DataFrame({"RX_Name":self.rx_dat, 
                      "A_Weight":a_weight,
