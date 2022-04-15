@@ -301,8 +301,9 @@ class Diagnose():
         fsf_std = round(np.std(fsf_array),3)
         for m in range(0,self.trials):
             # Cycle through FSF scores, look for trials where the score
-            # stands out by being a certain distance from the mean
-            if abs(fsf_array[m]-fsf_mean) > 2*fsf_std:
+            # stands out by being a certain distance from the mean. Add a flag
+            # for low FSF scores that may be a sign of dropped audio
+            if abs(fsf_array[m]-fsf_mean) > 2*fsf_std or fsf_array[m] < 0.4:
                 # Flag the trial due to FSF score
                 fsf_flag_wav = 1
                 # Add it to the bad list
@@ -311,14 +312,7 @@ class Diagnose():
                 # Do not flag
                 fsf_flag_wav = 0
                 # Add it to the bad list
-                fsf_flag.append(fsf_flag_wav)   
-            # Add a flag for low FSF scores that may be a sign of 
-            # dropped audio
-            if fsf_array[m] < 0.4:
-                # Flag the trial due to low FSF
-                fsf_flag_wav = 1
-                # Add it to the bad list
-                fsf_flag.add(fsf_flag_wav)      
+                fsf_flag.append(fsf_flag_wav)        
         
         return fsf_flag
 
@@ -347,19 +341,15 @@ class Diagnose():
         aw_std = round(np.std(aw_lin),3)
         for m in range(0,self.trials):
             # Cycle through AW values, look for trials where the values
-            # stand out by being a certain distance from the mean
-            if abs(aw_lin[m]-aw_mean) > 2*aw_std:
+            # stand out by being a certain distance from the mean.
+            # Add a flag if the a-weight is below -60 dBA
+            if abs(aw_lin[m]-aw_mean) > 2*aw_std or aw_lin[m] < aw_low:
                 aw_flagged = 1
                 # Add it to the bad list
                 aw_flag.append(aw_flagged)
             elif abs(aw_lin[m]-aw_mean) < 2*aw_std:
                 aw_flagged = 0
-                aw_flag.append(aw_flagged)     
-            # Add a flag if the a-weight is below -60 dBA
-            if aw_lin[m] < aw_low:
-                aw_low = 1
-                # Add it to the bad list
-                aw_flag.append(aw_low)   
+                aw_flag.append(aw_flagged)        
         
         return aw_flag
         
