@@ -154,21 +154,15 @@ class Diagnose():
         A_Weight : array
             A_Weight of every trial 
         """
-        # Create empty list for a-weight values     
-        a_weight = []
           
         # Get A-weight
-        for k in range(0,self.trials): 
-            self.progress_update(
-                prog_type="diagnose",
-                num_trials=self.trials,
-                current_trial=k,
-                msg='Calculating A-weight power',
+        self.progress_update(
+                prog_type="status",
+                msg='Calculating A-weight power'
                 )
-            # Calculate the A-weighted power of each recording 
-            aw = mcvqoe.base.a_weighted_power(self.rx_rec[k], self.fs) 
-            a_weight.append(aw)
-    
+            
+        a_weight =  [mcvqoe.base.a_weighted_power(k,self.fs) for k in self.rx_rec]
+        
         return a_weight
     
     def fsf_calc(self):   
