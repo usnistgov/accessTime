@@ -12,7 +12,7 @@ from mcvqoe.base.terminal_user import terminal_progress_update
 class Diagnose():
     """
    Diagnose Class to perform diagnostic evaluation of received
-    audio files and confirm data integrity.
+    audio data wav files and confirm data integrity.
      
     Use a-weight, FSF, and clipping checks to inform
     user of potential problems in collected data. Flags
@@ -24,8 +24,9 @@ class Diagnose():
         directory of WAV files
     progress_update : function, default=mcvqoe.base.terminal_user.terminal_progress_update
         function to call to provide updates on test progress. This function
-        takes three positional arguments, prog_type, total number of trials, current
-        trial number. Depending on prog_type, different information is displayed to the user.
+        takes three positional arguments, prog_type, total number of trials, 
+        current trial number. Depending on prog_type, different information is 
+        displayed to the user.
 
     Attributes
     ----------
@@ -41,18 +42,7 @@ class Diagnose():
         sampling rate of rx recordings       
     rx_dat : list
         names of rx recordings
-    
-    Methods
-   ----------
 
-    See Also
-    --------
-
-    Examples
-    --------
-    
-    Returns
-    -------
    
     """
     def __init__(self, 
@@ -72,6 +62,11 @@ class Diagnose():
         self.outname = None
         
     def load_audio(self):
+        """
+        Loads in Rx data and the associated Tx files. Rx files are read in 
+        order into a list of arrays.
+    
+        """
         # Read in a directory of test trial wav files.
         # Get all the Rx wav files 
         dir_files = os.listdir(self.wav_dir)
@@ -151,7 +146,7 @@ class Diagnose():
     
         Returns
         -------
-        A_Weight : array
+        A_Weight : list
             A_Weight of every trial 
         """
           
@@ -201,9 +196,9 @@ class Diagnose():
                 )
             # Find RX files with the matching tx name, create groups 
             match_wavs = re.match(r'(Rx\d+_(?P<tx_base_name>[^.]+))',self.rx_dat[j])
+            
             # find the index of the TX and RX clips to match with the lists of 
             # wav data
-            
             tx_idx = tx_base.index(match_wavs.group('tx_base_name'))
             tx_wav = self.tx_wavs[tx_idx]
             rx_wav = self.rx_rec[j]
@@ -352,8 +347,9 @@ class Diagnose():
                            filename='diagnostics.csv'):
         
         """
-        Create a dataframe of all diagnostic data. A-weight,
-        FSF scores, max clip amplitude. Convert to json, csv
+        Create a dataframe of all diagnostic data. A-weighted power,
+        FSF scores, max clip amplitude, and flags. Returns calculations
+        as a csv.
         
         Parameters
         ----------
