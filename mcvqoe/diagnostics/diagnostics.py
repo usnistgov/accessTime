@@ -87,9 +87,8 @@ class Diagnose():
             talkers_dat = [f1_list, f3_list, m3_list, m4_list]
             # Iterate through each talker's set and read in separately
             for talkers in talkers_dat:
-                #for audio_dat in talkers:
                 talker_trials = len(talkers)
-                # Cycle through Rx files, in order, for all other measurements
+                # Cycle through Rx files in order
                 for n in range(1,talker_trials+1):
                     self.progress_update(
                         prog_type="diagnose",
@@ -194,10 +193,10 @@ class Diagnose():
                 current_trial=j,
                 msg='Calculating FSF',
                 )
-            # Find RX files with the matching tx name, create groups 
+            # Find RX files with the matching TX name, create groups 
             match_wavs = re.match(r'(Rx\d+_(?P<tx_base_name>[^.]+))',self.rx_dat[j])
             
-            # find the index of the TX and RX clips to match with the lists of 
+            # Find the index of the TX and RX clips to match with the lists of 
             # wav data
             tx_idx = tx_base.index(match_wavs.group('tx_base_name'))
             tx_wav = self.tx_wavs[tx_idx]
@@ -220,7 +219,7 @@ class Diagnose():
             peak amplitude of each trial, dB relative to full 
             scale 
         """
-        # Create empty list for peak volume
+        # Create empty list for peak amplitude
         peak_dbfs = []
         for n in range(0,self.trials):
             self.progress_update(
@@ -229,7 +228,7 @@ class Diagnose():
                 current_trial=n,
                 msg='Calculating Peak Amplitude',
                 )
-            # check for positive and negative clipping
+            # Check for positive and negative clipping
             peak = max(abs(self.rx_rec[n]))
             peak_db = round(20 * math.log10(peak), 2)
             peak_dbfs.append(peak_db)
@@ -263,7 +262,7 @@ class Diagnose():
             elif peak[n] < vol_high:   
                 # Flag as a non-clipped trial
                 clip_wav = 0
-                # Add it to the bad list
+                # Add it to the list
                 clip_flag.append(clip_wav)         
         
         return clip_flag   
@@ -300,7 +299,7 @@ class Diagnose():
             elif abs(fsf_array[m]-fsf_mean) < 2*fsf_std:
                 # Do not flag
                 fsf_flag_wav = 0
-                # Add it to the bad list
+                # Add it to the list
                 fsf_flag.append(fsf_flag_wav)        
         
         return fsf_flag
@@ -337,6 +336,7 @@ class Diagnose():
                 # Add it to the bad list
                 aw_flag.append(aw_flagged)
             elif abs(aw_lin[m]-aw_mean) < 2*aw_std:
+                # Do not flag
                 aw_flagged = 0
                 aw_flag.append(aw_flagged)        
         
@@ -393,19 +393,19 @@ class Diagnose():
         outname = os.path.join(self.wav_dir, filename)
         # Write csv    
         df_diagnostics.to_csv(outname, index=False)
+        
         return outname
     
     def run_diagnostics(self, filename='diagnostics.csv'):
-        # print("Measuring a-weight") 
+        # Run through diagnostics measurements 
         a_weight = self.aw_calc()   
         aw_flag = self.aw_flag(a_weight)
-        # print("Measuring FSF") 
+        
         fsf_all = self.fsf_calc()
         fsf_flag = self.fsf_flag(fsf_all)
-        # print("Measuring peak amplitude") 
+         
         peak_dbfs = self.peak_amp_calc()
         clip_flag = self.clip_flag(peak_dbfs)
-        # print("Creating json and csv") 
         
         self.outname = self.gather_diagnostics(a_weight,
                                                fsf_all,
