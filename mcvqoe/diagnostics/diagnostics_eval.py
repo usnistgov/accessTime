@@ -88,7 +88,7 @@ class evaluate():
         Returns
         -------
         final_json: json
-            json version of diagnotsic data and flag conditions
+            json version of diagnostic data and flag conditions
 
         """
         test_info = dict([(self.test_name, '')])
@@ -114,7 +114,7 @@ class evaluate():
         Parameters
         ----------
        json_data: json
-            json version of diagnotsic data and flag conditions
+            json version of diagnostic data and flag conditions
 
         Returns
         -------
@@ -122,7 +122,7 @@ class evaluate():
             Name of test data file
 
         data : pd.DataFrame
-            DataFrame version of diagnotsic data and flag conditions
+            DataFrame version of diagnostic data and flag conditions
 
         """  
         if isinstance(json_data, str):
@@ -241,7 +241,7 @@ class evaluate():
     
     def peak_dbfs_plot(self):
         """
-        Plot the peak dbfs of every trial.    
+        Plot the peak dBfs of every trial.    
         
         Returns
         -------
