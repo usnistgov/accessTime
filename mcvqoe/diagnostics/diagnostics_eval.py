@@ -39,18 +39,11 @@ class evaluate():
     aw_flag : list
         Trials that have low dBA values (and likely lost audio)
         or otherwise deviate from the patterns of the dataset     
-         
-    Methods
-    ----------
 
     See Also
     --------
+    mcvqoe.diagnostics : Measurement class for generating diagnostics data
 
-    Examples
-    --------
-    
-    Returns
-    -------
     
     """
     def __init__(self,
@@ -66,7 +59,7 @@ class evaluate():
             diag_name = 'diagnostics.csv'
             fname = os.path.basename(wav_dir)
             if fname == diag_name:
-                # I got the full path to the diagnostics csv 
+                # We have the full path to the diagnostics csv 
                 fpath = wav_dir
             else:
                 fpath = os.path.join(wav_dir, diag_name)
@@ -89,7 +82,8 @@ class evaluate():
         Parameters
         ----------
         filename : str, optional
-            If given save to json file. Otherwise returns json string. The default is None.
+            If given save to json file. Otherwise returns json string. 
+            The default is None.
 
         Returns
         -------
@@ -119,29 +113,26 @@ class evaluate():
 
         Parameters
         ----------
-        json_data : TYPE
-            DESCRIPTION.
+       json_data: json
+            json version of diagnotsic data and flag conditions
 
         Returns
         -------
-        test_names : list
-            DESCRIPTION.
-        test_paths : dict
-            DESCRIPTION.
+        test_name : string
+            Name of test data file
+
         data : pd.DataFrame
-            DESCRIPTION.
+            DataFrame version of diagnotsic data and flag conditions
 
         """  
         if isinstance(json_data, str):
             json_data = json.loads(json_data)
-        # Extract data, cps, and test_info from json_data
+        # Extract audio and diagnostics data from json_data
         data = pd.read_json(json_data['measurement'])
         test_name = set(json_data['test_info'].keys())
         
-        
-        # Return normal Access data attributes from these
+        # Return data attributes 
         return data, test_name
- 
 
             
     def fsf_plot(self):
@@ -194,6 +185,7 @@ class evaluate():
         fig.update_layout(title_text='FSF Score of Received Audio')
         fig.update_xaxes(title_text='Trial')
         fig.update_yaxes(title_text='FSF Score')
+        
         return fig      
         
     def aw_plot(self):
@@ -244,6 +236,7 @@ class evaluate():
         fig.update_layout(title_text='A-Weighted Power of Received Audio')
         fig.update_xaxes(title_text='Trial')
         fig.update_yaxes(title_text='A-Weight (dBA)')
+        
         return fig
     
     def peak_dbfs_plot(self):
@@ -296,4 +289,5 @@ class evaluate():
         fig.update_layout(title_text='Peak Amplitude of Received Audio')
         fig.update_xaxes(title_text='Trial')
         fig.update_yaxes(title_text='Peak Amplitude (dBfs)')
+        
         return fig      
