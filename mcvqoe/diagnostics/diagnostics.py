@@ -307,7 +307,7 @@ class Diagnose():
 
     def aw_flag(self,a_weight):
         """
-        Check for trials with a dBA less than -60 dBA. Check 
+        Check for trials with a dBA less than -50 dBA. Check 
         for trials with a dBA a certain distance from the 
         mean.   
     
@@ -325,13 +325,13 @@ class Diagnose():
         # audio. 
         aw_array = np.array(a_weight)
         aw_lin = 10**(aw_array/20)
-        aw_low = 10**(-60/20)
+        aw_low = 10**(-50/20)
         aw_mean = round(np.mean(aw_lin),3)
         aw_std = round(np.std(aw_lin),3)
         for m in range(0,self.trials):
             # Cycle through AW values, look for trials where the values
             # stand out by being a certain distance from the mean.
-            # Add a flag if the a-weight is below -60 dBA
+            # Add a flag if the a-weight is below -50 dBA
             if abs(aw_lin[m]-aw_mean) > 2*aw_std or aw_lin[m] < aw_low:
                 aw_flagged = 1
                 # Add it to the bad list
