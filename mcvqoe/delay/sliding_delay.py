@@ -94,7 +94,7 @@ def sliding_delay_estimates(test, ref, fs, winLength=4, winStep=2):
     N = min(len(test), len(ref))
     # number of samples needed for each window
     Nwin = round(winLength * fs)
-    # number of sampels to advance between windows
+    # number of samples to advance between windows
     Nstep = round(winStep * fs)
 
     firstSmp = 0

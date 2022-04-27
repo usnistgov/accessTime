@@ -396,7 +396,7 @@ class AudioPlayer:
         # Queue for recording input
         self._qr = queue.Queue()
 
-        # set loop var to Fals (keep looping)
+        # set loop var to False (keep looping)
         rec_done = False
 
         # Make sure the file is opened before recording anything:
@@ -530,7 +530,7 @@ class AudioPlayer:
             else:
                 raise ValueError(f"Unknown output channel : {k}")
 
-        # convert to tuple for calback usage
+        # convert to tuple for callback usage
         self._playback_silent = tuple(self._playback_silent)
 
         (rec_map, rec_names) = self._get_recording_map()

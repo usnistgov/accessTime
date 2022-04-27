@@ -14,7 +14,7 @@ def single_play(ri, ap, audio_file=None, playback=False, ptt_wait=0.68, save_nam
     Play an audio clip through a PTT system once.
 
     This function plays audio using the given RadioInterface and AudioPlayer
-    objects. The output can, optionally, be played back to the usser when
+    objects. The output can, optionally, be played back to the user when
     complete
 
     Parameters
@@ -37,7 +37,7 @@ def single_play(ri, ap, audio_file=None, playback=False, ptt_wait=0.68, save_nam
     # get fs from audio player
     fs = ap.sample_rate
 
-    # Gather audio data in numpy array and audio samplerate
+    # Gather audio data in numpy array and audio sample rate
     fs_file, audio_dat = mcvqoe.base.audio_read(audio_file)
     # Calculate resample factors
     rs_factor = Fraction(fs / fs_file)

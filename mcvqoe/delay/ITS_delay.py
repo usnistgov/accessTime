@@ -149,7 +149,7 @@ def ITS_delay_est(x_speech, y_speech, mode, fs=8000, dlyBounds=[np.NINF, np.inf]
     comp_x_speech, comp_y_speech = fxd_delay_comp(x_speech, y_speech, tau_0)
     # If compensation for tau_0 results in a speech vector that is shorter
     # than 1185 samples, then the input signal vectors x_speech and y_speech
-    # are not sufficent for delay estimation. (They may contain unrelated
+    # are not sufficient for delay estimation. (They may contain unrelated
     # signals, no signal, or may simply be too short)
     if len(comp_x_speech) < 1185:
         # Algorithm must terminate
@@ -567,7 +567,7 @@ def non_fft_xc(x, y, min_d, max_d):
     # correlation values.
     # Note that length(xcs)=max_d-min_d+1. xcs(1) is associated with min_d,
     # xcs(end) is associated with max_d.
-    # Note also that this function always uses a fixed segement of samples of y.
+    # Note also that this function always uses a fixed segment of samples of y.
     # The number of samples in this fixed segment is maximized given the
     # constraints imposed by the lengths of x and y as well as the values of
     # min_d and max_d.
@@ -575,7 +575,7 @@ def non_fft_xc(x, y, min_d, max_d):
     # the fixed segment.
     # Find number of shifts
     nshifts = max_d - min_d + 1
-    # Initialze correlation results variable
+    # Initialize correlation results variable
     xcs = np.zeros(nshifts)
     # Find two lengths
     nx = len(x)
@@ -586,7 +586,7 @@ def non_fft_xc(x, y, min_d, max_d):
         ystop = ny  # ystop is last sample of y to use
     else:
         ystop = nx + min_d
-    # Generate error if there is no useable segment of y
+    # Generate error if there is no usable segment of y
     if ystop < ystart:
         raise ValueError("Not enough input samples to calculate all delay values.")
     # Extract segment of y
@@ -745,9 +745,9 @@ def delay_refine(SDVin, x_speech, y_speech, active_wf, ran, cor_th):
                 if sstart < 0:
                     # Number of samples involved in the modifications
                     trim = -sstart
-                    # First sample of x_speech for this segement (index 0)
+                    # First sample of x_speech for this segment (index 0)
                     sstart = sstart + trim
-                    # First sample of y_speech for this segement
+                    # First sample of y_speech for this segment
                     start = start + trim
                 # Find delay compensated ending sample in x_speech
                 sstop = min(stop - delay, len(x_speech) - 1)
@@ -784,9 +784,9 @@ def delay_refine(SDVin, x_speech, y_speech, active_wf, ran, cor_th):
                 if sstart < 0:
                     # Number of samples involved in the modifications
                     trim = -sstart
-                    # First sample of x_speech for this segement
+                    # First sample of x_speech for this segment
                     sstart = sstart + trim
-                    # First sample of y_speech for this segement
+                    # First sample of y_speech for this segment
                     start = start + trim
                 # Find ending sample in x_speech, compensated for
                 # delay and search range
@@ -796,9 +796,9 @@ def delay_refine(SDVin, x_speech, y_speech, active_wf, ran, cor_th):
                 if len(x_speech) < sstop:
                     # Number of samples involved in the modifications
                     trim = sstop - len(x_speech)
-                    # Last sample of x_speech for this segement
+                    # Last sample of x_speech for this segment
                     sstop = sstop - trim
-                    # Last sample of y_speech for this segement
+                    # Last sample of y_speech for this segment
                     stop = stop - trim
                 # If there is at least 10 ms in the y_speech segment after
                 # these adjustments
@@ -864,7 +864,7 @@ def short_seg_cor(SDVin, x_speech, y_speech, len_t, len_b, len_s):
     # len_t is the length in ms of the longest tail that should be removed
     # len_b is the length in ms of the longest blip that should be removed
     # len_s is the length in ms of the longest step that should be removed
-    # SDVin and SDVout are Delay history matricies in the fs=8000 domain. There
+    # SDVin and SDVout are Delay history matrices in the fs=8000 domain. There
     # is one row per segment of constant delay
     # Column 0, Sample number of last sample of constant delay segment
     # Column 1, estimated Delay of segment
@@ -884,7 +884,7 @@ def short_seg_cor(SDVin, x_speech, y_speech, len_t, len_b, len_s):
     # Column 2, Validity of delay estimation segment (0=invalid, 1=valid)
     # Column 3, Number of samples in segment
     # Column 4, Status of segment (0=needs to be considered, 1=should be
-    # ingnored) Start with all zeros.
+    # ignored) Start with all zeros.
     SDVin = np.column_stack((SDVin, seglens, np.zeros(nsegs)))
     # Find location and type of the shortest segment with status 0 in SDVin
     ptr, seg_type = find_smallest_seg(SDVin)
@@ -1212,7 +1212,7 @@ def LSE(s, d, Df, Dv, maxsp):
     # lse_f and lse_v are the fixed and variable LSE results in dB
     #
     # If the lengths of s and d are such that delay compensation by either
-    # Df or Dv leaves insufficent signal for LSE calculations, then this
+    # Df or Dv leaves insufficient signal for LSE calculations, then this
     # function returns lse_f=lse_v=0.
     # Length of LSE window in samples
     lsewin = 128

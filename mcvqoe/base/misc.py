@@ -528,7 +528,7 @@ def get_measurement_from_file(filepath, module=True):
         Measurement type. Returns None if it could not be determined.
 
     """
-    # Intialize measurement
+    # Initialize measurement
     measurement = None
     try:
         # Read in csv

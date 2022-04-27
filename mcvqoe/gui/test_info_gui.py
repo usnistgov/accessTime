@@ -21,7 +21,7 @@ class TestInfoGui(tk.Tk):
         the file where defaults will be read/stored
     chk_audio_function : function, default=None
         The function to call when the check audio button is pressed. If this is
-        None, no check audo button is used.
+        None, no check audio button is used.
     outdir : str, default=''
         directory to write defaults_file in
     write_test_info : bool
@@ -65,7 +65,7 @@ class TestInfoGui(tk.Tk):
             the file where defaults will be read/stored
         chk_audio_function : function, default=None
             The function to call when the check audio button is pressed. If this is
-            None, no check audo button is used.
+            None, no check audio button is used.
         outdir : str, default=''
             directory to write defaults_file in
         write_test_info : bool, default=True

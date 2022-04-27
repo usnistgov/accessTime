@@ -21,7 +21,7 @@ class Measure:
 
     no_log = ()
 
-    #measurement name, overide in subclass
+    #measurement name, override in subclass
     measurement_name = "Base"
 
     required_chans = {
