@@ -38,7 +38,7 @@ def local_copy(test_names, test_type, local_path=None,
         for the given test type previously.
     network_path : str, optional
         Path where network data is copied from. If None is passed,
-        network_path is found from a config file. It must have been initialzed
+        network_path is found from a config file. It must have been initialized
         for the given test type previously.
     tx_wav : bool
         Indicate whether or not to copy transmit audio wav file associated

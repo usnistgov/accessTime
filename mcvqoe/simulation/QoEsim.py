@@ -85,7 +85,7 @@ class QoEsim:
         of the same length, with the impairments applied. A value of None skips
         applying an impairment.
     channel_impairment : function, default=None
-        Imparment to apply to the channel data. Callback function that is called
+        Impairment to apply to the channel data. Callback function that is called
         on the channel data to simulate a less than perfect communication channel.
         A value of none skips applying an impairment.
     m2e_latency : float, default=None
@@ -98,7 +98,7 @@ class QoEsim:
         method is called before play_record is called, then the time given to
         'ptt_delay' is added to access_delay to get the time when access is
         granted. Otherwise access is granted 'access_delay' seconds after the
-        clip starts.Can be set to a callable object to return a diffrent value
+        clip starts.Can be set to a callable object to return a different value
         each time. Can be set to a callable object to return a different value
         each time.
     device_delay : float, default=0
@@ -120,7 +120,7 @@ class QoEsim:
     allow_all_rec : bool, default=False
         Accept all recording channels, even if we don't know how to generate
         data for them. If an unexpected channel is found, it will be filled with
-        random data. This is usefull for basic functionality tests for two
+        random data. This is useful for basic functionality tests for two
         location.
 
     See Also
@@ -661,7 +661,7 @@ class QoEsim:
         function. Where each element represents one bit in the stream.
 
         Analog channels should pass a floating point array to the channel
-        impairment function. Where each element represents the volage vs time in
+        impairment function. Where each element represents the voltage vs time in
         the channel.
 
         Audio channels are just audio channel data. Audio channels should pass a
@@ -1046,7 +1046,7 @@ class QoEsim:
             # don't add any noise
             muted_tx_data_with_overplay_and_noise = muted_tx_data_with_overplay
         else:
-            # generate gaussian noise, of unit standard deveation
+            # generate gaussian noise, of unit standard deviation
             noise = np.random.normal(0, 1, len(muted_tx_data_with_overplay)).astype(np.float32)
 
             # measure amplitude of signal and noise

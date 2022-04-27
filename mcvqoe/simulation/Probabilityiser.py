@@ -49,7 +49,7 @@ def expected_psud(p_a, p_r, interval, message_length, method="EWC",
         N = int(message_length/interval)
 
         # TODO: Add a check that if N > threshold use steady state
-        # distriubtions rather than fancy brute forced probabilities
+        # distributions rather than fancy brute forced probabilities
 
         psud = 0
         for k in range(2**N):
@@ -98,7 +98,7 @@ def expected_psud(p_a, p_r, interval, message_length, method="EWC",
 
 class PBI:
     """
-    Probabilityiser for simulating probablistic channel drops.
+    Probabilityiser for simulating probabilistic channel drops.
 
     This class allows simple simulations of a channel that has two states:
     transmitting and not transmitting. Using the probability of returning to
@@ -111,7 +111,7 @@ class PBI:
     P_a1 : float, optional
         Probability of initializing the transmission. The default is 1.
     P_a2 : float, optional
-        Probability of returning ot a transmitting state once the transmitting
+        Probability of returning to a transmitting state once the transmitting
         state has been reached and it has returned to a non-transmitting
         state. The default is None. In this case P_a2 is set to be equal to
         P_a1.
@@ -126,7 +126,7 @@ class PBI:
     P_a1 : float, optional
         Probability of initializing the transmission. The default is 1.
     P_a2 : float, optional
-        Probability of returning ot a transmitting state once the transmitting
+        Probability of returning to a transmitting state once the transmitting
         state has been reached and it has returned to a non-transmitting
         state. The default is None. In this case P_a2 is set to be equal to
         P_a1.
@@ -149,7 +149,7 @@ class PBI:
         started.
     STATE_G1 : int
         Value 2 to represent in non-transmitting state where transmission has
-        occured at least once.
+        occurred at least once.
     STATE_H : int
         Value 3 to represent in transmitting state.
 

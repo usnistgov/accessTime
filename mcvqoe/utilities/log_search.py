@@ -94,7 +94,7 @@ class log_search:
             # create full paths
             filenames = [os.path.join(fname, n) for n in filenames]
 
-            # look for adendum files
+            # look for addendum files
             adnames = glob.glob(os.path.join(fname, "*.ad-log"))
 
             # check if we found any files
@@ -464,7 +464,7 @@ class log_search:
                         for groupName in groupNames:
                             # strip leading and trailing spaces
                             groupName = groupName.strip()
-                            # contcatenate filename and groupname
+                            # concatenate filename and groupname
                             full_group_name = "{}:{}".format(short_name, groupName)
                             self.groups.add(full_group_name)
                             self.group_files[short_name].add(full_group_name)
@@ -609,7 +609,7 @@ class log_search:
             what type of files to look for
         """
 
-        #name of test opperations
+        #name of test operations
         test_opps=('Test','Intelligibility','PSuD','Access','M2E')
 
         types = re.compile(
@@ -780,7 +780,7 @@ class log_search:
         # Identify all sessions marked Incomplete on network
         net_incSessions = [name == ":Incomplete" for name in net_names]
 
-        # Identify all sessoins that could not be identified on netowkr
+        # Identify all sessions that could not be identified on network
         net_notFound = [name == None for name in net_names]
 
         if any(net_notFound):
@@ -869,7 +869,7 @@ class log_search:
 
     def isAncestor(self, rev, repo_path, git_path=None):
         """
-        Search for testss run with an ancestor of the given rev
+        Search for tests run with an ancestor of the given rev
 
         This searches the git hash field and can be used to find tests that have
         been run with code that is more recent than `rev`. This requires the
@@ -878,7 +878,7 @@ class log_search:
         Parameters
         ----------
         rev : string
-            string that can be resolved, by git, to a commit. Posible values include
+            string that can be resolved, by git, to a commit. Possible values include
             branch names, tag names, and partial commit hashes
         repo_path : string
             this can either be a local path to the repository or a git URL. If

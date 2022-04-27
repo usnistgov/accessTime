@@ -295,7 +295,7 @@ class TestSyncer:
                 else:
                     # empty set for dest
                     dset = set()
-                # check if we are decending into directories
+                # check if we are descending into directories
                 if recur and self.thorough:
                     # yes, copy everything
                     # we will work out which files in subfolders to copy later
@@ -574,7 +574,7 @@ def main():
         dest="thorough",
         action="store_false",
         default=False,
-        help="Don't decend into datadir subfolders to check if new files exist",
+        help="Don't descend into datadir subfolders to check if new files exist",
     )
     parser.add_argument(
         "--thorough",
