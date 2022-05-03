@@ -611,7 +611,7 @@ class measure(mcvqoe.base.Measure):
                 #add to list
                 copy_files.append((old_bad_name, bad_name))
 
-            for k, (new_name, old_name) in enumerate(zip(temp_data_filenames,old_filenames)):
+            for k, (new_name, old_name) in enumerate(zip(temp_data_filenames, old_filenames)):
                 save_dat = self.load_dat(old_name)
                 if not save_dat:
                     self.progress_update(
@@ -680,7 +680,7 @@ class measure(mcvqoe.base.Measure):
                                 'status',
                                 num_files,
                                 n+1,
-                                f"Coppying old test audio : {file}"
+                                f"Copying old test audio : {file}"
                             )
                 new_name=os.path.join(wavdir, file)
                 old_name=os.path.join(old_wavdir, file)
@@ -691,7 +691,7 @@ class measure(mcvqoe.base.Measure):
                                     'status',
                                     len(copy_files),
                                     n+1,
-                                    f"Coppying old test csvs : {old_name}"
+                                    f"Copying old test csvs : {old_name}"
                                 )
                 shutil.copyfile(old_name, new_name)
 
@@ -786,10 +786,11 @@ class measure(mcvqoe.base.Measure):
             #load templates outside the loop so we take the hit here
             abcmrt.load_templates()
 
-
             #------------------------[Set Total Trials]------------------------
+            
             #total trials doesn't change, set here
             total_trials = sum(ptt_step_counts)*self.ptt_rep
+            
             #------------------------[Write CSV Header]------------------------
 
             with open(temp_data_filename, 'w', newline='') as csv_file:
@@ -827,6 +828,7 @@ class measure(mcvqoe.base.Measure):
                                     trial_count,
                                 )):
                             raise SystemExit()
+                            
                         #-----------------------[Increment Trial Count]-----------------------
 
                         trial_count = trial_count + 1
@@ -871,8 +873,8 @@ class measure(mcvqoe.base.Measure):
                             pass
                         elif (state == 'Signal Wait'):
                             # Still waiting for start signal, give error
-                            raise RuntimeError(f"Radio interface did not receive "
-                                                "the start signal. Check "
+                            raise RuntimeError("Radio interface did not receive "+
+                                                "the start signal. Check "+
                                                 "connections and output levels.")
                         elif (state == 'Delay'):
                             # Still waiting for delay time to expire, give warning
@@ -940,7 +942,7 @@ class measure(mcvqoe.base.Measure):
                         trial_dat['TimeStart'] = time_s.strftime('%H:%M:%S')
                         trial_dat['TimeEnd'] = time_e.strftime('%H:%M:%S')
 
-                        # --------------------------[Write CSV]--------------------------
+                        #--------------------------[Write CSV]--------------------------
 
                         chan_str = "(" + (";".join(rec_chans)) + ")"
 
@@ -954,7 +956,28 @@ class measure(mcvqoe.base.Measure):
                                     **trial_dat
                                 )
                             )
-
+                            
+                        #----------------[Pickle important data for restart]------------------
+                
+                        # Serialize information every 20 trials in case of shutdowns
+                        
+                        if (trial_count % 20) == 0:
+                    
+                            for var in save_vars:
+                                err_dict[var] = locals()[var]
+                    
+                            # Add all access_time object parameters to error dictionary
+                            for i in self.__dict__:
+                                skip = ['no_log', 'audio_interface', 'ri',
+                                        'inter_word_diff', 'get_post_notes',
+                                        'progress_update', 'user_check']
+                                if (i not in skip):
+                                    err_dict['self.'+i] = self.__dict__[i]
+                    
+                            # Place dictionary into pickle file
+                            with open(recovery_file, 'wb') as pkl:
+                                pickle.dump(err_dict, pkl)
+            
                         #------------------------[Check Trial Limit]--------------------------
 
                         if ((trial_count % self.pause_trials) == 0):
@@ -1032,10 +1055,10 @@ class measure(mcvqoe.base.Measure):
         
         #----------------[List of Vars to Save in Pickle File]----------------
         
-        save_vars = ( 'clip_names', 'bad_name', 'temp_data_filenames',
-                      'ptt_st_dly', 'wavdir' , 'ptt_step_counts',
-                      'time_a', 'time_b', 'time_c',
-                      )
+        save_vars = ('clip_names', 'bad_name', 'temp_data_filenames',
+                     'ptt_st_dly', 'wavdir' , 'ptt_step_counts',
+                     'time_a', 'time_b', 'time_c',
+                    )
         
         # Initialize clip end time for gap time calculation
         time_e = np.nan
@@ -1128,16 +1151,16 @@ class measure(mcvqoe.base.Measure):
         os.makedirs(rec_data_dir, exist_ok=True)
         
         #generate base file name to use for all files
-        base_filename='capture_%s_%s'%(self.info['Test Type'],dtn);
+        base_filename = 'capture_%s_%s'%(self.info['Test Type'], dtn);
         
         #generate test dir names
-        wavdir=os.path.join(wav_data_dir,base_filename) 
+        wavdir = os.path.join(wav_data_dir, base_filename) 
         
         #create test dir
         os.makedirs(wavdir, exist_ok=True)
         
         #get name of audio clip without path or extension
-        clip_names=[ os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files]
+        clip_names = [os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files]
         
         # Generate csv filenames and add path
         self.data_filenames = []
@@ -1500,9 +1523,6 @@ class measure(mcvqoe.base.Measure):
                         
                         clip_count = clip_count + 1
                         
-                        
-
-                        
                         #-----------------------------[Check Loop]----------------------------
                         
                         # flag for loop
@@ -1680,6 +1700,27 @@ class measure(mcvqoe.base.Measure):
                                     
                         #--------------------------[End Check Loop]---------------------------
                         
+                        #----------------[Pickle important data for restart]------------------
+                
+                        # Serialize information every 20 trials in case of shutdowns
+                        
+                        if (trial_count % 20) == 0:
+                            
+                            for var in save_vars:
+                                err_dict[var] = locals()[var]
+                    
+                            # Add all access_time object parameters to error dictionary
+                            for i in self.__dict__:
+                                skip = ['no_log', 'audio_interface', 'ri',
+                                        'inter_word_diff', 'get_post_notes',
+                                        'progress_update', 'user_check']
+                                if (i not in skip):
+                                    err_dict['self.'+i] = self.__dict__[i]
+                    
+                            # Place dictionary into pickle file
+                            with open(recovery_file, 'wb') as pkl:
+                                pickle.dump(err_dict, pkl)
+                                
                         #----------------------[Inform User of Restart]-----------------------
                         
                         # Check if it took more than one try
