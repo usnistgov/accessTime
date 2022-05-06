@@ -152,7 +152,7 @@ class measure(mcvqoe.base.Measure):
     param_check()
         TODO
     load_dat()
-        TODO
+        Load test specific csv data into dictionary in order to recover errant test
 
     Examples
     --------
@@ -903,7 +903,7 @@ class measure(mcvqoe.base.Measure):
                                     #we got None, skip this one
                                     continue
                                 #check for array
-                                m = re.match(r'(?P<name>.+)\[(?P<index>\d+)\]',field)
+                                m = re.match(r'(?P<name>.+)\[(?P<index>\d+)\]', field)
                                 if not m:
                                     #not in data fields, fill with NaN
                                     trial_dat[field] = np.NaN
@@ -956,27 +956,6 @@ class measure(mcvqoe.base.Measure):
                                     **trial_dat
                                 )
                             )
-                            
-                        #----------------[Pickle important data for restart]------------------
-                
-                        # Serialize information every 20 trials in case of shutdowns
-                        
-                        if (trial_count % 20) == 0:
-                    
-                            for var in save_vars:
-                                err_dict[var] = locals()[var]
-                    
-                            # Add all access_time object parameters to error dictionary
-                            for i in self.__dict__:
-                                skip = ['no_log', 'audio_interface', 'ri',
-                                        'inter_word_diff', 'get_post_notes',
-                                        'progress_update', 'user_check']
-                                if (i not in skip):
-                                    err_dict['self.'+i] = self.__dict__[i]
-                    
-                            # Place dictionary into pickle file
-                            with open(recovery_file, 'wb') as pkl:
-                                pickle.dump(err_dict, pkl)
             
                         #------------------------[Check Trial Limit]--------------------------
 
@@ -1219,6 +1198,8 @@ class measure(mcvqoe.base.Measure):
                     copy_files.append((old_name, new_name))
                     # Get number of "rows" from CSV
                     clen = len(save_dat)
+                    # Add old clip_count for naming audiofiles
+                    clip_count = clen
                     # Initialize success with zeros
                     success = np.zeros((2, (len(ptt_st_dly[k])*self.ptt_rep)))
                     # Fill in success from file
@@ -1418,7 +1399,7 @@ class measure(mcvqoe.base.Measure):
                 total_trials = sum(ptt_step_counts)*self.ptt_rep                
                 
                 # Check if file is not present (not a restart)
-                if (True):
+                if not recovery:
                     
                     #-------------------------[Write CSV Header]--------------------------
                     
@@ -1699,27 +1680,6 @@ class measure(mcvqoe.base.Measure):
                                     )
                                     
                         #--------------------------[End Check Loop]---------------------------
-                        
-                        #----------------[Pickle important data for restart]------------------
-                
-                        # Serialize information every 20 trials in case of shutdowns
-                        
-                        if (trial_count % 20) == 0:
-                            
-                            for var in save_vars:
-                                err_dict[var] = locals()[var]
-                    
-                            # Add all access_time object parameters to error dictionary
-                            for i in self.__dict__:
-                                skip = ['no_log', 'audio_interface', 'ri',
-                                        'inter_word_diff', 'get_post_notes',
-                                        'progress_update', 'user_check']
-                                if (i not in skip):
-                                    err_dict['self.'+i] = self.__dict__[i]
-                    
-                            # Place dictionary into pickle file
-                            with open(recovery_file, 'wb') as pkl:
-                                pickle.dump(err_dict, pkl)
                                 
                         #----------------------[Inform User of Restart]-----------------------
                         
@@ -2059,11 +2019,12 @@ class measure(mcvqoe.base.Measure):
         try:
             # Read csv file and occupy list, skipping header section
             with open(fname) as csv_f:
-                #burn the first 4 lines in the file
-                for n in range(4):
+                # Burn the first 3 lines in the file
+                # fieldnames for DictReader will be populated with first line after
+                for n in range(3):
                     csv_f.readline()
-                #dict reader to get data
-                reader = csv.DictReader(csv_f, fieldnames=self.data_header)
+                # dict reader to get data
+                reader = csv.DictReader(csv_f)
                 for row in reader:
                     dat_list.append(row)
 
