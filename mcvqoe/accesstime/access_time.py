@@ -17,24 +17,25 @@ import timeit
 import zipfile
 
 from collections import namedtuple
-from .version import version
 from fractions import Fraction
 from mcvqoe.base.terminal_user import terminal_progress_update, terminal_user_check
 from mcvqoe.delay.ITS_delay import active_speech_level
 from mcvqoe.math import approx_permutation_test
+from .version import version
 
 import numpy as np
 
 
 def chans_to_string(chans):
-    # channel string
+    # Channel string
     return '('+(';'.join(chans))+')'
 
 
-#generate filter for PTT signal
-#NOTE : this relies on fs being fixed!!
+# Generate filter for PTT signal
+# NOTE: this relies on fs being fixed!
 # Calculate niquest frequency
 fn = abcmrt.fs/2
+
 # Create lowpass filter for PTT signal processing
 ptt_filt = scipy.signal.firwin(400, 200/fn, pass_zero='lowpass')
 
@@ -175,9 +176,9 @@ class measure(mcvqoe.base.Measure):
 
     no_log = ('test', 'rec_file', 'data_header', 'bad_header', 'y')
 
-    #on load conversion to datetime object fails for some reason
-    #TODO : figure out how to fix this, string works for now but this should work too:
-    #row[k]=datetime.datetime.strptime(row[k],'%d-%b-%Y_%H-%M-%S')
+    # On load conversion to datetime object fails for some reason
+    # TODO: figure out how to fix this, string works for now but this should work too:
+    # Row[k]=datetime.datetime.strptime(row[k],'%d-%b-%Y_%H-%M-%S')
     data_fields={
                  'PTT_time'    : float,
                  'PTT_start'   : float,
@@ -191,7 +192,7 @@ class measure(mcvqoe.base.Measure):
                  'TimeGap'     : str,
                 }
 
-    #save filename for 2 location so the csv can be parted out later
+    # Save filename for 2 location so the csv can be parted out later
     data_2loc_fields={
                  'Filename'    : str,
                  'PTT_time'    : float,
@@ -218,14 +219,14 @@ class measure(mcvqoe.base.Measure):
                   'TimeGap'     : str,
                  }
 
-    #access time requires some extra channels
+    # Access time requires some extra channels
     required_chans = {
                     '1loc' : {
                                 "rec" : ("rx_voice","PTT_signal"),
                                 "pb" : ("tx_voice","start_signal"),
                              },
-                    # NOTE : for 2 location, recording inputs will be checked
-                    #        to see if they include a timecode channel
+                    # NOTE: for 2 location, recording inputs will be checked
+                    #       to see if they include a timecode channel
                     '2loc_tx' : {
                                 "rec" : ("PTT_signal",),
                                 "pb" : ("tx_voice","start_signal"),
@@ -290,7 +291,7 @@ class measure(mcvqoe.base.Measure):
             else:
                 raise TypeError(f"{k} is not a valid keyword argument")
 
-    def csv_header_fmt(self, fmt_in = None):
+    def csv_header_fmt(self, fmt_in=None):
         """
         generate header and format for .csv files.
 
@@ -314,8 +315,8 @@ class measure(mcvqoe.base.Measure):
         if fmt_in is None:
             fmt_in = self.data_fields
 
-        hdr=','.join(fmt_in.keys())+'\n'
-        fmt='{'+'},{'.join(fmt_in.keys())+'}\n'
+        hdr = ','.join(fmt_in.keys())+'\n'
+        fmt = '{'+'},{'.join(fmt_in.keys())+'}\n'
 
         return (hdr, fmt)
 
@@ -342,22 +343,22 @@ class measure(mcvqoe.base.Measure):
             If clip fs is not 48 kHz
         """
    
-        #if we are not using all files, check that audio files is not empty
+        # If we are not using all files, check that audio files is not empty
         if not self.audio_files:
-            #TODO : is this the right error to use here??
+            # TODO: is this the right error to use here?
             raise ValueError('Expected self.audio_files to not be empty')
 
-        #check if we are making split audio
+        # Check if we are making split audio
         if(self.split_audio_dest):
-            #make sure that splid audio directory exists
-            os.makedirs(self.split_audio_dest,exist_ok=True)
+            # Make sure that split audio directory exists
+            os.makedirs(self.split_audio_dest, exist_ok=True)
 
-        #list for input speech
-        self.y=[]
-        #list for cutpoints
-        self.cutpoints=[]
-        #list for word spacing
-        self.inter_word_diff=0.0
+        # List for input speech
+        self.y = []
+        # List for cutpoints
+        self.cutpoints = []
+        # List for word spacing
+        self.inter_word_diff = 0.0
         
         # If noise file was given, laod and resample to match audio files
         if (self.bgnoise_file):
@@ -367,47 +368,47 @@ class measure(mcvqoe.base.Measure):
             nf = scipy.signal.resample_poly(nf, rs.numerator, rs.denominator)
         
         for f in self.audio_files:
-            #make full path from relative paths
+            # Make full path from relative paths
             f_full=os.path.join(self.audio_path,f)
-            # load audio
+            # Load audio
             fs_file, audio_dat = mcvqoe.base.audio_read(f_full)
-            #check fs
+            # Check fs
             if(fs_file != abcmrt.fs):
                 raise RuntimeError(f'Expected fs to be {abcmrt.fs} but got {fs_file} for {f}')
 
-            #check if we have an audio interface (running actual test)
+            # Check if we have an audio interface (running actual test)
             if not self.audio_interface:
-                #create a named tuple to hold sample rate
-                FakeAi = namedtuple('FakeAi','sample_rate')
-                #create a fake one
-                self.audio_interface=FakeAi(sample_rate = fs_file)
+                # Create a named tuple to hold sample rate
+                FakeAi = namedtuple('FakeAi', 'sample_rate')
+                # Create a fake one
+                self.audio_interface=FakeAi(sample_rate=fs_file)
 
-            #add noise if given
+            # Add noise if given
             if self.bgnoise_file:
 
-                # measure amplitude of signal and noise
+                # Measure amplitude of signal and noise
                 sig_level = active_speech_level(audio_dat, abcmrt.fs)
                 noise_level = active_speech_level(nf, abcmrt.fs)
 
-                # calculate noise gain required to get desired SNR
+                # Calculate noise gain required to get desired SNR
                 noise_gain = sig_level - (self.bgnoise_snr + noise_level)
 
-                # set noise to the correct level
+                # Set noise to the correct level
                 noise_scaled = nf * (10 ** (noise_gain / 20))
 
-                # add noise (repeated to audio file size)
+                # Add noise (repeated to audio file size)
                 audio_dat = audio_dat + np.resize(noise_scaled, audio_dat.size)
 
             # Convert to float sound array and add to list
             self.y.append( audio_dat )
-            #strip extension from file
-            fne,_=os.path.splitext(f_full)
-            #add .csv extension
-            fcsv=fne+'.csv'
-            #load cutpoints
-            cp=mcvqoe.base.load_cp(fcsv)
+            #Strip extension from file
+            fne, _ = os.path.splitext(f_full)
+            # Add .csv extension
+            fcsv = fne+'.csv'
+            # Load cutpoints
+            cp = mcvqoe.base.load_cp(fcsv)
             
-            #check cutpoints
+            # Check cutpoints
             words = len(cp)
             if (words != 4):
                 raise ValueError(f"Loading {fcsv}: 4 'words' expected but, {words} found")
@@ -424,14 +425,14 @@ class measure(mcvqoe.base.Measure):
                 self.inter_word_diff = inter_delay
             else:
                 if (self.inter_word_diff != inter_delay):
-                    #give warning
+                    # Give warning
                     self.progress_update(
                                 'warning',
                                 0,0,
                                 msg='It is recommended that all inter word times are the same',
                             )
             
-            #add cutpoints to array
+            # Add cutpoints to array
             self.cutpoints.append(cp)
 
     def write_data_header(self, file, clip):
@@ -440,7 +441,7 @@ class measure(mcvqoe.base.Measure):
         file.write('----------------\n')
         file.write(self.data_header)
 
-    def set_time_expand(self,t_ex):
+    def set_time_expand(self, t_ex):
         """
         convert time expand from seconds to samples and ensure a 2 element vector.
         
@@ -454,27 +455,31 @@ class measure(mcvqoe.base.Measure):
         Returns
         -------
         """
-        self._time_expand_samples=np.array(t_ex)
+        self._time_expand_samples = np.array(t_ex)
         
-        if(len(self._time_expand_samples)==1):
-            #make symmetric interval
-            self._time_expand_samples=np.array([self._time_expand_samples,]*2)
+        if(len(self._time_expand_samples) == 1):
+            # Make symmetric interval
+            self._time_expand_samples = np.array([self._time_expand_samples,]*2)
 
-        #convert to samples
-        self._time_expand_samples=np.ceil(
+        # Convert to samples
+        self._time_expand_samples = np.ceil(
                 self._time_expand_samples*abcmrt.fs
                 ).astype(int)
 
     def log_extra(self):
-        #add abcmrt version
-        self.info['abcmrt version']=abcmrt.version
+        # Add abcmrt version
+        self.info['abcmrt version'] = abcmrt.version
 
     def test_setup(self):
+        
         #-----------------------[Check audio sample rate]-----------------------
+        
         if self.audio_interface is not None and \
             self.audio_interface.sample_rate != abcmrt.fs:
             raise ValueError(f'audio_interface sample rate is {self.audio_interface.sample_rate} Hz but only {abcmrt.fs} Hz is supported')
+        
         #---------------------------[Set time expand]---------------------------
+        
         self.set_time_expand(self.time_expand)
 
 
@@ -502,11 +507,16 @@ class measure(mcvqoe.base.Measure):
 
 
         # ------------------------[Test specific setup]------------------------
+        
         self.test_setup()
-        #warn that this is untested
+        
+        # Warn that this is untested
         self.progress_update('warning',0,0, msg='2 location access delay is '                               'untested! use at your own risk!')
+        
         # ------------------[Check for correct audio channels]------------------
+        
         self.check_channels()
+        
         #---------------------[Generate csv format strings]---------------------
 
         self.data_header, dat_format = self.csv_header_fmt(self.data_2loc_fields)
@@ -514,26 +524,28 @@ class measure(mcvqoe.base.Measure):
         #------------------[Load In Old Data File If Given]-------------------
 
         if recovery:
-            #warn that this is untested
+            
+            # Warn that this is untested
             self.progress_update('warning',0,0, msg='2 location recovery is '                               'untested! use at your own risk!')
 
             trial_count = 0
 
-            #compare versions
+            # Compare versions
             if('version' not in self.rec_file):
-                #no version, so it must be old, give warning
+                # No version, so it must be old, give warning
                 self.progress_update('warning',0,0,
                                         msg='recovery file missing version')
+                
             elif version != self.rec_file['version']:
-                #warn on version mismatch, recovery could have issues
+                # Warn on version mismatch, recovery could have issues
                 self.progress_update('warning',0,0,
                                         msg='recovery file version mismatch!')
 
             # Restore saved class properties
             for k in self.rec_file:
                 if k.startswith('self.') and not k == 'self.rec_file':
-                    varname=k[len('self.'):]
-                    self.__dict__[varname]=self.rec_file[k]
+                    varname = k[len('self.'):]
+                    self.__dict__[varname] = self.rec_file[k]
 
             # Copy recovery variables to current test
             ptt_st_dly = self.rec_file['ptt_st_dly']
@@ -556,37 +568,37 @@ class measure(mcvqoe.base.Measure):
 
         #--------------------------[Fill log entries]--------------------------
 
-        # set test name, needs to match log_search.datafilenames
+        # Set test name, needs to match log_search.datafilenames
         self.info["test"] = "Tx Two Loc Test"
-        #add any extra entries
+        # Add any extra entries
         self.log_extra()
-        #fill in standard stuff
+        # Fill in standard stuff
         self.info.update(mcvqoe.base.write_log.fill_log(self))
 
         #-----------------[Initialize Folders and Filenames]------------------
 
-        #generate data dir names
+        # Generate data dir names
         data_dir     = os.path.join(self.outdir,'data')
-        tx_dat_fold = os.path.join(data_dir, "2loc_tx-data")
+        tx_dat_fold  = os.path.join(data_dir, "2loc_tx-data")
         rec_data_dir = os.path.join(data_dir, 'recovery')
 
 
-        # generate base file name to use for all files
+        # Generate base file name to use for all files
         base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
 
         wavdir = os.path.join(tx_dat_fold, "Tx_" + base_filename)
 
-        #create data directories
+        # Create data directories
         os.makedirs(wavdir, exist_ok=True)
         os.makedirs(rec_data_dir, exist_ok=True)
 
         # Put .csv files in wav dir
         csv_data_dir = wavdir
 
-        # generate csv name
+        # Generate csv name
         self.data_filename = os.path.join(csv_data_dir, f"{base_filename}.csv")
 
-        # generate temp csv name
+        # Generate temp csv name
         temp_data_filename = os.path.join(csv_data_dir, f"{base_filename}_TEMP.csv")
 
         #-----------------------[Do more recovery things]-----------------------
@@ -594,33 +606,33 @@ class measure(mcvqoe.base.Measure):
         if recovery:
             # TODO: Recovery things seem to be riddled with bugs, this needs serious attention
             # Save old names to copy to new names
-            old_filenames = self.rec_file['temp_data_filenames']
+            old_filename = self.rec_file['temp_data_filename']
             # Save old .wav folder
             old_wavdir = self.rec_file['wavdir']
             # Save old bad file name
             old_bad_name = self.rec_file['bad_name']
-            #count the number of files loaded
+            # Count the number of files loaded
             load_count = 0
             # List of tuples of filenames to copy
             copy_files = []
             # BUG: A lot of these variables seem to have gotten moved out of order from where they are needed:
             # bad_name, temp_data_filenames, name
             
-            #check if bad file exists
+            # Check if bad file exists
             if os.path.exists(old_bad_name):
-                #add to list
+                # Add to list
                 copy_files.append((old_bad_name, bad_name))
 
-            for k, (new_name, old_name) in enumerate(zip(temp_data_filenames, old_filenames)):
+            for k, (new_name, old_name) in enumerate(zip(temp_data_filenames, old_filename)):
                 save_dat = self.load_dat(old_name)
                 if not save_dat:
                     self.progress_update(
                                 'status',
                                 len(temp_data_filenames),
                                 k,
-                                f"No data file found for {name}"
+                                f"No data file found for {old_name}"
                             )
-                    #if file exists, we have a problem, throw an error
+                    # If file exists, we have a problem, throw an error
                     if os.path.exists(old_name):
                         raise RuntimeError(f'Problem loading data in \'{old_name}\'')
                 else:
@@ -630,7 +642,7 @@ class measure(mcvqoe.base.Measure):
                                 k,
                                 f"initializing with data from {old_name}"
                             )
-                    #file found, increment count
+                    # File found, increment count
                     load_count += 1
                     copy_files.append((old_name, new_name))
                     # Get number of "rows" from CSV
@@ -669,7 +681,7 @@ class measure(mcvqoe.base.Measure):
                     else:
                         kk_start = ((clen-1) % self.ptt_rep)
 
-            #check that we loaded some data
+            # Check that we loaded some data
             if load_count == 0:
                 raise RuntimeError('Could not find files to load')
 
@@ -682,8 +694,8 @@ class measure(mcvqoe.base.Measure):
                                 n+1,
                                 f"Copying old test audio : {file}"
                             )
-                new_name=os.path.join(wavdir, file)
-                old_name=os.path.join(old_wavdir, file)
+                new_name = os.path.join(wavdir, file)
+                old_name = os.path.join(old_wavdir, file)
                 shutil.copyfile(old_name, new_name)
 
             for n, (old_name, new_name) in enumerate(copy_files):
@@ -698,17 +710,17 @@ class measure(mcvqoe.base.Measure):
 
         #---------[Write Transmit Audio File(s) and cutpoint File(s)]----------
 
-        # get name with out path or ext
+        # Get name with out path or ext
         clip_names = [os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files]
 
-        #write out Tx clips and cutpoints to files
-        #cutpoints are always written, they are needed for eval
-        for dat,name,cp in zip(self.y,clip_names,self.cutpoints):
-            out_name=os.path.join(wavdir,f'Tx_{name}')
-            #check if saving audio, cutpoints are needed for processing
+        # Write out Tx clips and cutpoints to files
+        # Cutpoints are always written, they are needed for eval
+        for dat, name, cp in zip(self.y, clip_names, self.cutpoints):
+            out_name = os.path.join(wavdir, f'Tx_{name}')
+            # Check if saving audio, cutpoints are needed for processing
             if(self.save_tx_audio and self.save_audio):
                 mcvqoe.base.audio_write(out_name+'.wav', int(self.audio_interface.sample_rate), dat)
-            mcvqoe.base.write_cp(out_name+'.csv',cp)
+            mcvqoe.base.write_cp(out_name+'.csv', cp)
 
         #-----------------------[Generate PTT Delays]-------------------------
 
@@ -746,7 +758,7 @@ class measure(mcvqoe.base.Measure):
         #----------------[Pickle important data for restart]------------------
 
         # Initialize error file
-        recovery_file = os.path.join(rec_data_dir,base_filename+'.pickle')
+        recovery_file = os.path.join(rec_data_dir, base_filename+'.pickle')
 
         # Error dictionary, add version
         err_dict = {'version' : version}
@@ -783,12 +795,12 @@ class measure(mcvqoe.base.Measure):
 
             #----------------------------[Clip Loop]------------------------------
 
-            #load templates outside the loop so we take the hit here
+            # Load templates outside the loop so we take the hit here
             abcmrt.load_templates()
 
             #------------------------[Set Total Trials]------------------------
             
-            #total trials doesn't change, set here
+            # Total trials doesn't change, set here
             total_trials = sum(ptt_step_counts)*self.ptt_rep
             
             #------------------------[Write CSV Header]------------------------
@@ -864,7 +876,7 @@ class measure(mcvqoe.base.Measure):
                         # Get the wait state from radio interface
                         state = self.ri.waitState()
 
-                        # unpush the push to talk button
+                        # Unpush the push to talk button
                         self.ri.ptt(False)
 
                         # Check wait state to see if PTT was triggered properly
@@ -895,17 +907,17 @@ class measure(mcvqoe.base.Measure):
 
                         #-------------------------[Data Processing]---------------------------
 
-                        #generate dummy values for format
+                        # Generate dummy values for format
                         trial_dat = {}
                         for _, field, _, _ in string.Formatter().parse(dat_format):
                             if field not in self.data_fields:
                                 if field is None:
-                                    #we got None, skip this one
+                                    # We got None, skip this one
                                     continue
-                                #check for array
+                                # Check for array
                                 m = re.match(r'(?P<name>.+)\[(?P<index>\d+)\]', field)
                                 if not m:
-                                    #not in data fields, fill with NaN
+                                    # Not in data fields, fill with NaN
                                     trial_dat[field] = np.NaN
                                 else:
                                     field_name = m.group("name")
@@ -914,13 +926,13 @@ class measure(mcvqoe.base.Measure):
                                         len(trial_dat[field_name]) < index + 1:
                                         trial_dat[field_name] = (np.NaN,) * (index +1)
                             elif self.data_fields[field] is float:
-                                #float, fill with NaN
+                                # Float, fill with NaN
                                 trial_dat[field] = np.NaN
                             elif self.data_fields[field] is int:
-                                #int, fill with zero
+                                # Int, fill with zero
                                 trial_dat[field] = 0
                             else:
-                                #something else, fill with None
+                                # Something else, fill with None
                                 trial_dat[field] = None
 
                         trial_dat['ptt_st_dly'] = ptt_st_dly[clip][k]
@@ -946,7 +958,7 @@ class measure(mcvqoe.base.Measure):
 
                         chan_str = "(" + (";".join(rec_chans)) + ")"
 
-                        #fill in known values
+                        # Fill in known values
                         trial_dat['Filename'] = clip_names[clip]
                         trial_dat['channels'] = chan_str
 
@@ -968,7 +980,7 @@ class measure(mcvqoe.base.Measure):
                             # Turn on LED when waiting for user input
                             self.ri.led(2, True)
 
-                            # wait for user
+                            # Wait for user
                             user_exit = self.user_check(
                                     'normal-stop',
                                     'check batteries.',
@@ -1011,11 +1023,11 @@ class measure(mcvqoe.base.Measure):
 
         finally:
             if (self.get_post_notes):
-                #get notes
+                # Get notes
                 info = self.get_post_notes()
             else:
                 info = {}
-            #finish log entry
+            # Finish log entry
             mcvqoe.base.post(outdir=self.outdir, info=info)
 
         return (self.data_filename,)
@@ -1053,9 +1065,13 @@ class measure(mcvqoe.base.Measure):
         time_c = None
 
         # ------------------------[Test specific setup]------------------------
+        
         self.test_setup()
+        
         # ------------------[Check for correct audio channels]------------------
+        
         self.check_channels()
+        
         #---------------------[Generate csv format strings]---------------------
 
         self.data_header, dat_format = self.csv_header_fmt(self.data_fields)
@@ -1067,13 +1083,13 @@ class measure(mcvqoe.base.Measure):
 
             trial_count = 0
 
-            #compare versions
+            # Compare versions
             if('version' not in self.rec_file):
-                #no version, so it must be old, give warning
+                # No version, so it must be old, give warning
                 self.progress_update('warning',0,0,
                                         msg='recovery file missing version')
             elif version != self.rec_file['version']:
-                #warn on version mismatch, recovery could have issues
+                # Warn on version mismatch, recovery could have issues
                 self.progress_update('warning',0,0,
                                         msg='recovery file version mismatch!')
 
@@ -1108,37 +1124,37 @@ class measure(mcvqoe.base.Measure):
         
         #--------------------------[Fill log entries]--------------------------
         
-        #set test name
+        # Set test name
         self.info['test'] = self.measurement_name
-        #add any extra entries
+        # Add any extra entries
         self.log_extra()
-        #fill in standard stuff
+        # Fill in standard stuff
         self.info.update(mcvqoe.base.write_log.fill_log(self))
 
         #-----------------[Initialize Folders and Filenames]------------------
 
-        #generate data dir names
-        data_dir     = os.path.join(self.outdir,'data')
-        wav_data_dir = os.path.join(data_dir,'wav')
-        csv_data_dir = os.path.join(data_dir,'csv')
+        # Generate data dir names
+        data_dir     = os.path.join(self.outdir, 'data')
+        wav_data_dir = os.path.join(data_dir, 'wav')
+        csv_data_dir = os.path.join(data_dir, 'csv')
         rec_data_dir = os.path.join(data_dir, 'recovery')
         
         
-        #create data directories 
+        # Create data directories 
         os.makedirs(csv_data_dir, exist_ok=True)
         os.makedirs(wav_data_dir, exist_ok=True)
         os.makedirs(rec_data_dir, exist_ok=True)
         
-        #generate base file name to use for all files
+        # Generate base file name to use for all files
         base_filename = 'capture_%s_%s'%(self.info['Test Type'], dtn);
         
-        #generate test dir names
+        # Generate test dir names
         wavdir = os.path.join(wav_data_dir, base_filename) 
         
-        #create test dir
+        # Create test dir
         os.makedirs(wavdir, exist_ok=True)
         
-        #get name of audio clip without path or extension
+        # Get name of audio clip without path or extension
         clip_names = [os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files]
         
         # Generate csv filenames and add path
@@ -1165,25 +1181,25 @@ class measure(mcvqoe.base.Measure):
             old_wavdir = self.rec_file['wavdir']
             # Save old bad file name
             old_bad_name = self.rec_file['bad_name']
-            #count the number of files loaded
+            # Count the number of files loaded
             load_count = 0
             # List of tuples of filenames to copy
             copy_files = []
-            #check if bad file exists
+            # Check if bad file exists
             if os.path.exists(old_bad_name):
-                #add to list
+                # Add to list
                 copy_files.append((old_bad_name, bad_name))
 
-            for k, (new_name, old_name) in enumerate(zip(temp_data_filenames,old_filenames)):
+            for k, (new_name, old_name) in enumerate(zip(temp_data_filenames, old_filenames)):
                 save_dat = self.load_dat(old_name)
                 if not save_dat:
                     self.progress_update(
                                 'status',
                                 len(temp_data_filenames),
                                 k,
-                                f"No data file found for {name}"
+                                f"No data file found for {old_name}"
                             )
-                    #if file exists, we have a problem, throw an error
+                    # If file exists, we have a problem, throw an error
                     if os.path.exists(old_name):
                         raise RuntimeError(f'Problem loading data in \'{old_name}\'')
                 else:
@@ -1193,7 +1209,7 @@ class measure(mcvqoe.base.Measure):
                                 k,
                                 f"initializing with data from {old_name}"
                             )
-                    #file found, increment count
+                    # File found, increment count
                     load_count += 1
                     copy_files.append((old_name, new_name))
                     # Get number of "rows" from CSV
@@ -1233,7 +1249,7 @@ class measure(mcvqoe.base.Measure):
                     else:
                         kk_start = ((clen-1) % self.ptt_rep)
 
-            #check that we loaded some data
+            # Check that we loaded some data
             if load_count == 0:
                 raise RuntimeError('Could not find files to load')
 
@@ -1247,8 +1263,8 @@ class measure(mcvqoe.base.Measure):
                                 n+1,
                                 f"Coppying old test audio : {file}"
                             )
-                new_name=os.path.join(wavdir, file)
-                old_name=os.path.join(old_wavdir, file)
+                new_name = os.path.join(wavdir, file)
+                old_name = os.path.join(old_wavdir, file)
                 shutil.copyfile(old_name, new_name)
 
             for n, (old_name, new_name) in enumerate(copy_files):
@@ -1263,14 +1279,14 @@ class measure(mcvqoe.base.Measure):
 
         #---------[Write Transmit Audio File(s) and cutpoint File(s)]----------
 
-        #write out Tx clips and cutpoints to files
-        #cutpoints are always written, they are needed for eval
-        for dat,name,cp in zip(self.y,clip_names,self.cutpoints):
-            out_name=os.path.join(wavdir,f'Tx_{name}')
-            #check if saving audio, cutpoints are needed for processing
+        # Write out Tx clips and cutpoints to files
+        # Cutpoints are always written, they are needed for eval
+        for dat, name, cp in zip(self.y, clip_names, self.cutpoints):
+            out_name = os.path.join(wavdir, f'Tx_{name}')
+            # Check if saving audio, cutpoints are needed for processing
             if(self.save_tx_audio and self.save_audio):
                 mcvqoe.base.audio_write(out_name+'.wav', int(self.audio_interface.sample_rate), dat)
-            mcvqoe.base.write_cp(out_name+'.csv',cp)
+            mcvqoe.base.write_cp(out_name+'.csv', cp)
 
         #-----------------------[Generate PTT Delays]-------------------------
         
@@ -1383,7 +1399,7 @@ class measure(mcvqoe.base.Measure):
     
             #----------------------------[Clip Loop]------------------------------
             
-            #load templates outside the loop so we take the hit here
+            # Load templates outside the loop so we take the hit here
             abcmrt.load_templates()
             
             for clip in range(clip_start, len(self.y)):
@@ -1406,7 +1422,7 @@ class measure(mcvqoe.base.Measure):
                     with open(temp_data_filenames[clip], 'w', newline='') as csv_file:
                         self.write_data_header(csv_file, clip)
 
-                    #Update with name and location of datafile
+                    # Update with name and location of datafile
                     if (not self.progress_update(
                                 'csv-update',
                                 total_trials,
@@ -1432,6 +1448,7 @@ class measure(mcvqoe.base.Measure):
                 for k in range(k_start, len(ptt_st_dly[clip])):
                     
                     #-------------[Determine current ptt start delay]-----------
+                    
                     if self.bisect_midpoint and np.isnan(ptt_st_dly[clip][k]):
                         if k == 3:
                             # Set us up for bisection
@@ -1506,7 +1523,7 @@ class measure(mcvqoe.base.Measure):
                         
                         #-----------------------------[Check Loop]----------------------------
                         
-                        # flag for loop
+                        # Flag for loop
                         low_p2_aw=True
                         
                         # Number of retries for this clip
@@ -1613,7 +1630,7 @@ class measure(mcvqoe.base.Measure):
                                                         warn_func = warn_user,
                                                     )
                             
-                            #TODO : intelligibility for autostop
+                            # TODO: intelligibility for autostop
                             success[0, clip_count-1] = data['P1_Int']
                             success[1, clip_count-1] = data['P2_Int']
 
@@ -1652,7 +1669,7 @@ class measure(mcvqoe.base.Measure):
                                 # Save bad audiofile
                                 wav_name = f"Bad{clip_count}_r{retries}_{clip_names[clip]}.wav"
                                 wav_name = os.path.join(wavdir, wav_name)
-                                #rename file to save it and record again
+                                # Rename file to save it and record again
                                 os.rename(audioname, wav_name)
                                 
                                 self.progress_update(
@@ -1667,7 +1684,7 @@ class measure(mcvqoe.base.Measure):
                                     with open(bad_name, 'w', newline='') as csv_file:
                                         csv_file.write(self.bad_header)
 
-                                # append with bad data
+                                # Append with bad data
                                 with open(bad_name, 'a') as csv_file:
                                     csv_file.write(
                                         bad_format.format(
@@ -1763,7 +1780,7 @@ class measure(mcvqoe.base.Measure):
                     # Only stop if ptt delay is before the first word
                     if (self.auto_stop and (self.cutpoints[clip][1]['End']/self.audio_interface.sample_rate)>ptt_st_dly[clip][k]):
                         if (self.stop_rep<=k and all(stop_flag[(k-self.stop_rep):k])):
-                            #stopped early, update step counts
+                            # Stopped early, update step counts
                             ptt_step_counts[clip] = k
                             # If stopping condition met, break from loop
                             break
@@ -1778,8 +1795,8 @@ class measure(mcvqoe.base.Measure):
             #--------------------[Change Name of Data Files]----------------------
             
             for k in range(len(temp_data_filenames)):
-                #give user update on csv rename
-                #return value not checked, test is finished so no abort possible
+                # Give user update on csv rename
+                # Return value not checked, test is finished so no abort possible
                 self.progress_update(
                                 'csv-rename',
                                 len(temp_data_filenames),
@@ -1799,11 +1816,11 @@ class measure(mcvqoe.base.Measure):
 
         finally:
             if (self.get_post_notes):
-                #get notes
+                # Get notes
                 info = self.get_post_notes()
             else:
                 info = {}
-            #finish log entry
+            # Finish log entry
             mcvqoe.base.post(outdir=self.outdir, info=info)
 
         return self.data_filenames
@@ -1811,16 +1828,16 @@ class measure(mcvqoe.base.Measure):
     def get_dly_idx(self, clip_num):
 
 
-        #get start of the second silence
+        # Get start of the second silence
         s2_start = self.cutpoints[clip_num][2]['Start']
 
-        #get end of the second silence
+        # Get end of the second silence
         s2_end = self.cutpoints[clip_num][2]['End']
 
-        #get length of the second silence
+        # Get length of the second silence
         s2_len = (s2_end - s2_start)
 
-        #calculate start index for calculating delay
+        # Calculate start index for calculating delay
         return int(s2_start + 0.75*s2_len)
 
     def process_audio(self, clip_index, fname, rec_chans, dly_st_idx, warn_func = lambda s: None):
@@ -1830,20 +1847,20 @@ class measure(mcvqoe.base.Measure):
         # Get latest run Rx audio
         dat_fs, rec_dat = mcvqoe.base.audio_read(fname)
         
-        #get index of rx_voice channel
+        # Get index of rx_voice channel
         voice_idx = rec_chans.index('rx_voice')
-        #get voice channel
-        voice_dat=rec_dat[:,voice_idx]
+        # Get voice channel
+        voice_dat = rec_dat[:, voice_idx]
         
-        #get index of PTT_signal
+        # Get index of PTT_signal
         psig_idx = rec_chans.index('PTT_signal')
-        #get PTT signal data
-        psig_dat=rec_dat[:,psig_idx]
+        # Get PTT signal data
+        psig_dat = rec_dat[:, psig_idx]
         
         #----------------------------[Calculate M2E]----------------------------
         
         # Calculate delay. Only use data after dly_st_idx
-        (_,dly) = mcvqoe.delay.ITS_delay_est(
+        (_, dly) = mcvqoe.delay.ITS_delay_est(
             self.y[clip_index][dly_st_idx:], 
             voice_dat[dly_st_idx:],
             mode='f',
@@ -1851,16 +1868,16 @@ class measure(mcvqoe.base.Measure):
             fs=self.audio_interface.sample_rate
         )
         
-        #convert to seconds
+        # Convert to seconds
         estimated_m2e_latency = dly/self.audio_interface.sample_rate
         
         #---------------------[Compute intelligibility]---------------------
         
-        #strip filename for basename in case of split clips
+        # Strip filename for basename in case of split clips
         if(isinstance(self.split_audio_dest, str)):
-            (bname,_)=os.path.splitext(os.path.basename(fname))
+            (bname, _) = os.path.splitext(os.path.basename(fname))
         else:
-            bname=None
+            bname = None
         
         data=self.compute_intelligibility(
                                           voice_dat,
@@ -1871,11 +1888,11 @@ class measure(mcvqoe.base.Measure):
         
         #--------------------------[Compute ptt_time]--------------------------
 
-        data['PTT_start'] = self.process_ptt(psig_dat, warn_func = warn_func)
+        data['PTT_start'] = self.process_ptt(psig_dat, warn_func=warn_func)
 
         # Get ptt time. Subtract nominal play/record delay
         # (can be seen in PTT Gate data)
-        data['PTT_time']= data['PTT_start'] - self.dev_dly
+        data['PTT_time'] = data['PTT_start'] - self.dev_dly
 
         #----------------------------[Add M2E data]----------------------------
 
@@ -1887,40 +1904,40 @@ class measure(mcvqoe.base.Measure):
         
         return data
         
-    def compute_intelligibility(self,audio,cutpoints,cp_shift,clip_base=None):
+    def compute_intelligibility(self, audio, cutpoints, cp_shift, clip_base=None):
         
-        #array of audio data for each word
-        word_audio=[]
-        #array of word numbers
-        word_num=[]
-        #maximum index in audio array
-        max_idx=len(audio)-1
+        # Array of audio data for each word
+        word_audio = []
+        # Array of word numbers
+        word_num = []
+        # Maximum index in audio array
+        max_idx = len(audio)-1
         
-        for cp_num,cpw in enumerate(cutpoints):
+        for cp_num, cpw in enumerate(cutpoints):
             if(not np.isnan(cpw['Clip'])):
-                #calculate start and end points
-                start=np.clip(cp_shift+cpw['Start']-self._time_expand_samples[0],0,max_idx)
-                end  =np.clip(cp_shift+cpw['End']  +self._time_expand_samples[1],0,max_idx)
-                #add word audio to array
+                # Calculate start and end points
+                start = np.clip(cp_shift+cpw['Start'] - self._time_expand_samples[0], 0, max_idx)
+                end = np.clip(cp_shift+cpw['End']  + self._time_expand_samples[1], 0, max_idx)
+                # Add word audio to array
                 word_audio.append(audio[start:end])
-                #add word num to array
+                # Add word num to array
                 word_num.append(cpw['Clip'])                
                 
                 if(clip_base and isinstance(self.split_audio_dest, str)):
-                    outname=os.path.join(self.split_audio_dest,f'{clip_base}_cp{cp_num}_w{cpw["Clip"]}.wav')
-                    #write out audio
+                    outname = os.path.join(self.split_audio_dest, f'{clip_base}_cp{cp_num}_w{cpw["Clip"]}.wav')
+                    # Write out audio
                     mcvqoe.base.audio_write(outname, int(abcmrt.fs), audio[start:end])
                 
         _, success = abcmrt.process(word_audio, word_num)
 
-        #put data into return array
-        data={
-              'P1_Int' : success[0],
-              'P2_Int' : success[1],
-             }
+        # Put data into return array
+        data = {
+                'P1_Int' : success[0],
+                'P2_Int' : success[1],
+               }
     
-        #compute A-weight power of word two here, because we have the cut audio
-        data['p2_A_weight'] = mcvqoe.base.a_weighted_power(word_audio[1],self.audio_interface.sample_rate)
+        # Compute A-weight power of word two here, because we have the cut audio
+        data['p2_A_weight'] = mcvqoe.base.a_weighted_power(word_audio[1], self.audio_interface.sample_rate)
         
         return data
         
@@ -1940,7 +1957,7 @@ class measure(mcvqoe.base.Measure):
             pushed at.
         '''
 
-        #no warning, empty string
+        # No warning, empty string
         warn_text = ''
 
         # Extract push to talk signal (getting envelope)
@@ -1970,11 +1987,11 @@ class measure(mcvqoe.base.Measure):
             
         except IndexError:
             st = np.nan
-            #overwrite warning text (was probably set earlier)
+            # Overwrite warning text (was probably set earlier)
             warn_text = 'Unable to detect PTT start. Check levels'
 
         if warn_text:
-            #warn user of issues
+            # Warn user of issues
             warn_func(warn_text)
 
         # Return when the ptt was pushed    
@@ -2020,10 +2037,10 @@ class measure(mcvqoe.base.Measure):
             # Read csv file and occupy list, skipping header section
             with open(fname) as csv_f:
                 # Burn the first 3 lines in the file
-                # fieldnames for DictReader will be populated with first line after
+                # Fieldnames for DictReader will be populated with first line after
                 for n in range(3):
                     csv_f.readline()
-                # dict reader to get data
+                # Dict reader to get data
                 reader = csv.DictReader(csv_f)
                 for row in reader:
                     dat_list.append(row)
@@ -2051,7 +2068,7 @@ class measure(mcvqoe.base.Measure):
         return audio_path
 
 
-    def load_test_data(self,fname,load_audio=True,audio_path=None):
+    def load_test_data(self, fname, load_audio=True, audio_path=None):
         """
         load test data from .csv file.
 
@@ -2072,19 +2089,19 @@ class measure(mcvqoe.base.Measure):
         """
 
         with open(fname,'rt') as csv_f:
-            #things in top weirdness
+            # Things in top weirdness
             top_items = {}
-            #burn the first 3 lines in the file
+            # Burn the first 3 lines in the file
             for n in range(3):
                 line = csv_f.readline()
-                m = re.match(r'(?:\s*(?P<var>\w+)\s*=\s*(?P<val>\S+))|(?P<sep>-{4,})',line)
+                m = re.match(r'(?:\s*(?P<var>\w+)\s*=\s*(?P<val>\S+))|(?P<sep>-{4,})', line)
 
                 if not m:
-                    #check if this is the first line (if we have found a header)
+                    # Check if this is the first line (if we have found a header)
                     if n == 0:
                         has_header = False
                         break
-                    #otherwise raise error
+                    # Otherwise raise error
                     raise RuntimeError(f'Unexpected line in file \'{line}\'')
                 else:
                     has_header = True
@@ -2095,76 +2112,76 @@ class measure(mcvqoe.base.Measure):
             if has_header:
                 audio_name = os.path.splitext(top_items['Audiofile'])[0]
 
-                #audio clips from top items
+                # Audio clips from top items
                 clips = set((audio_name,))
             else:
-                #seek to the beginning of the file
+                # Seek to the beginning of the file
                 csv_f.seek(0, 0)
-                #empty set for clips
+                # Empty set for clips
                 clips = set()
-            #create dict reader
-            reader=csv.DictReader(csv_f)
-            #create empty dict
-            data={}
+            # Create dict reader
+            reader = csv.DictReader(csv_f)
+            # Create empty dict
+            data = {}
             trial_count = 0
             for row in reader:
-                #convert values proper datatype
+                # Convert values proper datatype
                 for k in row:
                     try:
-                        #check for None field
+                        # Check for None field
                         if(row[k]=='None'):
-                            #handle None correctly
-                            row[k]=None
+                            # Handle None correctly
+                            row[k] = None
                         else:
-                            #convert using function from data_fields
-                            row[k]=self.data_fields[k](row[k])
+                            # Convert using function from data_fields
+                            row[k] = self.data_fields[k](row[k])
                     except KeyError:
-                        #not in data_fields, keep as string
+                        # Not in data_fields, keep as string
                         pass
 
                 if 'Filename' not in row:
-                    #add audio name from top items
+                    # Add audio name from top items
                     row['Filename'] = audio_name
                 else:
-                    #add filename to set of used clips
+                    # Add filename to set of used clips
                     clips.add(row['Filename'])
 
-                #increment trial count
+                # Increment trial count
                 trial_count += 1
 
-                #add trial number to data (1 based)
+                # Add trial number to data (1 based)
                 row['Tnum'] = trial_count
 
                 if row['Filename'] in data:
-                    #append row to data
+                    # Append row to data
                     data[row['Filename']].append(row)
                 else:
-                    # add data for new clip
+                    # Add data for new clip
                     data[row['Filename']] = [row,]
 
-        #set total number of trials, this gives better progress updates
+        # Set total number of trials, this gives better progress updates
         self.trials = trial_count
 
-        #check if we should load audio
+        # Check if we should load audio
         if(load_audio):
-            #set audio file names to Tx file names
-            self.audio_files=['Tx_'+name+'.wav' for name in clips]
+            # Set audio file names to Tx file names
+            self.audio_files = ['Tx_'+name+'.wav' for name in clips]
 
             dat_name = mcvqoe.base.get_meas_basename(fname)
 
             if(audio_path is not None):
                 self.audio_path=audio_path
             else:
-                #set audio_path based on filename
-                self.audio_path=os.path.join(os.path.dirname(os.path.dirname(fname)),'wav',dat_name)
+                # Set audio_path based on filename
+                self.audio_path = os.path.join(os.path.dirname(os.path.dirname(fname)), 'wav', dat_name)
 
-            #load audio data from files
+            # Load audio data from files
             self.load_audio()
-            #self.audio_clip_check()
+            # Self.audio_clip_check()
 
         return data
 
-    def post_process(self,test_dat,fname,audio_path):
+    def post_process(self, test_dat, fname, audio_path):
         """
         process csv data.
 
@@ -2182,55 +2199,55 @@ class measure(mcvqoe.base.Measure):
 
         """
 
-        #do extra setup things
+        # Do extra setup things
         self.test_setup()
 
-        #get .csv header and data format
-        self.data_header,dat_format=self.csv_header_fmt()
+        # Get .csv header and data format
+        self.data_header,dat_format = self.csv_header_fmt()
 
-        #empty list for filenames
+        # Empty list for filenames
         self.data_filenames = []
 
         for tx_clip, clip_data in test_dat.items():
 
-            #split clip from folder
+            # Split clip from folder
             fold, name = os.path.split(fname)
 
-            #match name to extract info
+            # Match name to extract info
             m = mcvqoe.base.match_name(name)
 
-            #construct new filename
+            # Construct new filename
             fname_clip = os.path.join(fold, "R" + m.group("base") + tx_clip + '.csv')
 
-            #add name to the list
+            # Add name to the list
             self.data_filenames.append(fname_clip)
 
-            # find clip index
+            # Find clip index
             clip_index = self.find_clip_index(tx_clip)
 
-            with open(fname_clip,'wt') as f_out:
+            with open(fname_clip, 'wt') as f_out:
 
                 self.write_data_header(f_out, clip_index)
 
-                for n,trial in enumerate(clip_data):
+                for n, trial in enumerate(clip_data):
 
-                    #update progress
-                    self.progress_update('proc',self.trials,n)
+                    # Update progress
+                    self.progress_update('proc', self.trials,n)
 
-                    #create clip file name
-                    clip_name='Rx'+str(trial['Tnum'])+'_'+tx_clip+'.wav'
-                    #create full path
-                    clip_path = os.path.join(audio_path,clip_name)
+                    # Create clip file name
+                    clip_name = 'Rx' + str(trial['Tnum']) + '_' + tx_clip + '.wav'
+                    # Create full path
+                    clip_path = os.path.join(audio_path, clip_name)
 
-                    #check if file exists
+                    # Check if file exists
                     if not os.path.exists(clip_path):
-                        #update progress
+                        # Update progress
                         self.progress_update('status', self.trials, n,
                             msg = 'Attempting to decompress audio...')
-                        #unzip audio if it exists
+                        # Unzip audio if it exists
                         self.unzip_audio(audio_path)
 
-                    #calculate delay start index
+                    # Calculate delay start index
                     dly_st_idx = self.get_dly_idx(clip_index)
 
                     def warn_user( warn_str):
@@ -2248,16 +2265,16 @@ class measure(mcvqoe.base.Measure):
                             )):
                             raise SystemExit()
 
-                    new_dat=self.process_audio(
-                            clip_index,
-                            clip_path,
-                            trial["channels"],
-                            dly_st_idx,
-                            warn_func = warn_user,
-                            )
+                    new_dat = self.process_audio(
+                              clip_index,
+                              clip_path,
+                              trial["channels"],
+                              dly_st_idx,
+                              warn_func=warn_user,
+                              )
 
-                    #overwrite new data with old and merge
-                    merged_dat={**trial, **new_dat}
+                    # Overwrite new data with old and merge
+                    merged_dat = {**trial, **new_dat}
 
-                    #write line with new data
+                    # Write line with new data
                     f_out.write(dat_format.format(**merged_dat))
