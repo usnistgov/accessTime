@@ -523,6 +523,7 @@ class measure(mcvqoe.base.Measure):
 
         #------------------[Load In Old Data File If Given]-------------------
 
+        # Recovery is untested for 2 Location
         if recovery:
             
             # Warn that this is untested
@@ -582,7 +583,6 @@ class measure(mcvqoe.base.Measure):
         tx_dat_fold  = os.path.join(data_dir, "2loc_tx-data")
         rec_data_dir = os.path.join(data_dir, 'recovery')
 
-
         # Generate base file name to use for all files
         base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
 
@@ -604,31 +604,22 @@ class measure(mcvqoe.base.Measure):
         #-----------------------[Do more recovery things]-----------------------
 
         if recovery:
-            # TODO: Recovery things seem to be riddled with bugs, this needs serious attention
+            
             # Save old names to copy to new names
             old_filename = self.rec_file['temp_data_filename']
             # Save old .wav folder
             old_wavdir = self.rec_file['wavdir']
-            # Save old bad file name
-            old_bad_name = self.rec_file['bad_name']
             # Count the number of files loaded
             load_count = 0
             # List of tuples of filenames to copy
             copy_files = []
-            # BUG: A lot of these variables seem to have gotten moved out of order from where they are needed:
-            # bad_name, temp_data_filenames, name
-            
-            # Check if bad file exists
-            if os.path.exists(old_bad_name):
-                # Add to list
-                copy_files.append((old_bad_name, bad_name))
 
-            for k, (new_name, old_name) in enumerate(zip(temp_data_filenames, old_filename)):
+            for k, (new_name, old_name) in enumerate(zip(temp_data_filename, old_filename)):
                 save_dat = self.load_dat(old_name)
                 if not save_dat:
                     self.progress_update(
                                 'status',
-                                len(temp_data_filenames),
+                                len(temp_data_filename),
                                 k,
                                 f"No data file found for {old_name}"
                             )
@@ -638,7 +629,7 @@ class measure(mcvqoe.base.Measure):
                 else:
                     self.progress_update(
                                 'status',
-                                len(temp_data_filenames),
+                                len(temp_data_filename),
                                 k,
                                 f"initializing with data from {old_name}"
                             )
@@ -650,7 +641,6 @@ class measure(mcvqoe.base.Measure):
                     # Initialize success with zeros
                     success = np.zeros((2, (len(ptt_st_dly[k])*self.ptt_rep)))
                     # Fill in success from file
-                    # BUG: This will throw a key error for P1_Int. Something seems pretty wrong about this logic
                     for p in range(clen):
                         success[0, p] = save_dat[p]['P1_Int']
                         success[1, p] = save_dat[p]['P2_Int']
