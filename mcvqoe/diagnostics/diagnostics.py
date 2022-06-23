@@ -119,8 +119,12 @@ class Diagnose():
                 start = 'Rx'+str(n)+'_'
                 rx_name = [s for s in all_wavs if start in s]
                 rx_path = self.wav_dir + '/' + rx_name[0]
-                # Check how many channels we have 
-                self.fs,y_rec = mcvqoe.base.audio_read(rx_path)
+                # Check how many channels we have
+                try:
+                    self.fs, y_rec = mcvqoe.base.audio_read(rx_path)
+                except ValueError:
+                    # Most likely an empty WAV file, skip
+                    continue
                 if len(y_rec.shape) > 1:
                     # If more than one channel, just grab the first channel
                     y_rec = y_rec[:, 0]
