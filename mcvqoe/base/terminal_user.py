@@ -1,4 +1,3 @@
-
 from warnings import warn
 
 def terminal_progress_update(
@@ -13,7 +12,7 @@ def terminal_progress_update(
         ):
     if (prog_type == 'proc'):
         if (current_trial == 0):
-            #we are post processing
+            # We are post processing
             print('Processing test data')
         if (current_trial % 10 == 0):
             print(f'Processing trial {current_trial} of {num_trials}')   
@@ -50,17 +49,17 @@ def terminal_progress_update(
     elif prog_type == "status":
         print(msg)
         
-    #continue test
+    # Continue test
     return True
     
-def terminal_user_check(reason,message, trials=None, time=None):
+def terminal_user_check(reason, message, trials=None, time=None):
     abort_test = False
-    #check if we have time and trials
+    # Check if we have time and trials
     if (trials and time):
         # Print set time
         print(f"Time for {trials} trials : {time}")
-    #ask the user to press enter to continue
-    #ring bell ('\a') to get their attention
+    # Ask the user to press enter to continue
+    # Ring bell ('\a') to get their attention
     resp = input('\a'+
                message+' Press enter to continue\n'+
                'you may type "exit" to stop the test\n')
