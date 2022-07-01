@@ -134,14 +134,14 @@ def format_text_block(text):
 
 def pre(info={}, outdir=""):
     """
-    Take in M2E class info dictionary and write pre-test to tests.log.
+    Take in a QoE measurement class info dictionary and write pre-test to tests.log.
 
     ...
 
     Parameters
     ----------
     info : dict
-        The M2E.info dictionary used to write to tests.log.
+        The <measurement>.info dictionary used to write to tests.log.
     outdir : str
         The directory to write to.
     """
@@ -168,14 +168,14 @@ def pre(info={}, outdir=""):
 
 def post(info={}, outdir=""):
     """
-    Take in M2E class info dictionary to write post-test to tests.log.
+    Take in a QoE measurement class info dictionary to write post-test to tests.log.
 
     ...
 
     Parameters
     ----------
     info : dict
-        The M2E.info dictionary.
+        The <measurement>.info dictionary.
     outdir : str
         The directory to write to.
 
