@@ -76,7 +76,10 @@ class Measure:
         A place to add test specific fields to the log
         """
         #dummy function, override if needed
-        pass
+
+        # Add blocksize and buffersize
+        self.blocksize = self.audio_interface.blocksize
+        self.buffersize = self.audio_interface.buffersize
 
     def param_check(self):
         """
