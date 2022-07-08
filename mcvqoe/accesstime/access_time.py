@@ -381,7 +381,7 @@ class measure(mcvqoe.base.Measure):
                 # Create a named tuple to hold sample rate
                 FakeAi = namedtuple('FakeAi', 'sample_rate')
                 # Create a fake one
-                self.audio_interface=FakeAi(sample_rate=fs_file)
+                self.audio_interface = FakeAi(sample_rate=fs_file)
 
             # Add noise if given
             if self.bgnoise_file:
@@ -469,6 +469,9 @@ class measure(mcvqoe.base.Measure):
     def log_extra(self):
         # Add abcmrt version
         self.info['abcmrt version'] = abcmrt.version
+        # Add blocksize and buffersize
+        self.blocksize = self.audio_interface.blocksize
+        self.buffersize = self.audio_interface.buffersize
 
     def test_setup(self):
         
