@@ -195,6 +195,8 @@ class PBI:
 
         # calculate the number of samples in each chunk
         chunk_len = int(round(fs * self.interval))
+        if chunk_len == 0:
+            raise ValueError(f"Interval: {self.interval} and sample rate: {fs} not in agreement.")
 
         start = range(0, len(data), chunk_len)
         stop = list(range(chunk_len, len(data), chunk_len))
