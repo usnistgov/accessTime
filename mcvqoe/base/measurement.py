@@ -21,7 +21,7 @@ class Measure:
 
     no_log = ()
 
-    #measurement name, override in subclass
+    # measurement name, override in subclass
     measurement_name = "Base"
 
     required_chans = {
@@ -41,7 +41,7 @@ class Measure:
                              },
                       }
 
-    #filename for zipped audio
+    # filename for zipped audio
     _zip_name = 'audio.zip'
 
     @staticmethod
@@ -68,14 +68,14 @@ class Measure:
             raise ValueError(f"self.audio_interface missing playback channels for : {pb_missing}")
 
     def audio_clip_check(self):
-        #dummy function, override if needed
+        # dummy function, override if needed
         pass
 
     def log_extra(self):
         """
         A place to add test specific fields to the log
         """
-        #dummy function, override if needed
+        # dummy function, override if needed
 
         # Add blocksize and buffersize
         self.blocksize = self.audio_interface.blocksize
@@ -90,14 +90,14 @@ class Measure:
         ValueError
             If there is an incorrect parameter.
         """
-        #dummy function, override if needed
+        # dummy function, override if needed
         pass
 
     def test_setup(self):
         """
         Extra things that need to be setup for a specific test
         """
-        #dummy function, override if needed
+        # dummy function, override if needed
         pass
 
     def run(self, **kwargs):
@@ -114,20 +114,28 @@ class Measure:
         """
         Run a generic test.
         """
+        
         # ------------------------[Test specific setup]------------------------
+        
         self.test_setup()
+        
         # ------------------[Check for correct audio channels]------------------
+        
         self.check_channels()
+        
         # -------------------------[Get Test Start Time]-------------------------
 
         self.info["Tstart"] = datetime.datetime.now()
         dtn = self.info["Tstart"].strftime("%d-%b-%Y_%H-%M-%S")
 
         # --------------------------[Fill log entries]--------------------------
+        
         # set test name
         self.info["test"] = self.measurement_name
-        #add any extra entries
+        
+        # add any extra entries
         self.log_extra()
+        
         # fill in standard stuff
         self.info.update(fill_log(self))
 
@@ -162,7 +170,7 @@ class Measure:
         if not hasattr(self, "y"):
             self.load_audio()
 
-        #check audio clips, and possibly, adjust the number of trials
+        # check audio clips, and possibly, adjust the number of trials
         self.audio_clip_check()
 
         # generate clip index
@@ -177,7 +185,7 @@ class Measure:
         if hasattr(self, 'cutpoints'):
             cutpoints = self.cutpoints
         else:
-            #placeholder for zip
+            # placeholder for zip
             cutpoints = cycle((None,))
         # write out Tx clips to files
         # cutpoints, if present, are always written
@@ -185,7 +193,7 @@ class Measure:
             out_name = os.path.join(wavdir, f"Tx_{name}")
             if self.save_tx_audio and self.save_audio:
                 audio_write(out_name + ".wav", int(self.audio_interface.sample_rate), dat)
-            #write cutpoints, if present
+            # write cutpoints, if present
             if cp:
                 write_cp(out_name+'.csv',cp)
 
@@ -202,16 +210,22 @@ class Measure:
 
         try:
 
+            # ------------------[Save Time for Set Timing]---------------------
+            
+            set_start = datetime.datetime.now().replace(microsecond=0)
+            
             # -------------------------[Turn on RI LED]-------------------------
+            
             self.ri.led(1, True)
 
             # -----------------------[write initial csv file]-----------------------
+            
             with open(temp_data_filename, "wt") as f:
                 f.write(header)
 
             # ------------------------[Measurement Loop]------------------------
 
-            #zero pause count
+            # zero pause count
             self._pause_count = 0
 
             if not hasattr(self, 'pause_trials'):
@@ -219,13 +233,17 @@ class Measure:
                 self.pause_trials = np.inf
 
             for trial in range(self.trials):
+                
                 # -----------------------[Update progress]-------------------------
+                
                 if not self.progress_update("test", self.trials, trial):
                     # turn off LED
                     self.ri.led(1, False)
                     print("Exit from user")
                     break
+                
                 # -----------------------[Get Trial Timestamp]-----------------------
+                
                 ts = datetime.datetime.now().strftime("%d-%b-%Y %H:%M:%S")
 
                 # --------------------[Key Radio and play audio]--------------------
@@ -267,6 +285,7 @@ class Measure:
                 trial_dat['Under_runs'] = 0
 
                 # -------------------[Delete file if needed]-------------------
+                
                 if not self.save_audio:
                     os.remove(audioname)
 
@@ -278,12 +297,12 @@ class Measure:
 
                 #------------------[Check if we should pause]------------------
 
-                #increment pause count
+                # increment pause count
                 self._pause_count += 1
 
                 if self._pause_count >= self.pause_trials:
 
-                    #zero pause count
+                    # zero pause count
                     self._pause_count = 0
 
                     # Calculate set time
@@ -320,15 +339,9 @@ class Measure:
             self.ri.led(1, False)
 
         finally:
-            if self.get_post_notes:
-                # get notes
-                info = self.get_post_notes()
-            else:
-                info = {}
-            # finish log entry
-            log_post(outdir=self.outdir, info=info)
+            self.post_write()
 
-        #return filename in a list
+        # return filename in a list
         return (self.data_filename,)
 
     def run_2loc_tx(self):
@@ -340,21 +353,29 @@ class Measure:
         """
 
         # ------------------------[Test specific setup]------------------------
+        
         self.test_setup()
+        
         # ------------------[Check for correct audio channels]------------------
+        
         self.check_channels()
+        
         # we need to be recording a timecode
         mcvqoe.timing.require_timecode(self.audio_interface)
+        
         # -------------------------[Get Test Start Time]-------------------------
 
         self.info["Tstart"] = datetime.datetime.now()
         dtn = self.info["Tstart"].strftime("%d-%b-%Y_%H-%M-%S")
 
         # --------------------------[Fill log entries]--------------------------
+        
         # set test name, needs to match log_search.datafilenames
         self.info["test"] = "Tx Two Loc Test"
-        #add any extra entries
+        
+        # add any extra entries
         self.log_extra()
+        
         # fill in standard stuff
         self.info.update(fill_log(self))
 
@@ -399,14 +420,14 @@ class Measure:
         if hasattr(self, 'cutpoints'):
             cutpoints = self.cutpoints
         else:
-            #placeholder for zip
+            # placeholder for zip
             cutpoints = cycle((None,))
 
         # write out Tx clips to files
         for dat, name, cp in zip(self.y, clip_names, cutpoints):
             out_name = os.path.join(wavdir, f"Tx_{name}")
             audio_write(out_name + ".wav", int(self.audio_interface.sample_rate), dat)
-            #write cutpoints, if present
+            # write cutpoints, if present
             if cp:
                 write_cp(out_name+'.csv',cp)
 
@@ -419,9 +440,15 @@ class Measure:
         log_pre(info=self.info, outdir=self.outdir)
 
         # ---------------[Try block so we write notes at the end]---------------
+        
         try:
 
+            # ------------------[Save Time for Set Timing]---------------------
+            
+            set_start = datetime.datetime.now().replace(microsecond=0)            
+
             # -----------------------[write initial csv file]-----------------------
+            
             with open(temp_data_filename, "wt") as f:
                 f.write(header)
 
@@ -431,7 +458,7 @@ class Measure:
 
             # ------------------------[Measurement Loop]------------------------
 
-            #zero pause count
+            # zero pause count
             self._pause_count = 0
 
             if not hasattr(self, 'pause_trials'):
@@ -477,17 +504,17 @@ class Measure:
 
                 chan_str = "(" + (";".join(rec_chans)) + ")"
 
-                #generate dummy values for format
+                # generate dummy values for format
                 trial_dat = {}
                 for _, field, _, _ in string.Formatter().parse(dat_format):
                     if field not in self.data_fields:
                         if field is None:
-                            #we got None, skip this one
+                            # we got None, skip this one
                             continue
-                        #check for array
+                        # check for array
                         m = re.match(r'(?P<name>.+)\[(?P<index>\d+)\]',field)
                         if not m:
-                            #not in data fields, fill with NaN
+                            # not in data fields, fill with NaN
                             trial_dat[field] = np.NaN
                         else:
                             field_name = m.group("name")
@@ -496,16 +523,16 @@ class Measure:
                                 len(trial_dat[field_name]) < index + 1:
                                 trial_dat[field_name] = (np.NaN,) * (index +1)
                     elif self.data_fields[field] is float:
-                        #float, fill with NaN
+                        # float, fill with NaN
                         trial_dat[field] = np.NaN
                     elif self.data_fields[field] is int:
-                        #int, fill with zero
+                        # int, fill with zero
                         trial_dat[field] = 0
                     else:
-                        #something else, fill with None
+                        # something else, fill with None
                         trial_dat[field] = None
 
-                #fill in known values
+                # fill in known values
                 trial_dat['Timestamp'] = ts
                 trial_dat['Filename'] = clip_names[clip_index]
                 trial_dat['channels'] = chan_str
@@ -519,12 +546,12 @@ class Measure:
 
                 #------------------[Check if we should pause]------------------
 
-                #increment pause count
+                # increment pause count
                 self._pause_count += 1
 
                 if self._pause_count >= self.pause_trials:
 
-                    #zero pause count
+                    # zero pause count
                     self._pause_count = 0
 
                     # Calculate set time
@@ -570,15 +597,9 @@ class Measure:
             )
 
         finally:
-            if self.get_post_notes:
-                # get notes
-                info = self.get_post_notes()
-            else:
-                info = {}
-            # finish log entry
-            log_post(outdir=self.outdir, info=info)
+            self.post_write()
 
-        #return filename in a list
+        # return filename in a list
         return (self.data_filename,)
 
     def run_2loc_rx(self):
@@ -590,13 +611,18 @@ class Measure:
         """
 
         # ------------------------[Test specific setup]------------------------
+        
         self.test_setup()
+        
         # ------------------[Check for correct audio channels]------------------
+        
         self.check_channels()
+        
         # we need to be recording a timecode
         mcvqoe.timing.require_timecode(self.audio_interface)
 
         # -------------------------[Get Test Start Time]-------------------------
+        
         self.info["Tstart"] = datetime.datetime.now()
         dtn = self.info["Tstart"].strftime("%d-%b-%Y_%H-%M-%S")
 
@@ -604,8 +630,10 @@ class Measure:
 
         # set test name, needs to match log_search.datafilenames
         self.info["test"] = "Rx Two Loc Test"
-        #add any extra entries
+        
+        # add any extra entries
         self.log_extra()
+        
         # fill in standard stuff
         self.info.update(fill_log(self))
 
@@ -627,11 +655,15 @@ class Measure:
         log_pre(info=self.info, outdir=self.outdir)
 
         # ---------------[Try block so we write notes at the end]---------------
+        
         try:
+            
             # ----------------------[Send progress update]---------------------
+            
             self.progress_update("status", 1, 0, msg="Two location receive recording running")
 
             # --------------------------[Record audio]--------------------------
+            
             rec_names = self.audio_interface.record(self.data_filename)
 
             # ------------------------[Save audio info]------------------------
@@ -640,13 +672,7 @@ class Measure:
                 json.dump({"channels": rec_names}, info_f)
 
         finally:
-            if self.get_post_notes:
-                # get notes
-                info = self.get_post_notes()
-            else:
-                info = {}
-            # finish log entry
-            log_post(outdir=self.outdir, info=info)
+            self.post_write()
 
         return (self.data_filename,)
 
@@ -704,7 +730,7 @@ class Measure:
 
         # check if we should load audio
         if load_audio:
-            #we do not want to load the full dir for reprocessing
+            # we do not want to load the full dir for reprocessing
             self.full_audio_dir = False
 
             # set audio file names to Tx file names
@@ -745,22 +771,29 @@ class Measure:
 
         # match a string that has the chars that are in name
         name_re = re.compile(re.escape(name) + "(?![^.])")
+        
         # get all matching indices
         match = [idx for idx, clip in enumerate(self.audio_files) if name_re.search(clip)]
+        
         # check that a match was found
         if not match:
             raise RuntimeError(f"no audio clips found matching '{name}' found in {self.audio_files}")
+            
         # check that only one match was found
         if len(match) != 1:
             raise RuntimeError(f"multiple audio clips found matching '{name}' found in {self.audio_files}")
+            
         # return matching index
         return match[0]
 
     @staticmethod
     def unzip_audio(audio_path):
+        
         zip_path = os.path.join(audio_path,Measure._zip_name)
+        
         if zipfile.is_zipfile(zip_path):
             audio_zip = zipfile.ZipFile(zip_path,mode='r')
+            
             #extract all files into the audio dir
             audio_zip.extractall(audio_path)
 
@@ -774,25 +807,30 @@ class Measure:
             A path to the directory where the test .wav files are stored.
 
         """
+        
         with zipfile.ZipFile(
                     os.path.join(path,self._zip_name),
                     mode='w',
                     compression=zipfile.ZIP_LZMA,
                 ) as audio_zip:
-            #find all the rx wav files
+            
+            # find all the rx wav files
             rx_wavs = glob.glob(os.path.join(path,'Rx*.wav'))
-            #fid all bad files
+            
+            # fid all bad files
             bad_wavs = glob.glob(os.path.join(path,'Bad*.wav'))
-            #zip bad files and Rx files
+            
+            # zip bad files and Rx files
             zip_wavs = rx_wavs + bad_wavs
-            #get number of files
+            
+            # get number of files
             num_zip_files = len(zip_wavs)
             for n, name in enumerate(zip_wavs):
                 bname =  os.path.basename(name)
                 self.progress_update('compress',num_zip_files,n)
                 audio_zip.write(name,arcname=bname)
 
-        #zip file has been written, delete files
+        # zip file has been written, delete files
         self.progress_update('status',num_zip_files,num_zip_files,msg='Deleting compressed audio...')
         for name in zip_wavs:
             os.remove(name)
@@ -815,7 +853,7 @@ class Measure:
 
         """
 
-        #do extra setup things
+        # do extra setup things
         self.test_setup()
 
         # get .csv header and data format
@@ -852,3 +890,18 @@ class Measure:
 
                 # write line with new data
                 f_out.write(dat_format.format(**merged_dat))
+                
+    def post_write(self):
+        """Provide a function to allow overwriting of post note function.
+        
+        This allows each test the ability to print the results into
+        their repective tests.log file
+        """
+        
+        if self.get_post_notes:
+            # get notes
+            info = self.get_post_notes()
+        else:
+            info = {}
+        # finish log entry
+        log_post(outdir=self.outdir, info=info)
