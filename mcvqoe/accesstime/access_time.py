@@ -1864,6 +1864,15 @@ class measure(mcvqoe.base.Measure):
         # Convert to seconds
         estimated_m2e_latency = dly/self.audio_interface.sample_rate
         
+        # If not simulation, subtract device delay from M2E Latency
+        # If a simulation, m2e latency will be whatever is loaded into device delay
+        # TODO: Possibility this is ran while not in sim. Does that matter?
+        if (estimated_m2e_latency == 0) or (estimated_m2e_latency == self.dev_dly):
+            pass
+        else:
+            # Not a simulation, subtract device delay
+            estimated_m2e_latency = estimated_m2e_latency - self.dev_dly
+        
         #---------------------[Compute intelligibility]---------------------
         
         # Strip filename for basename in case of split clips

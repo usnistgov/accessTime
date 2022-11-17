@@ -410,7 +410,7 @@ class evaluate:
                 # Get word data for given talker word combo
                 cor_word_data = cor_data[cor_data['talker_word'] == tw]
                 
-                # Determine I0 for correction data (should alwyas be 1, so we don't track it after this)
+                # Determine I0 for correction data (should always be 1, so we don't track it after this)
                 I0 = np.mean(cor_word_data['P2_Int'])
                 if fit_type == "COR":
                     # Get correction fit
@@ -534,7 +534,7 @@ class evaluate:
         if raw_intell:
             if alpha > fit_data.I0:
                 raise ValueError(f'Invalid intelligibility level, must be <= {fit_data.I0}')
-            # Rescale such that alpha is the fractoin of asymptotic
+            # Rescale such that alpha is the fraction of asymptotic
             alpha = alpha/fit_data.I0
         else:
             if alpha >= 1:
