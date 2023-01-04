@@ -206,7 +206,9 @@ class RadioInterface:
         dt = DEVTYPE() where dt is the devicetype string"""
 
         # flush input from buffer
-
+        r=self.textin.readlines()
+        if self.debug:
+            print(f"flush: {r}")
         # send devtype command
         self._command("devtype")
         # get devtype line
@@ -457,7 +459,7 @@ class RadioInterface:
             l = l.strip()
 
             if self.debug and l:
-                print(f"recived '{l}'")
+                print(f"received '{l}'")
 
             # subtract one from count
             mi -= 1
