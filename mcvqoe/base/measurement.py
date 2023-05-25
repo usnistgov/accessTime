@@ -64,7 +64,7 @@ class Measure:
                                     self.required_chans[self.test]['pb'],
                                     self.audio_interface.playback_chans.keys()
                                         )
-        if rec_missing:
+        if pb_missing:
             raise ValueError(f"self.audio_interface missing playback channels for : {pb_missing}")
 
     def audio_clip_check(self):
