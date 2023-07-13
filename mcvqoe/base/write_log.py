@@ -57,6 +57,11 @@ def fill_log(test_obj):
     # ---------------------------[Add MCV QoE version]---------------------------
 
     info["mcvqoe version"] = mcvqoe.base.version
+    
+    # Change RI Version if running simulation
+    if info["RI version"] == info["mcvqoe version"]:
+        
+        info["RI version"] = "Simulation (no real RI)"
 
     # ----------------------[Add Measurement class version]----------------------
 
