@@ -84,7 +84,7 @@ def fill_log(test_obj):
         # import base level module
         mod = importlib.import_module(module)
         try:
-            info["version"] = mod.version
+            info["test version"] = mod.version
         except AttributeError as e:
             warnings.warn(f"Unable to get version {e}", category=RuntimeWarning)
             pass
