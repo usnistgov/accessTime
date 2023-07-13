@@ -78,7 +78,7 @@ def fill_log(test_obj):
             warnings.warn(f"Unable to find measure class for {test_obj.__class__.__name__}", category=RuntimeWarning)
 
     # set default version
-    info["version"] = "Unknown"
+    info["test version"] = "Unknown"
 
     if module:
         # import base level module
