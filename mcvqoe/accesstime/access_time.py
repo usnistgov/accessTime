@@ -652,7 +652,7 @@ class measure(mcvqoe.base.Measure):
                     stop_flag[:] = np.nan
                     # Trial count is the sum of all trial counts from each file
                     trial_count = trial_count + clen
-                    # Set clip start to curren index
+                    # Set clip start to current index
                     # If another datafile is found it will be overwritten
                     clip_start = k
                     # Initialize k_start
@@ -1265,7 +1265,7 @@ class measure(mcvqoe.base.Measure):
                                     'status',
                                     len(copy_files),
                                     n+1,
-                                    f"Coppying old test csvs : {old_name}"
+                                    f"Copying old test csvs : {old_name}"
                                 )
                 shutil.copyfile(old_name, new_name)
 
@@ -1355,7 +1355,7 @@ class measure(mcvqoe.base.Measure):
         #----------------[Pickle important data for restart]------------------
         
         # Initialize error file
-        recovery_file = os.path.join(rec_data_dir,base_filename+'.pickle')
+        recovery_file = os.path.join(rec_data_dir, base_filename+'.pickle')
          
         # Error dictionary, add version
         err_dict = {'version' : version}
@@ -1820,7 +1820,6 @@ class measure(mcvqoe.base.Measure):
 
     def get_dly_idx(self, clip_num):
 
-
         # Get start of the second silence
         s2_start = self.cutpoints[clip_num][2]['Start']
 
@@ -2069,7 +2068,6 @@ class measure(mcvqoe.base.Measure):
         
         return audio_path
 
-
     def load_test_data(self, fname, load_audio=True, audio_path=None):
         """
         load test data from .csv file.
@@ -2205,7 +2203,7 @@ class measure(mcvqoe.base.Measure):
         self.test_setup()
 
         # Get .csv header and data format
-        self.data_header,dat_format = self.csv_header_fmt()
+        self.data_header, dat_format = self.csv_header_fmt()
 
         # Empty list for filenames
         self.data_filenames = []
@@ -2234,7 +2232,7 @@ class measure(mcvqoe.base.Measure):
                 for n, trial in enumerate(clip_data):
 
                     # Update progress
-                    self.progress_update('proc', self.trials,n)
+                    self.progress_update('proc', self.trials, n)
 
                     # Create clip file name
                     clip_name = 'Rx' + str(trial['Tnum']) + '_' + tx_clip + '.wav'

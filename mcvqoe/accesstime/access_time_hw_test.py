@@ -2,6 +2,7 @@
 import argparse
 import datetime
 import mcvqoe
+import numpy as np
 import os
 import sys
 

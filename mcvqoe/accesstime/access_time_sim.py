@@ -14,7 +14,7 @@ from .access_time_hw_test import int_or_inf
            
 def main():
 
-    #create sim object
+    # create sim object
     sim_obj = mcvqoe.simulation.QoEsim(
                     playback_chans = {'tx_voice':0, 'start_signal':1},
                     rec_chans = {'rx_voice':0, 'PTT_signal':1},
@@ -22,16 +22,16 @@ def main():
 
     # Create Access object
     test_obj = access_time_meas()
-    #set wait times to zero for simulation
+    # set wait times to zero for simulation
     test_obj.ptt_gap = 0
-    #default pause_trials to inf because we don't need to stop
+    # default pause_trials to inf because we don't need to stop
     test_obj.pause_trials = np.inf
-    #only get test notes on error
+    # only get test notes on error
     test_obj.get_post_notes = lambda : mcvqoe.gui.post_test(error_only=True)
 
-    #set audioInterface to sim object
+    # set audioInterface to sim object
     test_obj.audio_interface = sim_obj
-    #set radio interface object to sim object
+    # set radio interface object to sim object
     test_obj.ri = sim_obj
 
     #--------------------[Parse the command line arguments]--------------------
@@ -79,8 +79,8 @@ def main():
     parser.add_argument('-f', '--stoprep', dest="stop_rep", type=int, default=test_obj.stop_rep,
                         help="Number of times that access must be detected in a row before the"+
                         " test is completed. (Defaults to %(default)i)")
-    #QoEsim does not support simulation of device delay
-    #TODO : update this if QoEsim is changed in the future
+    # QoEsim does not support simulation of device delay
+    # TODO : update this if QoEsim is changed in the future
     parser.add_argument('-g', '--devdly', dest="dev_dly", type=float, default=0,
                         help="Delay in seconds of the audio path with no communication device"+
                         " present. (Defaults to %(default).4f s)")
@@ -142,7 +142,7 @@ def main():
     
     sim_obj.overplay = args.overplay
     
-    #set channel rate, check for None
+    # set channel rate, check for None
     if (args.channel_rate == 'None'):
         sim_obj.channel_rate = None
     else:
@@ -159,7 +159,7 @@ def main():
                                                     playback=True,
                                                     ptt_wait=0)
 
-    #construct string for system name
+    # construct string for system name
     system = sim_obj.channel_tech
     if (sim_obj.channel_rate is not None):
         system += ' at ' + str(sim_obj.channel_rate)
