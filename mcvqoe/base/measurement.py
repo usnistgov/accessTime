@@ -141,29 +141,40 @@ class Measure:
 
         # -----------------------[Setup Files and folders]-----------------------
 
+        # Generate this test's naming convention
+        fold_file_name = f"{dtn}_{self.info['test']}"
+        
+        # Create data folder
+        self.data_dir = os.path.join(self.outdir, fold_file_name)
+        os.makedirs(self.data_dir, exist_ok=True)
+
         # generate data dir names
-        data_dir = os.path.join(self.outdir, "data")
-        wav_data_dir = os.path.join(data_dir, "wav")
-        csv_data_dir = os.path.join(data_dir, "csv")
+        # data_dir = os.path.join(self.outdir, "data")
+        # wav_data_dir = os.path.join(data_dir, "wav")
+        # csv_data_dir = os.path.join(data_dir, "csv")
 
         # create data directories
-        os.makedirs(csv_data_dir, exist_ok=True)
-        os.makedirs(wav_data_dir, exist_ok=True)
+        # os.makedirs(csv_data_dir, exist_ok=True)
+        # os.makedirs(wav_data_dir, exist_ok=True)
 
         # generate base file name to use for all files
-        base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
+        # base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
+        base_filename = fold_file_name
 
         # generate test dir names
-        wavdir = os.path.join(wav_data_dir, base_filename)
+        # wavdir = os.path.join(wav_data_dir, base_filename)
+        wavdir = os.path.join(self.data_dir, "wav")
 
-        # create test dir
+        # create wav dir
         os.makedirs(wavdir, exist_ok=True)
 
         # generate csv name
-        self.data_filename = os.path.join(csv_data_dir, f"{base_filename}.csv")
+        # self.data_filename = os.path.join(csv_data_dir, f"{base_filename}.csv")
+        self.data_filename = os.path.join(self.data_dir, f"{base_filename}.csv")
 
         # generate temp csv name
-        temp_data_filename = os.path.join(csv_data_dir, f"{base_filename}_TEMP.csv")
+        # temp_data_filename = os.path.join(csv_data_dir, f"{base_filename}_TEMP.csv")
+        temp_data_filename = os.path.join(self.data_dir, f"{base_filename}_TEMP.csv")
 
         # ---------------------[Load Audio Files if Needed]---------------------
 
@@ -204,7 +215,9 @@ class Measure:
 
         # ---------------------------[write log entry]---------------------------
 
-        log_pre(info=self.info, outdir=self.outdir)
+        # log_pre(info=self.info, outdir=self.outdir)
+        # Add the log file to the outside folder and test specific folder
+        log_pre(info=self.info, outdir=self.outdir, test_folder=self.data_dir)
 
         # ---------------[Try block so we write notes at the end]---------------
 
@@ -339,7 +352,8 @@ class Measure:
             self.ri.led(1, False)
 
         finally:
-            self.post_write()
+            # self.post_write()
+            self.post_write(test_folder=self.data_dir)
 
         # return filename in a list
         return (self.data_filename,)
@@ -604,7 +618,7 @@ class Measure:
 
     def run_2loc_rx(self):
         """
-        Two location recive basic test.
+        Two location receive basic test.
 
         This function just records audio with a little bit of logging. Should be
         usable by all 2 location tests.
@@ -815,10 +829,10 @@ class Measure:
                 ) as audio_zip:
             
             # find all the rx wav files
-            rx_wavs = glob.glob(os.path.join(path,'Rx*.wav'))
+            rx_wavs = glob.glob(os.path.join(path, 'Rx*.wav'))
             
             # fid all bad files
-            bad_wavs = glob.glob(os.path.join(path,'Bad*.wav'))
+            bad_wavs = glob.glob(os.path.join(path, 'Bad*.wav'))
             
             # zip bad files and Rx files
             zip_wavs = rx_wavs + bad_wavs
@@ -827,11 +841,11 @@ class Measure:
             num_zip_files = len(zip_wavs)
             for n, name in enumerate(zip_wavs):
                 bname =  os.path.basename(name)
-                self.progress_update('compress',num_zip_files,n)
-                audio_zip.write(name,arcname=bname)
+                self.progress_update('compress', num_zip_files, n)
+                audio_zip.write(name, arcname=bname)
 
         # zip file has been written, delete files
-        self.progress_update('status',num_zip_files,num_zip_files,msg='Deleting compressed audio...')
+        self.progress_update('status', num_zip_files, num_zip_files, msg='Deleting compressed audio...')
         for name in zip_wavs:
             os.remove(name)
 
@@ -891,7 +905,7 @@ class Measure:
                 # write line with new data
                 f_out.write(dat_format.format(**merged_dat))
                 
-    def post_write(self):
+    def post_write(self, test_folder=""):
         """Provide a function to allow overwriting of post note function.
         
         This allows each test the ability to print the results into
@@ -904,4 +918,4 @@ class Measure:
         else:
             info = {}
         # finish log entry
-        log_post(outdir=self.outdir, info=info)
+        log_post(outdir=self.outdir, info=info, test_folder=test_folder)

@@ -137,7 +137,7 @@ def format_text_block(text):
     return "".join(["\t" + line + "\n" for line in text.splitlines(keepends=False)])
 
 
-def pre(info={}, outdir=""):
+def pre(info={}, outdir="", test_folder=""):
     """
     Take in a QoE measurement class info dictionary and write pre-test to tests.log.
 
@@ -148,7 +148,9 @@ def pre(info={}, outdir=""):
     info : dict
         The <measurement>.info dictionary used to write to tests.log.
     outdir : str
-        The directory to write to.
+        The outer test directory to write to. (Access, M2E, etc.)
+    test_folder : str
+        The current test directory to write to.
     """
 
     # length to pad test params to
@@ -169,9 +171,25 @@ def pre(info={}, outdir=""):
 
         file.write("===Pre-Test Notes===\n")
         file.write(format_text_block(info["Pre Test Notes"]))
+    
+    # Add test's specific log file to folder if given
+    if test_folder != "":
+        
+        # Do the same for the inner specific test directory if given
+        log_folder = os.path.join(test_folder, "tests.log")
+        
+        # Write all necessary arguments/test params into tests.log
+        with open(log_folder, "a") as file:
+            
+            file.write(f"\n>>{info['test']} started at {info['Tstart'].strftime('%d-%b-%Y %H:%M:%S')}\n")
+            for key in info:
+                if key not in skip_keys:
+                    file.write(f"\t{key:<{pad_len}} : {info[key]}\n")
 
+            file.write("===Pre-Test Notes===\n")
+            file.write(format_text_block(info["Pre Test Notes"]))
 
-def post(info={}, outdir=""):
+def post(info={}, outdir="", test_folder=""):
     """
     Take in a QoE measurement class info dictionary to write post-test to tests.log.
 
@@ -203,3 +221,25 @@ def post(info={}, outdir=""):
         file.write(format_text_block(notes))
         # write end
         file.write("===End Test===\n\n")
+        
+    # Add test's specific log file to folder if given
+    if test_folder != "":
+        
+        # Add test_folder path
+        log_folder = os.path.join(test_folder, "tests.log")
+        
+        # Open and write test_folder log file
+        with open(log_folder, "a") as file:
+            if "Error Notes" in info:
+                notes = info["Error Notes"]
+                header = "===Test-Error Notes==="
+            else:
+                header = "===Post-Test Notes==="
+                notes = info.get("Post Test Notes", "")
+
+            # write header
+            file.write(header + "\n")
+            # write notes
+            file.write(format_text_block(notes))
+            # write end
+            file.write("===End Test===\n\n")
