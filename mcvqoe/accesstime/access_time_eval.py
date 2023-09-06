@@ -116,7 +116,9 @@ class AccessData():
             # Check if a path was given to a .csv file
             if not dat_path and not ext == '.csv':
                 # Generate using test_path
-                dat_path = os.path.join(test_path, 'csv')
+                # dat_path = os.path.join(test_path, 'csv')
+                # Now we're looking for csvs in the main test folder
+                dat_path = test_path
                 # Find all csvs that match session id t_name
                 dat_file = find_session_csvs(session_id=t_name,
                                               data_path=dat_path,
@@ -132,8 +134,10 @@ class AccessData():
                     
                 else:
                     # Assume we are supposed to use test path too
-                    dat_file = [os.path.join(test_path, 'csv', tn)]
-                    cp_path = os.path.join(test_path, os.path.dirname(dat_path), 'wav')
+                    # dat_file = [os.path.join(test_path, 'csv', tn)]
+                    dat_file = [os.path.join(test_path, tn)]
+                    # cp_path = os.path.join(test_path, os.path.dirname(dat_path), 'wav')
+                    cp_path = os.path.join(test_path, 'wav')
                     
             
             # Check if we were given an explicit wav directory
@@ -144,11 +148,14 @@ class AccessData():
                 
             else:
                 # Otherwise get path to the wav dir
+                # TODO delete? We don't use this naming convention anymore
                 
                 # Remove possible R in t_name
-                wt_name = t_name.replace('Rcapture', 'capture')
+                # wt_name = t_name.replace('Rcapture', 'capture')
+                wt_name = t_name.replace('R', '')
                 
-                sesh_search_str = re.compile('(capture2?_.+_\d{2}-\w{3}-\d{4}_\d{2}-\d{2}-\d{2})')
+                # sesh_search_str = re.compile('(capture2?_.+_\d{2}-\w{3}-\d{4}_\d{2}-\d{2}-\d{2})')
+                sesh_search_str = re.compile('\d{2}-\w{3}-\d{4}_\d{2}-\d{2}-\d{2}_Access_.+')
                 sesh_search = sesh_search_str.search(wt_name)
                 sesh_id = sesh_search.groups()[0]
                 cp_path = os.path.join(cp_path, sesh_id)
@@ -251,7 +258,8 @@ class AccessData():
 
         """
         dat_path, name = os.path.split(fname)
-        if 'Rcapture' not in name:
+        # if 'Rcapture' not in name:
+        if 'R' not in name:
             reprocess_fname = os.path.join(dat_path, 'R{}'.format(name))
             if os.path.exists(reprocess_fname):
                 out_name = reprocess_fname

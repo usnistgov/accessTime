@@ -1,8 +1,6 @@
 import abcmrt
-import argparse
 import csv
 import datetime
-import glob
 import mcvqoe.base
 import os
 import pkg_resources
@@ -14,7 +12,6 @@ import shutil
 import string
 import time
 import timeit
-import zipfile
 
 from collections import namedtuple
 from fractions import Fraction
@@ -400,8 +397,8 @@ class measure(mcvqoe.base.Measure):
                 audio_dat = audio_dat + np.resize(noise_scaled, audio_dat.size)
 
             # Convert to float sound array and add to list
-            self.y.append( audio_dat )
-            #Strip extension from file
+            self.y.append(audio_dat)
+            # Strip extension from file
             fne, _ = os.path.splitext(f_full)
             # Add .csv extension
             fcsv = fne+'.csv'
@@ -573,36 +570,47 @@ class measure(mcvqoe.base.Measure):
         #--------------------------[Fill log entries]--------------------------
 
         # Set test name, needs to match log_search.datafilenames
-        self.info["test"] = "Access 2 Loc Tx"
+        self.info["test"] = "Access_2LocTx"
         # Add any extra entries
         self.log_extra()
         # Fill in standard stuff
         self.info.update(mcvqoe.base.write_log.fill_log(self))
 
         #-----------------[Initialize Folders and Filenames]------------------
+        
+        # File/Folder name
+        fold_file_name = f"{dtn}_{self.info['test']}"
+        
+        # Create data folder
+        self.data_dir = os.path.join(self.outdir, fold_file_name)
+        os.makedirs(self.data_dir, exist_ok=True)
 
         # Generate data dir names
-        data_dir     = os.path.join(self.outdir,'data')
-        tx_dat_fold  = os.path.join(data_dir, "2loc_tx-data")
-        rec_data_dir = os.path.join(data_dir, 'recovery')
+        # data_dir     = os.path.join(self.outdir,'data')
+        # tx_dat_fold  = os.path.join(data_dir, "2loc_tx-data")
+        rec_data_dir = os.path.join(self.data_dir, 'recovery')
 
         # Generate base file name to use for all files
-        base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
+        # base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
+        base_filename = fold_file_name
 
-        wavdir = os.path.join(tx_dat_fold, "Tx_" + base_filename)
+        # wavdir = os.path.join(tx_dat_fold, "Tx_" + base_filename)
+        wavdir = os.path.join(self.data_dir, "wav")
 
         # Create data directories
         os.makedirs(wavdir, exist_ok=True)
-        os.makedirs(rec_data_dir, exist_ok=True)
+        # os.makedirs(rec_data_dir, exist_ok=True)
 
         # Put .csv files in wav dir
-        csv_data_dir = wavdir
+        # csv_data_dir = wavdir
 
         # Generate csv name
-        self.data_filename = os.path.join(csv_data_dir, f"{base_filename}.csv")
+        # self.data_filename = os.path.join(csv_data_dir, f"{base_filename}.csv")
+        self.data_filename = os.path.join(self.data_dir, f"{base_filename}.csv")
 
         # Generate temp csv name
-        temp_data_filename = os.path.join(csv_data_dir, f"{base_filename}_TEMP.csv")
+        # temp_data_filename = os.path.join(csv_data_dir, f"{base_filename}_TEMP.csv")
+        temp_data_filename = os.path.join(self.data_dir, f"{base_filename}_TEMP.csv")
 
         #-----------------------[Do more recovery things]-----------------------
 
@@ -773,7 +781,7 @@ class measure(mcvqoe.base.Measure):
 
         #---------------------------[write log entry]---------------------------
 
-        mcvqoe.base.pre(info=self.info, outdir=self.outdir)
+        mcvqoe.base.pre(info=self.info, outdir=self.outdir, test_folder=self.data_dir)
 
         #-----------------------[Notify User of Start]------------------------
 
@@ -1021,7 +1029,7 @@ class measure(mcvqoe.base.Measure):
             else:
                 info = {}
             # Finish log entry
-            mcvqoe.base.post(outdir=self.outdir, info=info)
+            mcvqoe.base.post(outdir=self.outdir, info=info, test_folder=self.data_dir)
 
         return (self.data_filename,)
 
@@ -1118,31 +1126,40 @@ class measure(mcvqoe.base.Measure):
         #--------------------------[Fill log entries]--------------------------
         
         # Set test name
-        self.info['test'] = "Access 1 Loc"
+        self.info['test'] = "Access_1Loc"
         # Add any extra entries
         self.log_extra()
         # Fill in standard stuff
         self.info.update(mcvqoe.base.write_log.fill_log(self))
 
         #-----------------[Initialize Folders and Filenames]------------------
+        
+        # Generate Fold/File naming convention
+        fold_file_name = f"{dtn}_{self.info['test']}"
+        
+        # Create data folder
+        self.data_dir = os.path.join(self.outdir, fold_file_name)
+        os.makedirs(self.data_dir, exist_ok=True)
 
         # Generate data dir names
-        data_dir     = os.path.join(self.outdir, 'data')
-        wav_data_dir = os.path.join(data_dir, 'wav')
-        csv_data_dir = os.path.join(data_dir, 'csv')
-        rec_data_dir = os.path.join(data_dir, 'recovery')
+        # data_dir     = os.path.join(self.outdir, 'data')
+        # wav_data_dir = os.path.join(data_dir, 'wav')
+        # csv_data_dir = os.path.join(data_dir, 'csv')
+        rec_data_dir = os.path.join(self.data_dir, 'recovery')
         
         
         # Create data directories 
-        os.makedirs(csv_data_dir, exist_ok=True)
-        os.makedirs(wav_data_dir, exist_ok=True)
+        # os.makedirs(csv_data_dir, exist_ok=True)
+        # os.makedirs(wav_data_dir, exist_ok=True)
         os.makedirs(rec_data_dir, exist_ok=True)
         
         # Generate base file name to use for all files
-        base_filename = 'capture_%s_%s'%(self.info['Test Type'], dtn);
+        # base_filename = 'capture_%s_%s'%(self.info['Test Type'], dtn);
+        base_filename = fold_file_name
         
         # Generate test dir names
-        wavdir = os.path.join(wav_data_dir, base_filename) 
+        # wavdir = os.path.join(wav_data_dir, base_filename) 
+        wavdir = os.path.join(self.data_dir, "wav")
         
         # Create test dir
         os.makedirs(wavdir, exist_ok=True)
@@ -1156,14 +1173,14 @@ class measure(mcvqoe.base.Measure):
         for name in clip_names:
             file = f"{base_filename}_{name}.csv"
             tmp_f = f"{base_filename}_{name}_TEMP.csv"
-            file = os.path.join(csv_data_dir, file)
-            tmp_f = os.path.join(csv_data_dir, tmp_f)
+            file = os.path.join(self.data_dir, file)
+            tmp_f = os.path.join(self.data_dir, tmp_f)
             self.data_filenames.append(file)
             temp_data_filenames.append(tmp_f)
 
         # Generate filename for bad csv data
         bad_name = f"{base_filename}_BAD.csv"
-        bad_name = os.path.join(csv_data_dir, bad_name)
+        bad_name = os.path.join(self.data_dir, bad_name)
 
         #-----------------------[Do more recovery things]-----------------------
 
@@ -1254,7 +1271,7 @@ class measure(mcvqoe.base.Measure):
                                 'status',
                                 num_files,
                                 n+1,
-                                f"Coppying old test audio : {file}"
+                                f"Copying old test audio : {file}"
                             )
                 new_name = os.path.join(wavdir, file)
                 old_name = os.path.join(old_wavdir, file)
@@ -1377,7 +1394,7 @@ class measure(mcvqoe.base.Measure):
         
         #---------------------------[write log entry]---------------------------
         
-        mcvqoe.base.pre(info=self.info, outdir=self.outdir)
+        mcvqoe.base.pre(info=self.info, outdir=self.outdir, test_folder=self.data_dir)
 
         #-----------------------[Notify User of Start]------------------------
         
@@ -1814,7 +1831,7 @@ class measure(mcvqoe.base.Measure):
             else:
                 info = {}
             # Finish log entry
-            mcvqoe.base.post(outdir=self.outdir, info=info)
+            mcvqoe.base.post(outdir=self.outdir, info=info, test_folder=self.data_dir)
 
         return self.data_filenames
 
@@ -2170,7 +2187,7 @@ class measure(mcvqoe.base.Measure):
             dat_name = mcvqoe.base.get_meas_basename(fname)
 
             if(audio_path is not None):
-                self.audio_path=audio_path
+                self.audio_path = audio_path
             else:
                 # Set audio_path based on filename
                 self.audio_path = os.path.join(os.path.dirname(os.path.dirname(fname)), 'wav', dat_name)
@@ -2181,6 +2198,7 @@ class measure(mcvqoe.base.Measure):
 
         return data
 
+    # TODO delete? Not sure this is even used anymore
     def post_process(self, test_dat, fname, audio_path):
         """
         process csv data.
