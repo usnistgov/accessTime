@@ -394,27 +394,36 @@ class Measure:
         self.info.update(fill_log(self))
 
         # -----------------------[Setup Files and folders]-----------------------
+        
+        # Create test's naming convention
+        fold_file_name = f"{dtn}_{self.info['test']}"
+        
+        # Create data folder
+        self.data_dir = os.path.join(self.outdir, fold_file_name)
+        os.makedirs(self.data_dir, exist_ok=True)
 
-        # generate data dir names
-        data_dir = os.path.join(self.outdir, "data")
-        tx_dat_fold = os.path.join(data_dir, "2loc_tx-data")
+        # # generate data dir names
+        # data_dir = os.path.join(self.outdir, "data")
+        # tx_dat_fold = os.path.join(data_dir, "2loc_tx-data")
 
-        # generate base file name to use for all files
-        base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
+        # # generate base file name to use for all files
+        # base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
+        base_filename = fold_file_name
 
-        wavdir = os.path.join(tx_dat_fold, "Tx_" + base_filename)
+        # wavdir = os.path.join(tx_dat_fold, "Tx_" + base_filename)
+        wavdir = os.path.join(self.data_dir, "wav")
 
         # create directories
         os.makedirs(wavdir, exist_ok=True)
 
-        # Put .csv files in wav dir
-        csv_data_dir = wavdir
+        # # Put .csv files in wav dir
+        # csv_data_dir = wavdir
 
         # generate csv name
-        self.data_filename = os.path.join(csv_data_dir, f"{base_filename}.csv")
+        self.data_filename = os.path.join(self.data_dir, f"{base_filename}.csv")
 
         # generate temp csv name
-        temp_data_filename = os.path.join(csv_data_dir, f"{base_filename}_TEMP.csv")
+        temp_data_filename = os.path.join(self.data_dir, f"{base_filename}_TEMP.csv")
 
         # ---------------------[Load Audio Files if Needed]---------------------
 
@@ -451,7 +460,7 @@ class Measure:
 
         # ---------------------------[write log entry]---------------------------
 
-        log_pre(info=self.info, outdir=self.outdir)
+        log_pre(info=self.info, outdir=self.outdir, test_folder=self.data_dir)
 
         # ---------------[Try block so we write notes at the end]---------------
         
@@ -611,7 +620,7 @@ class Measure:
             )
 
         finally:
-            self.post_write()
+            self.post_write(test_folder=self.data_dir)
 
         # return filename in a list
         return (self.data_filename,)
