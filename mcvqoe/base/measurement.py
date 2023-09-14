@@ -643,7 +643,7 @@ class Measure:
         # --------------------------[Fill log entries]--------------------------
 
         # set test name, needs to match log_search.datafilenames
-        self.info["test"] = "Rx Two Loc Test"
+        self.info["test"] = f"{self.measurement_name}Rx2Loc"
         
         # add any extra entries
         self.log_extra()
@@ -652,21 +652,31 @@ class Measure:
         self.info.update(fill_log(self))
 
         # -----------------------[Setup Files and folders]-----------------------
+        
+        # Create naming convention
+        fold_file_name = f"{dtn}_{self.info['test']}"
+        
+        # Create data folder
+        self.data_dir = os.path.join(self.outdir, fold_file_name)
+        os.makedirs(self.data_dir, exist_ok=True)
 
         # Create rx-data folder
-        data_dir = os.path.join(self.outdir, "data")
-        rx_dat_fold = os.path.join(data_dir, "2loc_rx-data")
-        os.makedirs(rx_dat_fold, exist_ok=True)
+        # data_dir = os.path.join(self.outdir, "data")
+        # rx_dat_fold = os.path.join(data_dir, "2loc_rx-data")
+        # os.makedirs(rx_dat_fold, exist_ok=True)
 
-        base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
+        # base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
+        base_filename = fold_file_name
 
-        self.data_filename = os.path.join(rx_dat_fold, "Rx_" + base_filename + ".wav")
+        # self.data_filename = os.path.join(rx_dat_fold, "Rx_" + base_filename + ".wav")
+        self.data_filename = os.path.join(self.data_dir, "Rx_" + base_filename + ".wav")
 
-        info_name = os.path.join(rx_dat_fold, "Rx_" + base_filename + ".json")
+        # info_name = os.path.join(rx_dat_fold, "Rx_" + base_filename + ".json")
+        info_name = os.path.join(self.data_dir, "Rx_" + base_filename + ".json")
 
         # ---------------------------[write log entry]---------------------------
 
-        log_pre(info=self.info, outdir=self.outdir)
+        log_pre(info=self.info, outdir=self.outdir, test_folder=self.data_dir)
 
         # ---------------[Try block so we write notes at the end]---------------
         
@@ -686,7 +696,7 @@ class Measure:
                 json.dump({"channels": rec_names}, info_f)
 
         finally:
-            self.post_write()
+            self.post_write(test_folder=self.data_dir)
 
         return (self.data_filename,)
 
@@ -864,7 +874,6 @@ class Measure:
 
         Returns
         -------
-
         """
 
         # do extra setup things
