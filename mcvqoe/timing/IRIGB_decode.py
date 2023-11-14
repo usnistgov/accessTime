@@ -63,7 +63,9 @@ def IRIGB_decode(tca, fs, tc_tol=0.05):
 
     #use kmeans to threshold the envelope into 2 clusters
     #use 0 and max as the starting centroids
-    init = (0, 1)
+     # init = (0, 1) # gsh3, reconfigured initial centeroids
+    init = (min(env), max(env)) # gsh3  reconfigured initial centeroids
+
     #take the cluster indices, raise an error if we don't have 2 centroids
     _, env_th = kmeans2(env, init, missing='raise')
 
@@ -123,7 +125,7 @@ def IRIGB_decode(tca, fs, tc_tol=0.05):
     #preallocate frame bits
     fbits = np.zeros((int(np.floor(len(bits)/100)), 100))
     #sample number of the first rising edge in the frame
-    fsamp = np.zeros((int(np.floor(len(bits)/100)),),dtype=np.int)
+    fsamp = np.zeros((int(np.floor(len(bits)/100)),),dtype=int) # gsh3: np.int--> int
 
     #frame number
     fnum=0
