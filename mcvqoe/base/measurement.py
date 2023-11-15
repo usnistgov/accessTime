@@ -115,248 +115,270 @@ class Measure:
         Run a generic test.
         """
         
-        # ------------------------[Test specific setup]------------------------
+        # -----------------[Try statement for ending post notes]---------------
         
-        self.test_setup()
-        
-        # ------------------[Check for correct audio channels]------------------
-        
-        self.check_channels()
-        
-        # -------------------------[Get Test Start Time]-------------------------
-
-        self.info["Tstart"] = datetime.datetime.now()
-        dtn = self.info["Tstart"].strftime("%d-%b-%Y_%H-%M-%S")
-
-        # --------------------------[Fill log entries]--------------------------
-        
-        # set test name
-        self.info["test"] = self.measurement_name
-        
-        # add any extra entries
-        self.log_extra()
-        
-        # fill in standard stuff
-        self.info.update(fill_log(self))
-
-        # -----------------------[Setup Files and folders]-----------------------
-
-        # Generate this test's naming convention
-        fold_file_name = f"{dtn}_{self.info['test']}"
-        
-        # Create data folder
-        self.data_dir = os.path.join(self.outdir, fold_file_name)
-        os.makedirs(self.data_dir, exist_ok=True)
-
-        # generate data dir names
-        # data_dir = os.path.join(self.outdir, "data")
-        # wav_data_dir = os.path.join(data_dir, "wav")
-        # csv_data_dir = os.path.join(data_dir, "csv")
-
-        # create data directories
-        # os.makedirs(csv_data_dir, exist_ok=True)
-        # os.makedirs(wav_data_dir, exist_ok=True)
-
-        # generate base file name to use for all files
-        # base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
-        base_filename = fold_file_name
-
-        # generate test dir names
-        # wavdir = os.path.join(wav_data_dir, base_filename)
-        wavdir = os.path.join(self.data_dir, "wav")
-
-        # create wav dir
-        os.makedirs(wavdir, exist_ok=True)
-
-        # generate csv name
-        # self.data_filename = os.path.join(csv_data_dir, f"{base_filename}.csv")
-        self.data_filename = os.path.join(self.data_dir, f"{base_filename}.csv")
-
-        # generate temp csv name
-        # temp_data_filename = os.path.join(csv_data_dir, f"{base_filename}_TEMP.csv")
-        temp_data_filename = os.path.join(self.data_dir, f"{base_filename}_TEMP.csv")
-
-        # ---------------------[Load Audio Files if Needed]---------------------
-
-        if not hasattr(self, "y"):
-            self.load_audio()
-
-        # check audio clips, and possibly, adjust the number of trials
-        self.audio_clip_check()
-
-        # generate clip index
-        self.clipi = self.rng.permutation(self.trials) % len(self.y)
-
-        # -----------------------[Add Tx audio to wav dir]-----------------------
-
-        # get name with out path or ext
-        clip_names = [os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files]
-
-
-        if hasattr(self, 'cutpoints'):
-            cutpoints = self.cutpoints
-        else:
-            # placeholder for zip
-            cutpoints = cycle((None,))
-        # write out Tx clips to files
-        # cutpoints, if present, are always written
-        for dat, name, cp in zip(self.y, clip_names, cutpoints):
-            out_name = os.path.join(wavdir, f"Tx_{name}")
-            if self.save_tx_audio and self.save_audio:
-                audio_write(out_name + ".wav", int(self.audio_interface.sample_rate), dat)
-            # write cutpoints, if present
-            if cp:
-                write_cp(out_name+'.csv',cp)
-
-
-        # -------------------------[Generate CSV header]-------------------------
-
-        header, dat_format = self.csv_header_fmt()
-
-        # ---------------------------[write log entry]---------------------------
-
-        # log_pre(info=self.info, outdir=self.outdir)
-        # Add the log file to the outside folder and test specific folder
-        log_pre(info=self.info, outdir=self.outdir, test_folder=self.data_dir)
-
-        # ---------------[Try block so we write notes at the end]---------------
-
         try:
-
-            # ------------------[Save Time for Set Timing]---------------------
+        
+            # ------------------[For loop for multiple iterations]-----------------
+        
+            for itr in range(self.iterations):    
+        
+                # ------------------------[Test specific setup]------------------------
+                
+                self.test_setup()
+                
+                # ------------------[Check for correct audio channels]------------------
+                
+                self.check_channels()
+                
+                # -------------------------[Get Test Start Time]-------------------------
+        
+                self.info["Tstart"] = datetime.datetime.now()
+                dtn = self.info["Tstart"].strftime("%d-%b-%Y_%H-%M-%S")
+        
+                # --------------------------[Fill log entries]--------------------------
+                
+                # Set test name
+                self.info["test"] = self.measurement_name
+                
+                # Add iteration number
+                self.info["iteration #"] = f"{itr+1} of {self.iterations}"
+                
+                # Add any extra entries
+                self.log_extra()
+                
+                # Fill in standard stuff
+                self.info.update(fill_log(self))
+        
+                # -----------------------[Setup Files and folders]-----------------------
+        
+                # Generate this test's naming convention
+                fold_file_name = f"{dtn}_{self.info['test']}"
+                
+                # Create data folder
+                self.data_dirs.append(os.path.join(self.outdir, fold_file_name))
+                os.makedirs(self.data_dirs[itr], exist_ok=True)
+        
+                # generate data dir names
+                # data_dir = os.path.join(self.outdir, "data")
+                # wav_data_dir = os.path.join(data_dir, "wav")
+                # csv_data_dir = os.path.join(data_dir, "csv")
+        
+                # create data directories
+                # os.makedirs(csv_data_dir, exist_ok=True)
+                # os.makedirs(wav_data_dir, exist_ok=True)
+        
+                # generate base file name to use for all files
+                # base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
+                base_filename = fold_file_name
+        
+                # generate test dir names
+                # wavdir = os.path.join(wav_data_dir, base_filename)
+                wavdir = os.path.join(self.data_dirs[itr], "wav")
+        
+                # create wav dir
+                os.makedirs(wavdir, exist_ok=True)
+        
+                # generate csv name
+                # self.data_filename = os.path.join(csv_data_dir, f"{base_filename}.csv")
+                self.data_filename.append(os.path.join(self.data_dirs[itr], f"{base_filename}.csv"))
+        
+                # generate temp csv name
+                # temp_data_filename = os.path.join(csv_data_dir, f"{base_filename}_TEMP.csv")
+                temp_data_filename = os.path.join(self.data_dirs[itr], f"{base_filename}_TEMP.csv")
+        
+                # ---------------------[Load Audio Files if Needed]---------------------
+        
+                if not hasattr(self, "y"):
+                    self.load_audio()
+        
+                # check audio clips, and possibly, adjust the number of trials
+                self.audio_clip_check()
+        
+                # generate clip index
+                self.clipi = self.rng.permutation(self.trials) % len(self.y)
+        
+                # -----------------------[Add Tx audio to wav dir]-----------------------
+        
+                # get name with out path or ext
+                clip_names = [os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files]
+        
+        
+                if hasattr(self, 'cutpoints'):
+                    cutpoints = self.cutpoints
+                else:
+                    # placeholder for zip
+                    cutpoints = cycle((None,))
+                # write out Tx clips to files
+                # cutpoints, if present, are always written
+                for dat, name, cp in zip(self.y, clip_names, cutpoints):
+                    out_name = os.path.join(wavdir, f"Tx_{name}")
+                    if self.save_tx_audio and self.save_audio:
+                        audio_write(out_name + ".wav", int(self.audio_interface.sample_rate), dat)
+                    # write cutpoints, if present
+                    if cp:
+                        write_cp(out_name+'.csv',cp)
+        
+        
+                # -------------------------[Generate CSV header]-------------------------
+        
+                header, dat_format = self.csv_header_fmt()
+        
+                # ---------------------------[write log entry]---------------------------
+        
+                # log_pre(info=self.info, outdir=self.outdir)
+                # Add the log file to the outside folder and test specific folder
+                log_pre(info=self.info, outdir=self.outdir, test_folder=self.data_dirs[itr])
+        
+                # ---------------[Try block so we write notes at the end]---------------
+        
+                # try:
+        
+                # ------------------[Save Time for Set Timing]---------------------
+                
+                set_start = datetime.datetime.now().replace(microsecond=0)
+                
+                # -------------------------[Turn on RI LED]-------------------------
+                
+                self.ri.led(1, True)
+    
+                # -----------------------[write initial csv file]-----------------------
+                
+                with open(temp_data_filename, "wt") as f:
+                    f.write(header)
+    
+                # ------------------------[Measurement Loop]------------------------
+    
+                # zero pause count
+                self._pause_count = 0
+    
+                if not hasattr(self, 'pause_trials'):
+                    # if we don't have pause_trials, that means no pauses
+                    self.pause_trials = np.inf
+    
+                for trial in range(self.trials):
+                    
+                    # -----------------------[Update progress]-------------------------
+                    
+                    if not self.progress_update("test", self.trials, trial):
+                        # turn off LED
+                        self.ri.led(1, False)
+                        print("Exit from user")
+                        break
+                    
+                    # -----------------------[Get Trial Timestamp]-----------------------
+                    
+                    ts = datetime.datetime.now().strftime("%d-%b-%Y %H:%M:%S")
+    
+                    # --------------------[Key Radio and play audio]--------------------
+    
+                    # Press the push to talk button
+                    self.ri.ptt(True)
+    
+                    # Pause the indicated amount to allow the radio to access the system
+                    time.sleep(self.ptt_wait)
+    
+                    clip_index = self.clipi[trial]
+    
+                    # Create audiofile name/path for recording
+                    audioname = f"Rx{trial+1}_{clip_names[clip_index]}.wav"
+                    audioname = os.path.join(wavdir, audioname)
+    
+                    # Play/Record
+                    rec_chans = self.audio_interface.play_record(self.y[clip_index], audioname)
+    
+                    # Release the push to talk button
+                    self.ri.ptt(False)
+    
+                    # -----------------------[Pause Between runs]-----------------------
+    
+                    time.sleep(self.ptt_gap)
+    
+                    # -----------------------------[Data Processing]----------------------------
+    
+                    trial_dat = self.process_audio(
+                        clip_index,
+                        audioname,
+                        rec_chans,
+                    )
+    
+                    # add extra info
+                    trial_dat["Timestamp"] = ts
+                    trial_dat["Filename"] = clip_names[clip_index]
+                    trial_dat['Over_runs']  = 0
+                    trial_dat['Under_runs'] = 0
+    
+                    # -------------------[Delete file if needed]-------------------
+                    
+                    if not self.save_audio:
+                        os.remove(audioname)
+    
+                    # --------------------------[Write CSV]--------------------------
+    
+                    with open(temp_data_filename, "at") as f:
+                        f.write(dat_format.format(**trial_dat))
+    
+    
+                    #------------------[Check if we should pause]------------------
+    
+                    # increment pause count
+                    self._pause_count += 1
+    
+                    if self._pause_count >= self.pause_trials:
+    
+                        # zero pause count
+                        self._pause_count = 0
+    
+                        # Calculate set time
+                        time_diff = datetime.datetime.now().replace(microsecond=0)
+                        set_time = time_diff - set_start
+    
+                        # Turn on LED when waiting for user input
+                        self.ri.led(2, True)
+    
+                        # wait for user
+                        user_exit = self.user_check(
+                                'normal-stop',
+                                'check batteries.',
+                                trials=self.pause_trials,
+                                time=set_time,
+                            )
+    
+                        # Turn off LED, resuming
+                        self.ri.led(2, False)
+    
+                        if(user_exit):
+                            raise SystemExit()
+    
+                        # Save time for next set
+                        set_start = datetime.datetime.now().replace(microsecond=0)
+    
+                # -----------------------------[Cleanup]-----------------------------
+    
+                # move temp file to real file
+                shutil.move(temp_data_filename, self.data_filename[itr])
+    
+                # ---------------------------[Turn off RI LED]---------------------------
+    
+                self.ri.led(1, False)
+        
+                # finally:
+                #     # self.post_write()
+                #     self.post_write(test_folder=self.data_dir)
             
-            set_start = datetime.datetime.now().replace(microsecond=0)
-            
-            # -------------------------[Turn on RI LED]-------------------------
-            
-            self.ri.led(1, True)
-
-            # -----------------------[write initial csv file]-----------------------
-            
-            with open(temp_data_filename, "wt") as f:
-                f.write(header)
-
-            # ------------------------[Measurement Loop]------------------------
-
-            # zero pause count
-            self._pause_count = 0
-
-            if not hasattr(self, 'pause_trials'):
-                # if we don't have pause_trials, that means no pauses
-                self.pause_trials = np.inf
-
-            for trial in range(self.trials):
-                
-                # -----------------------[Update progress]-------------------------
-                
-                if not self.progress_update("test", self.trials, trial):
-                    # turn off LED
-                    self.ri.led(1, False)
-                    print("Exit from user")
-                    break
-                
-                # -----------------------[Get Trial Timestamp]-----------------------
-                
-                ts = datetime.datetime.now().strftime("%d-%b-%Y %H:%M:%S")
-
-                # --------------------[Key Radio and play audio]--------------------
-
-                # Press the push to talk button
-                self.ri.ptt(True)
-
-                # Pause the indicated amount to allow the radio to access the system
-                time.sleep(self.ptt_wait)
-
-                clip_index = self.clipi[trial]
-
-                # Create audiofile name/path for recording
-                audioname = f"Rx{trial+1}_{clip_names[clip_index]}.wav"
-                audioname = os.path.join(wavdir, audioname)
-
-                # Play/Record
-                rec_chans = self.audio_interface.play_record(self.y[clip_index], audioname)
-
-                # Release the push to talk button
-                self.ri.ptt(False)
-
-                # -----------------------[Pause Between runs]-----------------------
-
-                time.sleep(self.ptt_gap)
-
-                # -----------------------------[Data Processing]----------------------------
-
-                trial_dat = self.process_audio(
-                    clip_index,
-                    audioname,
-                    rec_chans,
-                )
-
-                # add extra info
-                trial_dat["Timestamp"] = ts
-                trial_dat["Filename"] = clip_names[clip_index]
-                trial_dat['Over_runs']  = 0
-                trial_dat['Under_runs'] = 0
-
-                # -------------------[Delete file if needed]-------------------
-                
-                if not self.save_audio:
-                    os.remove(audioname)
-
-                # --------------------------[Write CSV]--------------------------
-
-                with open(temp_data_filename, "at") as f:
-                    f.write(dat_format.format(**trial_dat))
-
-
-                #------------------[Check if we should pause]------------------
-
-                # increment pause count
-                self._pause_count += 1
-
-                if self._pause_count >= self.pause_trials:
-
-                    # zero pause count
-                    self._pause_count = 0
-
-                    # Calculate set time
-                    time_diff = datetime.datetime.now().replace(microsecond=0)
-                    set_time = time_diff - set_start
-
-                    # Turn on LED when waiting for user input
-                    self.ri.led(2, True)
-
-                    # wait for user
-                    user_exit = self.user_check(
-                            'normal-stop',
-                            'check batteries.',
-                            trials=self.pause_trials,
-                            time=set_time,
-                        )
-
-                    # Turn off LED, resuming
-                    self.ri.led(2, False)
-
-                    if(user_exit):
-                        raise SystemExit()
-
-                    # Save time for next set
-                    set_start = datetime.datetime.now().replace(microsecond=0)
-
-            # -----------------------------[Cleanup]-----------------------------
-
-            # move temp file to real file
-            shutil.move(temp_data_filename, self.data_filename)
-
-            # ---------------------------[Turn off RI LED]---------------------------
-
-            self.ri.led(1, False)
-
         finally:
-            # self.post_write()
-            self.post_write(test_folder=self.data_dir)
-
+            # Try just in case we don't have directories yet
+            try:
+                for directory in self.data_dirs:
+                    self.post_write(test_folder=directory, file=self.data_filename[itr])
+                    
+            except AttributeError:
+                # Haven't created the self.data_dirs yet
+                print(f"Error occured before testing began")
+                
         # return filename in a list
-        return (self.data_filename,)
+        # return (self.data_filename,)
+        return self.data_filename
 
     def run_2loc_tx(self):
         """
@@ -923,7 +945,7 @@ class Measure:
                 # write line with new data
                 f_out.write(dat_format.format(**merged_dat))
                 
-    def post_write(self, test_folder=""):
+    def post_write(self, test_folder="", file=""):
         """Provide a function to allow overwriting of post note function.
         
         This allows each test the ability to print the results into
