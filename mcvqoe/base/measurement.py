@@ -369,8 +369,8 @@ class Measure:
         finally:
             # Try just in case we don't have directories yet
             try:
-                for directory in self.data_dirs:
-                    self.post_write(test_folder=directory, file=self.data_filename[itr])
+                # Sending lists so that post_write can handle multiple iterations
+                self.post_write(test_folder=self.data_dirs, file=self.data_filename)
                     
             except AttributeError:
                 # Haven't created the self.data_dirs yet
