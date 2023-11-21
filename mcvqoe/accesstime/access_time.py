@@ -281,6 +281,10 @@ class measure(mcvqoe.base.Measure):
         self.save_tx_audio = True
         self.save_audio = True
         self.zip_audio = True
+        # Variables for multiple iterations
+        self.iterations = 1
+        self.data_dirs = []
+        self.data_files_list = []
 
         for k, v in kwargs.items():
             if hasattr(self, k):
@@ -366,7 +370,7 @@ class measure(mcvqoe.base.Measure):
         
         for f in self.audio_files:
             # Make full path from relative paths
-            f_full=os.path.join(self.audio_path,f)
+            f_full = os.path.join(self.audio_path, f)
             # Load audio
             fs_file, audio_dat = mcvqoe.base.audio_read(f_full)
             # Check fs
@@ -571,8 +575,10 @@ class measure(mcvqoe.base.Measure):
 
         # Set test name, needs to match log_search.datafilenames
         self.info["test"] = "Access2LocTx"
+        
         # Add any extra entries
         self.log_extra()
+        
         # Fill in standard stuff
         self.info.update(mcvqoe.base.write_log.fill_log(self))
 
@@ -1045,432 +1051,744 @@ class measure(mcvqoe.base.Measure):
         
         """
         
-        #----------------[List of Vars to Save in Pickle File]----------------
+        #------------[Try statement for end of iteration post notes]-----------
         
-        save_vars = ('clip_names', 'bad_name', 'temp_data_filenames',
-                     'ptt_st_dly', 'wavdir' , 'ptt_step_counts',
-                     'time_a', 'time_b', 'time_c',
-                    )
-        
-        # Initialize clip end time for gap time calculation
-        time_e = np.nan
-        tg_e = np.nan
-        
-        # TODO: Decide where this should go...
-        # Define bisection tolerance (only used if self.bisect_midpoint == True)
-        # 5 ms should be fine, minimum it could go (hardware constraint) is 1 ms
-        bisect_tol = 5e-3
-        # Initialize bisection time variables so that things can be recovered if needed with no extra checks
-        time_a = None
-        time_b = None
-        time_c = None
-
-        # ------------------------[Test specific setup]------------------------
-        
-        self.test_setup()
-        
-        # ------------------[Check for correct audio channels]------------------
-        
-        self.check_channels()
-        
-        #---------------------[Generate csv format strings]---------------------
-
-        self.data_header, dat_format = self.csv_header_fmt(self.data_fields)
-        self.bad_header, bad_format = self.csv_header_fmt(self.bad_fields)
-
-        #------------------[Load In Old Data File If Given]-------------------
-        
-        if recovery:
-
-            trial_count = 0
-
-            # Compare versions
-            if('version' not in self.rec_file):
-                # No version, so it must be old, give warning
-                self.progress_update('warning',0,0,
-                                        msg='recovery file missing version')
-            elif version != self.rec_file['version']:
-                # Warn on version mismatch, recovery could have issues
-                self.progress_update('warning',0,0,
-                                        msg='recovery file version mismatch!')
-
-            # Restore saved class properties
-            for k in self.rec_file:
-                if k.startswith('self.') and not k == 'self.rec_file':
-                    varname=k[len('self.'):]
-                    self.__dict__[varname]=self.rec_file[k]
-
-            # Copy recovery variables to current test
-            ptt_st_dly = self.rec_file['ptt_st_dly']
-            ptt_step_counts = self.rec_file['ptt_step_counts']
-            
-            time_a = self.rec_file['time_a']
-            time_b = self.rec_file['time_b']
-            time_c = self.rec_file['time_c']
-
-        # Only read in data if this is the first time
-        else:
-
-            # Set initial loop indices
-            clip_start = 0
-            k_start = 0
-            kk_start = 0
-
-            self.load_audio()
-
-        #-------------------------[Get Test Start Time]-------------------------
-
-        self.info['Tstart'] = datetime.datetime.now()
-        dtn = self.info['Tstart'].strftime('%d-%b-%Y_%H-%M-%S')
-        
-        #--------------------------[Fill log entries]--------------------------
-        
-        # Set test name
-        self.info['test'] = "Access1Loc"
-        # Add any extra entries
-        self.log_extra()
-        # Fill in standard stuff
-        self.info.update(mcvqoe.base.write_log.fill_log(self))
-
-        #-----------------[Initialize Folders and Filenames]------------------
-        
-        # Generate Fold/File naming convention
-        fold_file_name = f"{dtn}_{self.info['test']}"
-        
-        # Create data folder
-        self.data_dir = os.path.join(self.outdir, fold_file_name)
-        os.makedirs(self.data_dir, exist_ok=True)
-
-        # Generate data dir names
-        # data_dir     = os.path.join(self.outdir, 'data')
-        # wav_data_dir = os.path.join(data_dir, 'wav')
-        # csv_data_dir = os.path.join(data_dir, 'csv')
-        rec_data_dir = os.path.join(self.data_dir, 'recovery')
-        
-        
-        # Create data directories 
-        # os.makedirs(csv_data_dir, exist_ok=True)
-        # os.makedirs(wav_data_dir, exist_ok=True)
-        os.makedirs(rec_data_dir, exist_ok=True)
-        
-        # Generate base file name to use for all files
-        # base_filename = 'capture_%s_%s'%(self.info['Test Type'], dtn);
-        base_filename = fold_file_name
-        
-        # Generate test dir names
-        # wavdir = os.path.join(wav_data_dir, base_filename) 
-        wavdir = os.path.join(self.data_dir, "wav")
-        
-        # Create test dir
-        os.makedirs(wavdir, exist_ok=True)
-        
-        # Get name of audio clip without path or extension
-        clip_names = [os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files]
-        
-        # Generate csv filenames and add path
-        self.data_filenames = []
-        temp_data_filenames = []
-        for name in clip_names:
-            file = f"{base_filename}_{name}.csv"
-            tmp_f = f"{base_filename}_{name}_TEMP.csv"
-            file = os.path.join(self.data_dir, file)
-            tmp_f = os.path.join(self.data_dir, tmp_f)
-            self.data_filenames.append(file)
-            temp_data_filenames.append(tmp_f)
-
-        # Generate filename for bad csv data
-        bad_name = f"{base_filename}_BAD.csv"
-        bad_name = os.path.join(self.data_dir, bad_name)
-
-        #-----------------------[Do more recovery things]-----------------------
-
-        if recovery:
-            # Save old names to copy to new names
-            old_filenames = self.rec_file['temp_data_filenames']
-            # Save old .wav folder
-            old_wavdir = self.rec_file['wavdir']
-            # Save old bad file name
-            old_bad_name = self.rec_file['bad_name']
-            # Count the number of files loaded
-            load_count = 0
-            # List of tuples of filenames to copy
-            copy_files = []
-            # Check if bad file exists
-            if os.path.exists(old_bad_name):
-                # Add to list
-                copy_files.append((old_bad_name, bad_name))
-
-            for k, (new_name, old_name) in enumerate(zip(temp_data_filenames, old_filenames)):
-                save_dat = self.load_dat(old_name)
-                if not save_dat:
-                    self.progress_update(
-                                'status',
-                                len(temp_data_filenames),
-                                k,
-                                f"No data file found for {old_name}"
-                            )
-                    # If file exists, we have a problem, throw an error
-                    if os.path.exists(old_name):
-                        raise RuntimeError(f'Problem loading data in \'{old_name}\'')
-                else:
-                    self.progress_update(
-                                'status',
-                                len(temp_data_filenames),
-                                k,
-                                f"initializing with data from {old_name}"
-                            )
-                    # File found, increment count
-                    load_count += 1
-                    copy_files.append((old_name, new_name))
-                    # Get number of "rows" from CSV
-                    clen = len(save_dat)
-                    # Add old clip_count for naming audiofiles
-                    clip_count = clen
-                    # Initialize success with zeros
-                    success = np.zeros((2, (len(ptt_st_dly[k])*self.ptt_rep)))
-                    # Fill in success from file
-                    for p in range(clen):
-                        success[0, p] = save_dat[p]['P1_Int']
-                        success[1, p] = save_dat[p]['P2_Int']
-                    # Stop flag is computed every delay step
-                    stop_flag = np.empty(len(ptt_st_dly[k]))
-                    stop_flag[:] = np.nan
-                    # Trial count is the sum of all trial counts from each file
-                    trial_count = trial_count + clen
-                    # Set clip start to curren index
-                    # If another datafile is found it will be overwritten
-                    clip_start = k
-                    # Initialize k_start
-                    k_start = 0
-
-                    # Loop through data and evaluate stop condition
-                    for kk in range(self.ptt_rep, clen, self.ptt_rep):
-
-                        # Identify trials calculated at last timestep
-                        ts_ix = np.arange((kk-(self.ptt_rep)), kk)
-                        p1_intell = success[0, ts_ix]
-                        p2_intell = success[1, :]
-                        stop_flag[k] = not approx_permutation_test(p2_intell, p1_intell, tail = 'right')
-                        k_start = k_start
-
-                    # Assign kk_start point for inner loop
-                    if (clen == 0):
-                        kk_start = 0
-                    else:
-                        kk_start = ((clen-1) % self.ptt_rep)
-
-            # Check that we loaded some data
-            if load_count == 0:
-                raise RuntimeError('Could not find files to load')
-
-
-            wav_list = os.listdir(old_wavdir)
-            num_files = len(wav_list)
-            for n, file in enumerate(wav_list):
-                self.progress_update(
-                                'status',
-                                num_files,
-                                n+1,
-                                f"Copying old test audio : {file}"
-                            )
-                new_name = os.path.join(wavdir, file)
-                old_name = os.path.join(old_wavdir, file)
-                shutil.copyfile(old_name, new_name)
-
-            for n, (old_name, new_name) in enumerate(copy_files):
-                self.progress_update(
-                                    'status',
-                                    len(copy_files),
-                                    n+1,
-                                    f"Copying old test csvs : {old_name}"
-                                )
-                shutil.copyfile(old_name, new_name)
-
-
-        #---------[Write Transmit Audio File(s) and cutpoint File(s)]----------
-
-        # Write out Tx clips and cutpoints to files
-        # Cutpoints are always written, they are needed for eval
-        for dat, name, cp in zip(self.y, clip_names, self.cutpoints):
-            out_name = os.path.join(wavdir, f'Tx_{name}')
-            # Check if saving audio, cutpoints are needed for processing
-            if(self.save_tx_audio and self.save_audio):
-                mcvqoe.base.audio_write(out_name+'.wav', int(self.audio_interface.sample_rate), dat)
-            mcvqoe.base.write_cp(out_name+'.csv', cp)
-
-        #-----------------------[Generate PTT Delays]-------------------------
-        
-        if not recovery:
-        
-            ptt_st_dly = []
-            ptt_step_counts = []
-            if self.bisect_midpoint:
-                # We are bisecting the midpoint implies: we generate ptt_st_dlys on the fly
-                if len(self.ptt_delay) == 1:
-                    for cp in self.cutpoints:
-                        # Find end of first word + a bit of offset
-                        w_end = cp[1]['End']/self.audio_interface.sample_rate + 0.001
-                        
-                        middle = np.mean([0, w_end])
-                        # Inititalize clip start delays as 0, end of word, and midpoint
-                        ptt_st_dly.append([0, w_end, middle])
-                        
-                        # Determine number of bisection iterations required to reach toleranace
-                        # Add 2 cause we will evaluate initial endpoints to help estimate I0
-                        niters_raw = np.log(bisect_tol/(ptt_st_dly[-1][1] - ptt_st_dly[-1][0]))/np.log(1/2) + 2
-                        niters = int(np.floor(niters_raw))
-                        ptt_step_counts.append(niters)
-                        # Fill out rest of ptt_st_dly with nan
-                        # (-3 cause we already set the edges and midpoint)
-                        for k in range(niters-3):
-                            ptt_st_dly[-1].append(np.nan)
-                else:
-                    for _ in self.cutpoints:
-                        # Need first element to always be less than second
-                        sort_delays = np.sort([self.ptt_delay[0], self.ptt_delay[1]])
-                        # Get midpoint of intial delays
-                        middle = np.mean(sort_delays)
-                        # Set first three ptt times
-                        ptt_st_dly.append([sort_delays[0], sort_delays[1], middle])
-                        # Determine number of bisection iterations required to reach toleranace
-                        # Add 2 cause we will evaluate initial endpoints to help estimate I0
-                        niters_raw = np.log(bisect_tol/(sort_delays[1] - sort_delays[0]))/np.log(1/2) + 2
-                        niters = int(np.floor(niters_raw))
-                        ptt_step_counts.append(niters)
-                        # Fill out rest of ptt_st_dly with nan
-                        # (-3 cause we already set the edges and midpoint)
-                        for k in range(niters-3):
-                            ptt_st_dly[-1].append(np.nan)
-                        
-            else:
-                if (len(self.ptt_delay) == 1):
-                    for num in range(len(self.cutpoints)):
-                        # Word start time from end of first silence
-                        w_st = (self.cutpoints[num][0]['End']/self.audio_interface.sample_rate)
-                        # Word end time from end of word
-                        w_end = (self.cutpoints[num][1]['End']/self.audio_interface.sample_rate)
-                        # Delay during word (.0001 added to w_end ensures w_end's use)
-                        w_dly = np.arange(w_st, (w_end+.0001), self.ptt_step)
-                        # Delay during silence (.0001 decrement to ensure ptt_delay usage)
-                        s_dly = np.arange(w_st, (self.ptt_delay[0]-.0001), -self.ptt_step)
-                        # Generate delay from word delay and silence delay
-                        # Word delay must be reversed
-                        ptt_st_dly.append(np.concatenate((w_dly[::-1], s_dly[1:])))
-                        # Ensure that final delay time will not be negative
-                        if(ptt_st_dly[-1][-1] < 0.0):
-                            ptt_st_dly[-1][-1] = 0.0
-                        ptt_step_counts.append(len(ptt_st_dly[-1]))
-                else:
-                    for _ in range(len(self.cutpoints)):
-                        dly_steps = np.arange(self.ptt_delay[1], self.ptt_delay[0], -self.ptt_step)
-                        ptt_st_dly.append(dly_steps)
-                        ptt_step_counts.append(len(dly_steps))
-    
-            # Running count of the number of completed trials
-            trial_count = 0
-
-        #----------------[Pickle important data for restart]------------------
-        
-        # Initialize error file
-        recovery_file = os.path.join(rec_data_dir, base_filename+'.pickle')
-         
-        # Error dictionary, add version
-        err_dict = {'version' : version}
-         
-        for var in save_vars:
-            err_dict[var] = locals()[var]
-         
-        # Add all access_time object parameters to error dictionary
-        for i in self.__dict__:
-            skip = ['no_log', 'audio_interface', 'ri',
-                    'inter_word_diff', 'get_post_notes',
-                    'progress_update', 'user_check']
-            if (i not in skip):
-                err_dict['self.'+i] = self.__dict__[i]
-         
-        # Place dictionary into pickle file
-        with open(recovery_file, 'wb') as pkl:
-            pickle.dump(err_dict, pkl)
-        
-        #---------------------------[write log entry]---------------------------
-        
-        mcvqoe.base.pre(info=self.info, outdir=self.outdir, test_folder=self.data_dir)
-
-        #-----------------------[Notify User of Start]------------------------
-        
-        # Turn on LED
-        self.ri.led(1, True)
-    
         try:
     
-            #---------------------[Save Time for Set Timing]----------------------
+            #----------------------[Multiple iteration loop]----------------------
             
-            set_start = datetime.datetime.now().replace(microsecond=0)
-    
-            #----------------------------[Clip Loop]------------------------------
+            if recovery:
+                # Only want 1 iteration if recovery
+                self.iterations = 1
             
-            # Load templates outside the loop so we take the hit here
-            abcmrt.load_templates()
-            
-            for clip in range(clip_start, len(self.y)):
+            for itr in range(self.iterations):
+        
+                #----------------[List of Vars to Save in Pickle File]----------------
                 
-                #---------------------[Calculate Delay Start Index]-------------------
+                save_vars = ('clip_names', 'bad_name', 'temp_data_filenames',
+                             'ptt_st_dly', 'wavdir' , 'ptt_step_counts',
+                             'time_a', 'time_b', 'time_c',
+                            )
                 
-                # Calculate index to start M2E latency at. This is 3/4 through the second silence.
-                # If more of the clip is used, ITS_delay can get confused and return bad values.
-                dly_st_idx = self.get_dly_idx(clip)
-
-                #---------------------[Update Total Trials]---------------------
+                # Initialize clip end time for gap time calculation
+                time_e = np.nan
+                tg_e = np.nan
                 
-                total_trials = sum(ptt_step_counts)*self.ptt_rep                
+                # TODO: Decide where this should go...
+                # Define bisection tolerance (only used if self.bisect_midpoint == True)
+                # 5 ms should be fine, minimum it could go (hardware constraint) is 1 ms
+                bisect_tol = 5e-3
+                # Initialize bisection time variables so that things can be recovered if needed with no extra checks
+                time_a = None
+                time_b = None
+                time_c = None
+        
+                # ------------------------[Test specific setup]------------------------
                 
-                # Check if file is not present (not a restart)
+                self.test_setup()
+                
+                # ------------------[Check for correct audio channels]------------------
+                
+                self.check_channels()
+                
+                #---------------------[Generate csv format strings]---------------------
+        
+                self.data_header, dat_format = self.csv_header_fmt(self.data_fields)
+                self.bad_header, bad_format = self.csv_header_fmt(self.bad_fields)
+        
+                #------------------[Load In Old Data File If Given]-------------------
+                
+                if recovery:
+        
+                    trial_count = 0
+        
+                    # Compare versions
+                    if('version' not in self.rec_file):
+                        # No version, so it must be old, give warning
+                        self.progress_update('warning', 0, 0,
+                                                msg='recovery file missing version')
+                    elif version != self.rec_file['version']:
+                        # Warn on version mismatch, recovery could have issues
+                        self.progress_update('warning', 0, 0,
+                                                msg='recovery file version mismatch!')
+        
+                    # Restore saved class properties
+                    for k in self.rec_file:
+                        if k.startswith('self.') and not k == 'self.rec_file':
+                            varname = k[len('self.'):]
+                            self.__dict__[varname] = self.rec_file[k]
+        
+                    # Copy recovery variables to current test
+                    ptt_st_dly = self.rec_file['ptt_st_dly']
+                    ptt_step_counts = self.rec_file['ptt_step_counts']
+                    
+                    time_a = self.rec_file['time_a']
+                    time_b = self.rec_file['time_b']
+                    time_c = self.rec_file['time_c']
+        
+                # Only read in data if this is the first time
+                else:
+        
+                    # Set initial loop indices
+                    clip_start = 0
+                    k_start = 0
+                    kk_start = 0
+        
+                    self.load_audio()
+        
+                #------------------------[Get Test Start Time]------------------------
+        
+                self.info['Tstart'] = datetime.datetime.now()
+                dtn = self.info['Tstart'].strftime('%d-%b-%Y_%H-%M-%S')
+                
+                #--------------------------[Fill log entries]-------------------------
+                
+                # Set test name
+                self.info['test'] = "Access1Loc"
+                
+                # Add iteration number
+                self.info["iteration #"] = f"{itr+1} of {self.iterations}"
+                
+                # Add any extra entries
+                self.log_extra()
+                
+                # Fill in standard stuff
+                self.info.update(mcvqoe.base.write_log.fill_log(self))
+        
+                #-----------------[Initialize Folders and Filenames]------------------
+                
+                # Generate Fold/File naming convention
+                fold_file_name = f"{dtn}_{self.info['test']}"
+                
+                # Create data folder
+                self.data_dirs.append(os.path.join(self.outdir, fold_file_name))
+                os.makedirs(self.data_dirs[itr], exist_ok=True)
+        
+                # Generate data dir names
+                # data_dir     = os.path.join(self.outdir, 'data')
+                # wav_data_dir = os.path.join(data_dir, 'wav')
+                # csv_data_dir = os.path.join(data_dir, 'csv')
+                rec_data_dir = os.path.join(self.data_dirs[itr], 'recovery')
+                
+                
+                # Create data directories 
+                # os.makedirs(csv_data_dir, exist_ok=True)
+                # os.makedirs(wav_data_dir, exist_ok=True)
+                os.makedirs(rec_data_dir, exist_ok=True)
+                
+                # Generate base file name to use for all files
+                # base_filename = 'capture_%s_%s'%(self.info['Test Type'], dtn);
+                base_filename = fold_file_name
+                
+                # Generate test dir names
+                # wavdir = os.path.join(wav_data_dir, base_filename) 
+                wavdir = os.path.join(self.data_dirs[itr], "wav")
+                
+                # Create test dir
+                os.makedirs(wavdir, exist_ok=True)
+                
+                # Get name of audio clip without path or extension
+                clip_names = [os.path.basename(os.path.splitext(a)[0]) for a in self.audio_files]
+                
+                # Generate csv filenames and add path
+                self.data_filenames = []
+                temp_data_filenames = []
+                for name in clip_names:
+                    file = f"{base_filename}_{name}.csv"
+                    tmp_f = f"{base_filename}_{name}_TEMP.csv"
+                    file = os.path.join(self.data_dirs[itr], file)
+                    tmp_f = os.path.join(self.data_dirs[itr], tmp_f)
+                    self.data_filenames.append(file)
+                    temp_data_filenames.append(tmp_f)
+                    
+                self.data_files_list.append(self.data_filenames)
+        
+                # Generate filename for bad csv data
+                bad_name = f"{base_filename}_BAD.csv"
+                bad_name = os.path.join(self.data_dirs[itr], bad_name)
+        
+                #-----------------------[Do more recovery things]-----------------------
+        
+                if recovery:
+                    # Save old names to copy to new names
+                    old_filenames = self.rec_file['temp_data_filenames']
+                    # Save old .wav folder
+                    old_wavdir = self.rec_file['wavdir']
+                    # Save old bad file name
+                    old_bad_name = self.rec_file['bad_name']
+                    # Count the number of files loaded
+                    load_count = 0
+                    # List of tuples of filenames to copy
+                    copy_files = []
+                    # Check if bad file exists
+                    if os.path.exists(old_bad_name):
+                        # Add to list
+                        copy_files.append((old_bad_name, bad_name))
+        
+                    for k, (new_name, old_name) in enumerate(zip(temp_data_filenames, old_filenames)):
+                        save_dat = self.load_dat(old_name)
+                        if not save_dat:
+                            self.progress_update(
+                                        'status',
+                                        len(temp_data_filenames),
+                                        k,
+                                        f"No data file found for {old_name}"
+                                    )
+                            # If file exists, we have a problem, throw an error
+                            if os.path.exists(old_name):
+                                raise RuntimeError(f'Problem loading data in \'{old_name}\'')
+                        else:
+                            self.progress_update(
+                                        'status',
+                                        len(temp_data_filenames),
+                                        k,
+                                        f"initializing with data from {old_name}"
+                                    )
+                            # File found, increment count
+                            load_count += 1
+                            copy_files.append((old_name, new_name))
+                            # Get number of "rows" from CSV
+                            clen = len(save_dat)
+                            # Add old clip_count for naming audiofiles
+                            clip_count = clen
+                            # Initialize success with zeros
+                            success = np.zeros((2, (len(ptt_st_dly[k])*self.ptt_rep)))
+                            # Fill in success from file
+                            for p in range(clen):
+                                success[0, p] = save_dat[p]['P1_Int']
+                                success[1, p] = save_dat[p]['P2_Int']
+                            # Stop flag is computed every delay step
+                            stop_flag = np.empty(len(ptt_st_dly[k]))
+                            stop_flag[:] = np.nan
+                            # Trial count is the sum of all trial counts from each file
+                            trial_count = trial_count + clen
+                            # Set clip start to curren index
+                            # If another datafile is found it will be overwritten
+                            clip_start = k
+                            # Initialize k_start
+                            k_start = 0
+        
+                            # Loop through data and evaluate stop condition
+                            for kk in range(self.ptt_rep, clen, self.ptt_rep):
+        
+                                # Identify trials calculated at last timestep
+                                ts_ix = np.arange((kk-(self.ptt_rep)), kk)
+                                p1_intell = success[0, ts_ix]
+                                p2_intell = success[1, :]
+                                stop_flag[k] = not approx_permutation_test(p2_intell, p1_intell, tail = 'right')
+                                k_start = k_start
+        
+                            # Assign kk_start point for inner loop
+                            if (clen == 0):
+                                kk_start = 0
+                            else:
+                                kk_start = ((clen-1) % self.ptt_rep)
+        
+                    # Check that we loaded some data
+                    if load_count == 0:
+                        raise RuntimeError('Could not find files to load')
+        
+        
+                    wav_list = os.listdir(old_wavdir)
+                    num_files = len(wav_list)
+                    for n, file in enumerate(wav_list):
+                        self.progress_update(
+                                        'status',
+                                        num_files,
+                                        n+1,
+                                        f"Copying old test audio : {file}"
+                                    )
+                        new_name = os.path.join(wavdir, file)
+                        old_name = os.path.join(old_wavdir, file)
+                        shutil.copyfile(old_name, new_name)
+        
+                    for n, (old_name, new_name) in enumerate(copy_files):
+                        self.progress_update(
+                                            'status',
+                                            len(copy_files),
+                                            n+1,
+                                            f"Copying old test csvs : {old_name}"
+                                        )
+                        shutil.copyfile(old_name, new_name)
+        
+        
+                #---------[Write Transmit Audio File(s) and cutpoint File(s)]----------
+        
+                # Write out Tx clips and cutpoints to files
+                # Cutpoints are always written, they are needed for eval
+                for dat, name, cp in zip(self.y, clip_names, self.cutpoints):
+                    out_name = os.path.join(wavdir, f'Tx_{name}')
+                    # Check if saving audio, cutpoints are needed for processing
+                    if(self.save_tx_audio and self.save_audio):
+                        mcvqoe.base.audio_write(out_name+'.wav', int(self.audio_interface.sample_rate), dat)
+                    mcvqoe.base.write_cp(out_name+'.csv', cp)
+        
+                #-----------------------[Generate PTT Delays]-------------------------
+                
                 if not recovery:
-                    
-                    #-------------------------[Write CSV Header]--------------------------
-                    
-                    with open(temp_data_filenames[clip], 'w', newline='') as csv_file:
-                        self.write_data_header(csv_file, clip)
-
-                    # Update with name and location of datafile
-                    if (not self.progress_update(
-                                'csv-update',
-                                total_trials,
-                                trial_count,
-                                clip_name=clip_names[clip],
-                                file=temp_data_filenames[clip]
-                            )):
-                        raise SystemExit()
-                        
-                    #-----------------------------[Stop Flag]-----------------------------
-                    
-                    success = np.zeros((2, (len(ptt_st_dly[clip])*self.ptt_rep)))
-
-                    # Stop flag is computed every delay step
-                    stop_flag = np.empty(len(ptt_st_dly[clip]))
-                    stop_flag[:] = np.nan
-                    
-                    # Initialize clip count
-                    clip_count = 0
-
-                #-----------------------[Delay Step Loop]-----------------------
                 
-                for k in range(k_start, len(ptt_st_dly[clip])):
+                    ptt_st_dly = []
+                    ptt_step_counts = []
+                    if self.bisect_midpoint:
+                        # We are bisecting the midpoint implies: we generate ptt_st_dlys on the fly
+                        if len(self.ptt_delay) == 1:
+                            for cp in self.cutpoints:
+                                # Find end of first word + a bit of offset
+                                w_end = cp[1]['End']/self.audio_interface.sample_rate + 0.001
+                                
+                                middle = np.mean([0, w_end])
+                                # Inititalize clip start delays as 0, end of word, and midpoint
+                                ptt_st_dly.append([0, w_end, middle])
+                                
+                                # Determine number of bisection iterations required to reach toleranace
+                                # Add 2 cause we will evaluate initial endpoints to help estimate I0
+                                niters_raw = np.log(bisect_tol/(ptt_st_dly[-1][1] - ptt_st_dly[-1][0]))/np.log(1/2) + 2
+                                niters = int(np.floor(niters_raw))
+                                ptt_step_counts.append(niters)
+                                # Fill out rest of ptt_st_dly with nan
+                                # (-3 cause we already set the edges and midpoint)
+                                for k in range(niters-3):
+                                    ptt_st_dly[-1].append(np.nan)
+                        else:
+                            for _ in self.cutpoints:
+                                # Need first element to always be less than second
+                                sort_delays = np.sort([self.ptt_delay[0], self.ptt_delay[1]])
+                                # Get midpoint of intial delays
+                                middle = np.mean(sort_delays)
+                                # Set first three ptt times
+                                ptt_st_dly.append([sort_delays[0], sort_delays[1], middle])
+                                # Determine number of bisection iterations required to reach toleranace
+                                # Add 2 cause we will evaluate initial endpoints to help estimate I0
+                                niters_raw = np.log(bisect_tol/(sort_delays[1] - sort_delays[0]))/np.log(1/2) + 2
+                                niters = int(np.floor(niters_raw))
+                                ptt_step_counts.append(niters)
+                                # Fill out rest of ptt_st_dly with nan
+                                # (-3 cause we already set the edges and midpoint)
+                                for k in range(niters-3):
+                                    ptt_st_dly[-1].append(np.nan)
+                                
+                    else:
+                        if (len(self.ptt_delay) == 1):
+                            for num in range(len(self.cutpoints)):
+                                # Word start time from end of first silence
+                                w_st = (self.cutpoints[num][0]['End']/self.audio_interface.sample_rate)
+                                # Word end time from end of word
+                                w_end = (self.cutpoints[num][1]['End']/self.audio_interface.sample_rate)
+                                # Delay during word (.0001 added to w_end ensures w_end's use)
+                                w_dly = np.arange(w_st, (w_end+.0001), self.ptt_step)
+                                # Delay during silence (.0001 decrement to ensure ptt_delay usage)
+                                s_dly = np.arange(w_st, (self.ptt_delay[0]-.0001), -self.ptt_step)
+                                # Generate delay from word delay and silence delay
+                                # Word delay must be reversed
+                                ptt_st_dly.append(np.concatenate((w_dly[::-1], s_dly[1:])))
+                                # Ensure that final delay time will not be negative
+                                if(ptt_st_dly[-1][-1] < 0.0):
+                                    ptt_st_dly[-1][-1] = 0.0
+                                ptt_step_counts.append(len(ptt_st_dly[-1]))
+                        else:
+                            for _ in range(len(self.cutpoints)):
+                                dly_steps = np.arange(self.ptt_delay[1], self.ptt_delay[0], -self.ptt_step)
+                                ptt_st_dly.append(dly_steps)
+                                ptt_step_counts.append(len(dly_steps))
+            
+                    # Running count of the number of completed trials
+                    trial_count = 0
+        
+                #----------------[Pickle important data for restart]------------------
+                
+                # Initialize error file
+                recovery_file = os.path.join(rec_data_dir, base_filename+'.pickle')
+                 
+                # Error dictionary, add version
+                err_dict = {'version' : version}
+                 
+                for var in save_vars:
+                    err_dict[var] = locals()[var]
+                 
+                # Add all access_time object parameters to error dictionary
+                for i in self.__dict__:
+                    skip = ['no_log', 'audio_interface', 'ri',
+                            'inter_word_diff', 'get_post_notes',
+                            'progress_update', 'user_check',
+                            'iterations', 'data_dirs',
+                            'data_files_list']
+                    if (i not in skip):
+                        err_dict['self.'+i] = self.__dict__[i]
+                 
+                # Place dictionary into pickle file
+                with open(recovery_file, 'wb') as pkl:
+                    pickle.dump(err_dict, pkl)
+                
+                #---------------------------[write log entry]---------------------------
+                
+                mcvqoe.base.pre(info=self.info, outdir=self.outdir, test_folder=self.data_dirs[itr])
+        
+                #-----------------------[Notify User of Start]------------------------
+                
+                # Turn on LED
+                self.ri.led(1, True)
+        
+                #---------------------[Save Time for Set Timing]----------------------
+                
+                set_start = datetime.datetime.now().replace(microsecond=0)
+        
+                #----------------------------[Clip Loop]------------------------------
+                
+                # Load templates outside the loop so we take the hit here
+                abcmrt.load_templates()
+                
+                for clip in range(clip_start, len(self.y)):
                     
-                    #-------------[Determine current ptt start delay]-----------
+                    #---------------------[Calculate Delay Start Index]-------------------
                     
-                    if self.bisect_midpoint and np.isnan(ptt_st_dly[clip][k]):
-                        if k == 3:
-                            # Set us up for bisection
-                            # Smallest time
-                            time_a = ptt_st_dly[clip][0]
-                            # Largest time
-                            time_b = ptt_st_dly[clip][1]
-                            # Midpoint of our starting times
-                            time_c = ptt_st_dly[clip][2]
-                            # Note: time_a < time_c < time_b most always hold
+                    # Calculate index to start M2E latency at. This is 3/4 through the second silence.
+                    # If more of the clip is used, ITS_delay can get confused and return bad values.
+                    dly_st_idx = self.get_dly_idx(clip)
+    
+                    #---------------------[Update Total Trials]---------------------
+                    
+                    total_trials = sum(ptt_step_counts)*self.ptt_rep                
+                    
+                    # Check if file is not present (not a restart)
+                    if not recovery:
+                        
+                        #-------------------------[Write CSV Header]--------------------------
+                        
+                        with open(temp_data_filenames[clip], 'w', newline='') as csv_file:
+                            self.write_data_header(csv_file, clip)
+    
+                        # Update with name and location of datafile
+                        if (not self.progress_update(
+                                    'csv-update',
+                                    total_trials,
+                                    trial_count,
+                                    clip_name=clip_names[clip],
+                                    file=temp_data_filenames[clip]
+                                )):
+                            raise SystemExit()
                             
-                        # We haven't determined this start delay yet
+                        #-----------------------------[Stop Flag]-----------------------------
+                        
+                        success = np.zeros((2, (len(ptt_st_dly[clip])*self.ptt_rep)))
+    
+                        # Stop flag is computed every delay step
+                        stop_flag = np.empty(len(ptt_st_dly[clip]))
+                        stop_flag[:] = np.nan
+                        
+                        # Initialize clip count
+                        clip_count = 0
+    
+                    #-----------------------[Delay Step Loop]-----------------------
+                    
+                    for k in range(k_start, len(ptt_st_dly[clip])):
+                        
+                        #-------------[Determine current ptt start delay]-----------
+                        
+                        if self.bisect_midpoint and np.isnan(ptt_st_dly[clip][k]):
+                            if k == 3:
+                                # Set us up for bisection
+                                # Smallest time
+                                time_a = ptt_st_dly[clip][0]
+                                # Largest time
+                                time_b = ptt_st_dly[clip][1]
+                                # Midpoint of our starting times
+                                time_c = ptt_st_dly[clip][2]
+                                # Note: time_a < time_c < time_b most always hold
+                                
+                            # We haven't determined this start delay yet
+                            # Identify trials calculated at last timestep ptt_st_dly[k]
+                            ts_ix = np.arange((clip_count-(self.ptt_rep)), clip_count)
+                             
+                            # P1 intelligibility for last time step
+                            p1_intell = success[0, ts_ix]
+                            # All observed P2 intelligibility
+                            p2_intell = success[1, :clip_count]
+                            
+                            # Determine current curve intelligibility midpoint value
+                            half_I0_est = 0.5 * np.mean(p2_intell)
+                            
+                            # Get average P1 estimation at last timestep
+                            p1_est = np.mean(p1_intell)
+                            # Get current I0 estimation
+                            # I0_est = np.mean(p2s)
+                            if p1_est < half_I0_est:
+                                # If p1 estimate is less than our halfway point, 
+                                # then time_a is closer than time_b
+                                # Make our new right side of the interval: b = c
+                                time_b = time_c
+                            else:
+                                # If p1 estimate is greater than our halfway point 
+                                # then b is closer than a
+                                # Make our new left side of the interval a =c
+                                time_a = time_c
+                            # Find new midpoint for next evaluation
+                            time_c = np.mean([time_a, time_b])
+                            ptt_st_dly[clip][k] = time_c
+    
+                        #-------------[Update Current Clip and Delay]---------------
+    
+                        if(not self.progress_update(
+                                    'acc-clip-update',
+                                    total_trials,
+                                    trial_count,
+                                    clip_name=clip_names[clip],
+                                    delay=ptt_st_dly[clip][k],
+                                )):
+                            raise SystemExit()
+                        
+                        #-------------------------[Measurement Loop]--------------------------
+                        
+                        for kk in range(kk_start, self.ptt_rep):
+                            
+                            #---------------[Update User Progress]-----------------
+    
+                            if(not self.progress_update(
+                                        'test',
+                                        total_trials,
+                                        trial_count,
+                                    )):
+                                raise SystemExit()
+                            #-----------------------[Increment Trial Count]-----------------------
+                            
+                            trial_count = trial_count + 1
+                            
+                            #------------------------[Increment Clip Count]-----------------------
+                            
+                            clip_count = clip_count + 1
+                            
+                            #-----------------------------[Check Loop]----------------------------
+                            
+                            # Flag for loop
+                            low_p2_aw = True
+                            
+                            # Number of retries for this clip
+                            retries = 0
+                            
+                            while low_p2_aw:
+                                
+                                retries = retries + 1
+                                
+                                # Check if we've exceded retry limit
+                                if (retries > self.s_tries):
+                                    
+                                    # Turn on LED when waiting for user input
+                                    self.ri.led(2, True)
+                                    # TODO Check if we have retry function
+                                    user_exit = self.user_check(
+                                            'problem-stop',
+                                            "Audio not detected through the system."
+                                        )
+                                    
+                                    # Turn off LED, resuming
+                                    self.ri.led(2, False)
+                                    
+                                    if(user_exit):
+                                        raise SystemExit()
+                                    
+                                #---------------------[Key Radio and Play Audio]----------------------
+    
+                                # Setup the push to talk to trigger
+                                self.ri.ptt_delay(ptt_st_dly[clip][k], use_signal=True)
+                                
+                                # Save end time of previous clip
+                                time_last = time_e
+                                tg_last = tg_e
+                                
+                                # Create audiofile name/path for recording
+                                audioname = f"Rx{clip_count}_{clip_names[clip]}.wav"
+                                audioname = os.path.join(wavdir, audioname)
+                                
+                                # Get start timestamp
+                                time_s = datetime.datetime.now().replace(microsecond=0)
+                                tg_s = timeit.default_timer()
+                                
+                                # Play and record audio data
+                                rec_names = self.audio_interface.play_record(self.y[clip], audioname)
+                                
+                                # Get start time
+                                time_e = datetime.datetime.now().replace(microsecond=0)
+                                tg_e = timeit.default_timer()
+                                
+                                # Get the wait state from radio interface
+                                state = self.ri.waitState()
+                                
+                                # Depress the push to talk button
+                                self.ri.ptt(False)
+                                
+                                # Check wait state to see if PTT was triggered properly
+                                if (state == 'Idle'):
+                                    # Everything is good, do nothing
+                                    pass
+                                elif (state == 'Signal Wait'):
+                                    # Still waiting for start signal, give error
+                                    raise RuntimeError(f"Radio interface did not receive the start signal."+
+                                                       " Check connections and output levels.")
+                                elif (state == 'Delay'):
+                                    # Still waiting for delay time to expire, give warning
+                                    if(not self.progress_update(
+                                                'warning',
+                                                total_trials,
+                                                trial_count,
+                                                msg='PTT Delay longer than clip',
+                                            )):
+                                        raise SystemExit()
+                                else:
+                                    # Unknown state
+                                    raise RuntimeError(f"Unknown radio interface wait state: {state}")
+    
+                                #------------------------[Pause Between Runs]-------------------------
+                                
+                                time.sleep(self.ptt_gap)
+                                
+                                #-------------------------[Data Processing]---------------------------
+                                
+                                def warn_user(warn_str):
+                                    '''
+                                    Function to send a warning to the user.
+    
+                                    Defined here so that we know the current trial
+                                    and trial count.
+                                    '''
+                                    if(not self.progress_update(
+                                                    'warning',
+                                                    total_trials,
+                                                    trial_count,
+                                                    msg = warn_str,
+                                        )):
+                                        raise SystemExit()
+    
+                                data = self.process_audio(
+                                                            clip,
+                                                            audioname,
+                                                            rec_names,
+                                                            dly_st_idx,
+                                                            warn_func = warn_user,
+                                                        )
+                                
+                                # TODO: intelligibility for autostop
+                                success[0, clip_count-1] = data['P1_Int']
+                                success[1, clip_count-1] = data['P2_Int']
+    
+                                data['ptt_st_dly'] = ptt_st_dly[clip][k]
+    
+                                #----------------------[Add times to data]---------------------
+                                
+                                # Calculate gap time (try/except here for nan exception)
+                                try:
+                                    time_gap = tg_s - tg_last
+                                except:
+                                    time_gap = np.nan
+                                    
+                                # Format time_gap for CSV file
+                                if np.isnan(time_gap):
+                                    data['TimeGap'] = 'nan'
+                                else:
+                                    data['TimeGap'] = f"{(time_gap//3600):.0f}:{((time_gap//60)%60):.0f}:{(time_gap%60):.3f}"
+                    
+                                data['TimeStart'] = time_s.strftime('%H:%M:%S')
+                                data['TimeEnd'] = time_e.strftime('%H:%M:%S')
+                                
+                                #----------------------[Check A-weight of P2]---------------------
+                                                         
+                                low_p2_aw = data['p2_A_weight'] <= self.s_thresh
+                                                         
+                                if low_p2_aw:
+                                    if(not self.progress_update(
+                                            'check-fail',
+                                            total_trials,
+                                            trial_count,
+                                            msg=f'A-weight power for P2 is {data["p2_A_weight"]:.2f}dB',
+                                        )):
+                                        raise SystemExit()
+                                    
+                                    # Save bad audiofile
+                                    wav_name = f"Bad{clip_count}_r{retries}_{clip_names[clip]}.wav"
+                                    wav_name = os.path.join(wavdir, wav_name)
+                                    # Rename file to save it and record again
+                                    os.rename(audioname, wav_name)
+                                    
+                                    self.progress_update(
+                                            'status',
+                                            total_trials,
+                                            trial_count,
+                                            msg=f"Saving bad data to '{bad_name}'"
+                                        )
+                                    # Check if file exists for appending, or we need to create it
+                                    if not (os.path.isfile(bad_name)):
+                                        # File doesn't exist, create and write header
+                                        with open(bad_name, 'w', newline='') as csv_file:
+                                            csv_file.write(self.bad_header)
+    
+                                    # Append with bad data
+                                    with open(bad_name, 'a') as csv_file:
+                                        csv_file.write(
+                                            bad_format.format(
+                                                FileName=wav_name,
+                                                trial_count=trial_count,
+                                                clip_count=clip_count,
+                                                try_num=retries,
+                                                **data,
+                                            )
+                                        )
+                                        
+                            #--------------------------[End Check Loop]---------------------------
+                                    
+                            #----------------------[Inform User of Restart]-----------------------
+                            
+                            # Check if it took more than one try
+                            if (retries > 1):
+                                if (not self.progress_update(
+                                            'check-resume',
+                                            total_trials,
+                                            trial_count,
+                                            msg=f'A-weight power of {data["p2_A_weight"]:.2f} dB for P2',
+                                        )):
+                                    raise SystemExit()
+                                
+                            #-------------------------[Save Trial Data]---------------------------
+                            
+                            with open(temp_data_filenames[clip], 'a') as csv_file:
+                                csv_file.write(
+                                    dat_format.format(
+                                        **data,
+                                    )
+                                )
+                            
+                            #------------------------[Check Trial Limit]--------------------------
+                            
+                            if ((trial_count % self.pause_trials) == 0):
+                                
+                                # Calculate set time
+                                time_diff = datetime.datetime.now().replace(microsecond=0)
+                                set_time = time_diff - set_start
+                                
+                                # Turn on LED when waiting for user input
+                                self.ri.led(2, True)
+                                
+                                # wait for user
+                                user_exit = self.user_check(
+                                        'normal-stop',
+                                        'check batteries.',
+                                        trials=self.pause_trials,
+                                        time=set_time,
+                                    )
+                                
+                                # Turn off LED, resuming
+                                self.ri.led(2, False)
+                                    
+                                if(user_exit):
+                                    raise SystemExit()
+                                
+                                # Save time for next set
+                                set_start = datetime.datetime.now().replace(microsecond=0)
+                                
+                        #-----------------------[End Measurement Loop]------------------------
+                        
+                        # Reset start index so we start at the beginning
+                        kk_start = 0
+                        
+                        #---------------------[Check Stopping Condition]----------------------
+                         
                         # Identify trials calculated at last timestep ptt_st_dly[k]
                         ts_ix = np.arange((clip_count-(self.ptt_rep)), clip_count)
                          
@@ -1478,362 +1796,77 @@ class measure(mcvqoe.base.Measure):
                         p1_intell = success[0, ts_ix]
                         # All observed P2 intelligibility
                         p2_intell = success[1, :clip_count]
+                         
+                        # Perform approx permutation test to see if p1 intell is equivalent to p2 intell
+                        # Null hypothesis is that they are the same
+                        # Returns True if the null hypothesis is rejected (they are not the same)
+                        # Returns False if the null hypothesis is not rejected (they are the same)
+                        # Compares value mean(p2_intell) - mean(p1_intell)
+                        # If P1 is not at asymptotic intell, this will be much larger than any repetitions
+                        # in the approx_perm_test.
+                        # If P1 is at asymptotic intell, this will be closish to 0, and well represented
+                        # in repetitions in approx_perm_test.
+                        # Thus, we put all the weight of our test on the right tail of the resample distribution.
+                        # TODO: Had interesting discussion on if this would be better off being tail = 'two'.
+                        # TODO: Revisit after validated equivalent results.
+                        stop_flag[k] = not approx_permutation_test(p2_intell, p1_intell, tail='right')
                         
-                        # Determine current curve intelligibility midpoint value
-                        half_I0_est = 0.5 * np.mean(p2_intell)
-                        
-                        # Get average P1 estimation at last timestep
-                        p1_est = np.mean(p1_intell)
-                        # Get current I0 estimation
-                        # I0_est = np.mean(p2s)
-                        if p1_est < half_I0_est:
-                            # If p1 estimate is less than our halfway point, 
-                            # then time_a is closer than time_b
-                            # Make our new right side of the interval: b = c
-                            time_b = time_c
-                        else:
-                            # If p1 estimate is greater than our halfway point 
-                            # then b is closer than a
-                            # Make our new left side of the interval a =c
-                            time_a = time_c
-                        # Find new midpoint for next evaluation
-                        time_c = np.mean([time_a, time_b])
-                        ptt_st_dly[clip][k] = time_c
-
-                    #-------------[Update Current Clip and Delay]---------------
-
-                    if(not self.progress_update(
-                                'acc-clip-update',
-                                total_trials,
-                                trial_count,
-                                clip_name=clip_names[clip],
-                                delay=ptt_st_dly[clip][k],
-                            )):
-                        raise SystemExit()
-                    
-                    #-------------------------[Measurement Loop]--------------------------
-                    
-                    for kk in range(kk_start, self.ptt_rep):
-                        
-                        #---------------[Update User Progress]-----------------
-
-                        if(not self.progress_update(
-                                    'test',
-                                    total_trials,
-                                    trial_count,
-                                )):
-                            raise SystemExit()
-                        #-----------------------[Increment Trial Count]-----------------------
-                        
-                        trial_count = trial_count + 1
-                        
-                        #------------------------[Increment Clip Count]-----------------------
-                        
-                        clip_count = clip_count + 1
-                        
-                        #-----------------------------[Check Loop]----------------------------
-                        
-                        # Flag for loop
-                        low_p2_aw=True
-                        
-                        # Number of retries for this clip
-                        retries = 0
-                        
-                        while low_p2_aw:
-                            
-                            retries = retries + 1
-                            
-                            # Check if we've exceded retry limit
-                            if (retries > self.s_tries):
-                                
-                                # Turn on LED when waiting for user input
-                                self.ri.led(2, True)
-                                # TODO Check if we have retry function
-                                user_exit = self.user_check(
-                                        'problem-stop',
-                                        "Audio not detected through the system."
-                                    )
-                                
-                                # Turn off LED, resuming
-                                self.ri.led(2, False)
-                                
-                                if(user_exit):
-                                    raise SystemExit()
-                                
-                            #---------------------[Key Radio and Play Audio]----------------------
-
-                            # Setup the push to talk to trigger
-                            self.ri.ptt_delay(ptt_st_dly[clip][k], use_signal=True)
-                            
-                            # Save end time of previous clip
-                            time_last = time_e
-                            tg_last = tg_e
-                            
-                            # Create audiofile name/path for recording
-                            audioname = f"Rx{clip_count}_{clip_names[clip]}.wav"
-                            audioname = os.path.join(wavdir, audioname)
-                            
-                            # Get start timestamp
-                            time_s = datetime.datetime.now().replace(microsecond=0)
-                            tg_s = timeit.default_timer()
-                            
-                            # Play and record audio data
-                            rec_names = self.audio_interface.play_record(self.y[clip], audioname)
-                            
-                            # Get start time
-                            time_e = datetime.datetime.now().replace(microsecond=0)
-                            tg_e = timeit.default_timer()
-                            
-                            # Get the wait state from radio interface
-                            state = self.ri.waitState()
-                            
-                            # Depress the push to talk button
-                            self.ri.ptt(False)
-                            
-                            # Check wait state to see if PTT was triggered properly
-                            if (state == 'Idle'):
-                                # Everything is good, do nothing
-                                pass
-                            elif (state == 'Signal Wait'):
-                                # Still waiting for start signal, give error
-                                raise RuntimeError(f"Radio interface did not receive the start signal."+
-                                                   " Check connections and output levels.")
-                            elif (state == 'Delay'):
-                                # Still waiting for delay time to expire, give warning
-                                if(not self.progress_update(
-                                            'warning',
-                                            total_trials,
-                                            trial_count,
-                                            msg='PTT Delay longer than clip',
-                                        )):
-                                    raise SystemExit()
-                            else:
-                                # Unknown state
-                                raise RuntimeError(f"Unknown radio interface wait state: {state}")
-
-                            #------------------------[Pause Between Runs]-------------------------
-                            
-                            time.sleep(self.ptt_gap)
-                            
-                            #-------------------------[Data Processing]---------------------------
-                            
-                            def warn_user( warn_str):
-                                '''
-                                Function to send a warning to the user.
-
-                                Defined here so that we know the current trial
-                                and trial count.
-                                '''
-                                if(not self.progress_update(
-                                                'warning',
-                                                total_trials,
-                                                trial_count,
-                                                msg = warn_str,
-                                    )):
-                                    raise SystemExit()
-
-                            data = self.process_audio(
-                                                        clip,
-                                                        audioname,
-                                                        rec_names,
-                                                        dly_st_idx,
-                                                        warn_func = warn_user,
-                                                    )
-                            
-                            # TODO: intelligibility for autostop
-                            success[0, clip_count-1] = data['P1_Int']
-                            success[1, clip_count-1] = data['P2_Int']
-
-                            data['ptt_st_dly'] = ptt_st_dly[clip][k]
-
-                            #----------------------[Add times to data]---------------------
-                            
-                            # Calculate gap time (try/except here for nan exception)
-                            try:
-                                time_gap = tg_s - tg_last
-                            except:
-                                time_gap = np.nan
-                                
-                            # Format time_gap for CSV file
-                            if np.isnan(time_gap):
-                                data['TimeGap'] = 'nan'
-                            else:
-                                data['TimeGap'] = f"{(time_gap//3600):.0f}:{((time_gap//60)%60):.0f}:{(time_gap%60):.3f}"
-                
-                            data['TimeStart'] = time_s.strftime('%H:%M:%S')
-                            data['TimeEnd'] = time_e.strftime('%H:%M:%S')
-                            
-                            #----------------------[Check A-weight of P2]---------------------
-                                                     
-                            low_p2_aw = data['p2_A_weight'] <= self.s_thresh
-                                                     
-                            if low_p2_aw:
-                                if(not self.progress_update(
-                                        'check-fail',
-                                        total_trials,
-                                        trial_count,
-                                        msg=f'A-weight power for P2 is {data["p2_A_weight"]:.2f}dB',
-                                    )):
-                                    raise SystemExit()
-                                
-                                # Save bad audiofile
-                                wav_name = f"Bad{clip_count}_r{retries}_{clip_names[clip]}.wav"
-                                wav_name = os.path.join(wavdir, wav_name)
-                                # Rename file to save it and record again
-                                os.rename(audioname, wav_name)
-                                
-                                self.progress_update(
-                                        'status',
-                                        total_trials,
-                                        trial_count,
-                                        msg=f"Saving bad data to '{bad_name}'"
-                                    )
-                                # Check if file exists for appending, or we need to create it
-                                if not (os.path.isfile(bad_name)):
-                                    # File doesn't exist, create and write header
-                                    with open(bad_name, 'w', newline='') as csv_file:
-                                        csv_file.write(self.bad_header)
-
-                                # Append with bad data
-                                with open(bad_name, 'a') as csv_file:
-                                    csv_file.write(
-                                        bad_format.format(
-                                            FileName=wav_name,
-                                            trial_count=trial_count,
-                                            clip_count=clip_count,
-                                            try_num=retries,
-                                            **data,
-                                        )
-                                    )
-                                    
-                        #--------------------------[End Check Loop]---------------------------
-                                
-                        #----------------------[Inform User of Restart]-----------------------
-                        
-                        # Check if it took more than one try
-                        if (retries > 1):
-                            if (not self.progress_update(
-                                        'check-resume',
-                                        total_trials,
-                                        trial_count,
-                                        msg=f'A-weight power of {data["p2_A_weight"]:.2f} dB for P2',
-                                    )):
-                                raise SystemExit()
-                            
-                        #-------------------------[Save Trial Data]---------------------------
-                        
-                        with open(temp_data_filenames[clip], 'a') as csv_file:
-                            csv_file.write(
-                                dat_format.format(
-                                    **data,
-                                )
-                            )
-                        
-                        #------------------------[Check Trial Limit]--------------------------
-                        
-                        if ((trial_count % self.pause_trials) == 0):
-                            
-                            # Calculate set time
-                            time_diff = datetime.datetime.now().replace(microsecond=0)
-                            set_time = time_diff - set_start
-                            
-                            # Turn on LED when waiting for user input
-                            self.ri.led(2, True)
-                            
-                            # wait for user
-                            user_exit = self.user_check(
-                                    'normal-stop',
-                                    'check batteries.',
-                                    trials=self.pause_trials,
-                                    time=set_time,
-                                )
-                            
-                            # Turn off LED, resuming
-                            self.ri.led(2, False)
-                                
-                            if(user_exit):
-                                raise SystemExit()
-                            
-                            # Save time for next set
-                            set_start = datetime.datetime.now().replace(microsecond=0)
-                            
-                    #-----------------------[End Measurement Loop]------------------------
+                        # Check if we should look for stopping condition
+                        # Only stop if ptt delay is before the first word
+                        if (self.auto_stop and (self.cutpoints[clip][1]['End']/self.audio_interface.sample_rate)>ptt_st_dly[clip][k]):
+                            if (self.stop_rep<=k and all(stop_flag[(k-self.stop_rep):k])):
+                                # Stopped early, update step counts
+                                ptt_step_counts[clip] = k
+                                # If stopping condition met, break from loop
+                                break
+    
+                    #-----------------------[End Delay Step Loop]-------------------------
                     
                     # Reset start index so we start at the beginning
-                    kk_start = 0
-                    
-                    #---------------------[Check Stopping Condition]----------------------
-                     
-                    # Identify trials calculated at last timestep ptt_st_dly[k]
-                    ts_ix = np.arange((clip_count-(self.ptt_rep)), clip_count)
-                     
-                    # P1 intelligibility for last time step
-                    p1_intell = success[0, ts_ix]
-                    # All observed P2 intelligibility
-                    p2_intell = success[1, :clip_count]
-                     
-                    # Perform approx permutation test to see if p1 intell is equivalent to p2 intell
-                    # Null hypothesis is that they are the same
-                    # Returns True if the null hypothesis is rejected (they are not the same)
-                    # Returns False if the null hypothesis is not rejected (they are the same)
-                    # Compares value mean(p2_intell) - mean(p1_intell)
-                    # If P1 is not at asymptotic intell, this will be much larger than any repetitions
-                    # in the approx_perm_test.
-                    # If P1 is at asymptotic intell, this will be closish to 0, and well represented
-                    # in repetitions in approx_perm_test.
-                    # Thus, we put all the weight of our test on the right tail of the resample distribution.
-                    # TODO: Had interesting discussion on if this would be better off being tail = 'two'.
-                    # TODO: Revisit after validated equivalent results.
-                    stop_flag[k] = not approx_permutation_test(p2_intell, p1_intell, tail = 'right')
-                    
-                    # Check if we should look for stopping condition
-                    # Only stop if ptt delay is before the first word
-                    if (self.auto_stop and (self.cutpoints[clip][1]['End']/self.audio_interface.sample_rate)>ptt_st_dly[clip][k]):
-                        if (self.stop_rep<=k and all(stop_flag[(k-self.stop_rep):k])):
-                            # Stopped early, update step counts
-                            ptt_step_counts[clip] = k
-                            # If stopping condition met, break from loop
-                            break
-
-                #-----------------------[End Delay Step Loop]-------------------------
+                    k_start = 0
                 
-                # Reset start index so we start at the beginning
-                k_start = 0
-            
-            #--------------------------[End Clip Loop]----------------------------
-            
-            #--------------------[Change Name of Data Files]----------------------
-            
-            for k in range(len(temp_data_filenames)):
-                # Give user update on csv rename
-                # Return value not checked, test is finished so no abort possible
-                self.progress_update(
-                                'csv-rename',
-                                len(temp_data_filenames),
-                                k,
-                                file=temp_data_filenames[k],
-                                new_file=self.data_filenames[k],
-                            )
-                os.rename(temp_data_filenames[k], self.data_filenames[k])
-
-            #------------------------[Zip audio data]--------------------------
-
-            if self.save_audio and self.zip_audio:
-                self.zip_wavdir(wavdir)
-            #----------------------[Delete recovery file]----------------------
-            
-            os.remove(recovery_file)
-
+                #--------------------------[End Clip Loop]----------------------------
+                
+                #--------------------[Change Name of Data Files]----------------------
+                
+                for k in range(len(temp_data_filenames)):
+                    # Give user update on csv rename
+                    # Return value not checked, test is finished so no abort possible
+                    self.progress_update(
+                                    'csv-rename',
+                                    len(temp_data_filenames),
+                                    k,
+                                    file=temp_data_filenames[k],
+                                    new_file=self.data_filenames[k],
+                                )
+                    os.rename(temp_data_filenames[k], self.data_filenames[k])
+    
+                #------------------------[Zip audio data]--------------------------
+    
+                if self.save_audio and self.zip_audio:
+                    self.zip_wavdir(wavdir)
+                #----------------------[Delete recovery file]----------------------
+                
+                os.remove(recovery_file)
+        
         finally:
-            if (self.get_post_notes):
+            
+            if self.get_post_notes:
                 # Get notes
                 info = self.get_post_notes()
             else:
                 info = {}
-            # Finish log entry
-            mcvqoe.base.post(outdir=self.outdir, info=info, test_folder=self.data_dir)
-
-        return self.data_filenames
+                
+            # Try just in case we don't have directories yet
+            try:
+                for itrr in range(len(self.data_dirs)):
+                    mcvqoe.base.post(outdir=self.outdir, info=info, test_folder=self.data_dirs[itrr])
+            except AttributeError:
+                # Haven't created the self.data_dirs yet
+                print("Error occured before testing began")
+                
+        # Send a list of the final data_filenames
+        return self.data_files_list[-1]
 
     def get_dly_idx(self, clip_num):
 
@@ -2030,6 +2063,10 @@ class measure(mcvqoe.base.Measure):
         if (self.audio_path != ""):
             if os.path.isdir(self.audio_path) is False:
                 raise ValueError(f"Audio path ({self.audio_path}) not found.")
+        # Multiple iteration check
+        if self.iterations < 1:
+            raise ValueError(
+                f"Can't have less than 1 iteration. {self.iterations} iterations chosen.")
                 
     def load_dat(self,fname):
         """Load data from CSV file and skip header
