@@ -396,7 +396,7 @@ class Measure:
         
         self.check_channels()
         
-        # we need to be recording a timecode
+        # We need to be recording a timecode
         mcvqoe.timing.require_timecode(self.audio_interface)
         
         # -------------------------[Get Test Start Time]-------------------------
@@ -407,7 +407,7 @@ class Measure:
         # --------------------------[Fill log entries]--------------------------
         
         # set test name, needs to match log_search.datafilenames
-        self.info["test"] = "Tx Two Loc Test"
+        self.info["test"] = f"{self.measurement_name}TX2Loc"
         
         # add any extra entries
         self.log_extra()
