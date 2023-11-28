@@ -159,32 +159,17 @@ class Measure:
                 self.data_dirs.append(os.path.join(self.outdir, fold_file_name))
                 os.makedirs(self.data_dirs[itr], exist_ok=True)
         
-                # generate data dir names
-                # data_dir = os.path.join(self.outdir, "data")
-                # wav_data_dir = os.path.join(data_dir, "wav")
-                # csv_data_dir = os.path.join(data_dir, "csv")
-        
-                # create data directories
-                # os.makedirs(csv_data_dir, exist_ok=True)
-                # os.makedirs(wav_data_dir, exist_ok=True)
-        
                 # generate base file name to use for all files
-                # base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
                 base_filename = fold_file_name
         
-                # generate test dir names
-                # wavdir = os.path.join(wav_data_dir, base_filename)
+                # generate and create wav directory
                 wavdir = os.path.join(self.data_dirs[itr], "wav")
-        
-                # create wav dir
                 os.makedirs(wavdir, exist_ok=True)
         
                 # generate csv name
-                # self.data_filename = os.path.join(csv_data_dir, f"{base_filename}.csv")
                 self.data_filename.append(os.path.join(self.data_dirs[itr], f"{base_filename}.csv"))
         
                 # generate temp csv name
-                # temp_data_filename = os.path.join(csv_data_dir, f"{base_filename}_TEMP.csv")
                 temp_data_filename = os.path.join(self.data_dirs[itr], f"{base_filename}_TEMP.csv")
         
                 # ---------------------[Load Audio Files if Needed]---------------------
@@ -226,13 +211,8 @@ class Measure:
         
                 # ---------------------------[write log entry]---------------------------
         
-                # log_pre(info=self.info, outdir=self.outdir)
                 # Add the log file to the outside folder and test specific folder
                 log_pre(info=self.info, outdir=self.outdir, test_folder=self.data_dirs[itr])
-        
-                # ---------------[Try block so we write notes at the end]---------------
-        
-                # try:
         
                 # ------------------[Save Time for Set Timing]---------------------
                 
@@ -374,10 +354,9 @@ class Measure:
                     
             except AttributeError:
                 # Haven't created the self.data_dirs yet
-                print(f"Error occured before testing began")
+                print("Error occured before testing began")
                 
-        # return filename in a list
-        # return (self.data_filename,)
+        # Return filename list
         return self.data_filename
 
     def run_2loc_tx(self):
@@ -424,22 +403,12 @@ class Measure:
         self.data_dir = os.path.join(self.outdir, fold_file_name)
         os.makedirs(self.data_dir, exist_ok=True)
 
-        # # generate data dir names
-        # data_dir = os.path.join(self.outdir, "data")
-        # tx_dat_fold = os.path.join(data_dir, "2loc_tx-data")
-
-        # # generate base file name to use for all files
-        # base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
+        # Generate base file name to use for all files
         base_filename = fold_file_name
 
-        # wavdir = os.path.join(tx_dat_fold, "Tx_" + base_filename)
+        # Generate and creat wav directory
         wavdir = os.path.join(self.data_dir, "wav")
-
-        # create directories
         os.makedirs(wavdir, exist_ok=True)
-
-        # # Put .csv files in wav dir
-        # csv_data_dir = wavdir
 
         # generate csv name
         self.data_filename = os.path.join(self.data_dir, f"{base_filename}.csv")
@@ -663,7 +632,7 @@ class Measure:
         
         self.check_channels()
         
-        # we need to be recording a timecode
+        # We need to be recording a timecode
         mcvqoe.timing.require_timecode(self.audio_interface)
 
         # -------------------------[Get Test Start Time]-------------------------
@@ -673,13 +642,13 @@ class Measure:
 
         # --------------------------[Fill log entries]--------------------------
 
-        # set test name, needs to match log_search.datafilenames
+        # Set test name, needs to match log_search.datafilenames
         self.info["test"] = f"{self.measurement_name}Rx2Loc"
         
-        # add any extra entries
+        # Add any extra entries
         self.log_extra()
         
-        # fill in standard stuff
+        # Fill in standard stuff
         self.info.update(fill_log(self))
 
         # -----------------------[Setup Files and folders]-----------------------
@@ -691,18 +660,11 @@ class Measure:
         self.data_dir = os.path.join(self.outdir, fold_file_name)
         os.makedirs(self.data_dir, exist_ok=True)
 
-        # Create rx-data folder
-        # data_dir = os.path.join(self.outdir, "data")
-        # rx_dat_fold = os.path.join(data_dir, "2loc_rx-data")
-        # os.makedirs(rx_dat_fold, exist_ok=True)
-
-        # base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
+        # Create filename to use everywhere
         base_filename = fold_file_name
 
-        # self.data_filename = os.path.join(rx_dat_fold, "Rx_" + base_filename + ".wav")
         self.data_filename = os.path.join(self.data_dir, "Rx_" + base_filename + ".wav")
 
-        # info_name = os.path.join(rx_dat_fold, "Rx_" + base_filename + ".json")
         info_name = os.path.join(self.data_dir, "Rx_" + base_filename + ".json")
 
         # ---------------------------[write log entry]---------------------------
