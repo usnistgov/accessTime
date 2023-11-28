@@ -515,7 +515,7 @@ class measure(mcvqoe.base.Measure):
         self.test_setup()
         
         # Warn that this is untested
-        self.progress_update('warning',0,0, msg='2 location access delay is '                               'untested! use at your own risk!')
+        self.progress_update('warning', 0, 0, msg='2 location access delay is '                               'untested! use at your own risk!')
         
         # ------------------[Check for correct audio channels]------------------
         
@@ -591,31 +591,20 @@ class measure(mcvqoe.base.Measure):
         self.data_dir = os.path.join(self.outdir, fold_file_name)
         os.makedirs(self.data_dir, exist_ok=True)
 
-        # Generate data dir names
-        # data_dir     = os.path.join(self.outdir,'data')
-        # tx_dat_fold  = os.path.join(data_dir, "2loc_tx-data")
+        # Generate recovery directory
         rec_data_dir = os.path.join(self.data_dir, 'recovery')
 
         # Generate base file name to use for all files
-        # base_filename = "capture_%s_%s" % (self.info["Test Type"], dtn)
         base_filename = fold_file_name
 
-        # wavdir = os.path.join(tx_dat_fold, "Tx_" + base_filename)
+        # Generate and create wav directory
         wavdir = os.path.join(self.data_dir, "wav")
-
-        # Create data directories
         os.makedirs(wavdir, exist_ok=True)
-        # os.makedirs(rec_data_dir, exist_ok=True)
 
-        # Put .csv files in wav dir
-        # csv_data_dir = wavdir
-
-        # Generate csv name
-        # self.data_filename = os.path.join(csv_data_dir, f"{base_filename}.csv")
+        # Generate final csv name
         self.data_filename = os.path.join(self.data_dir, f"{base_filename}.csv")
 
         # Generate temp csv name
-        # temp_data_filename = os.path.join(csv_data_dir, f"{base_filename}_TEMP.csv")
         temp_data_filename = os.path.join(self.data_dir, f"{base_filename}_TEMP.csv")
 
         #-----------------------[Do more recovery things]-----------------------
@@ -1164,27 +1153,17 @@ class measure(mcvqoe.base.Measure):
                 self.data_dirs.append(os.path.join(self.outdir, fold_file_name))
                 os.makedirs(self.data_dirs[itr], exist_ok=True)
         
-                # Generate data dir names
-                # data_dir     = os.path.join(self.outdir, 'data')
-                # wav_data_dir = os.path.join(data_dir, 'wav')
-                # csv_data_dir = os.path.join(data_dir, 'csv')
+                # Generate and create recovery directory
                 rec_data_dir = os.path.join(self.data_dirs[itr], 'recovery')
-                
-                
-                # Create data directories 
-                # os.makedirs(csv_data_dir, exist_ok=True)
-                # os.makedirs(wav_data_dir, exist_ok=True)
                 os.makedirs(rec_data_dir, exist_ok=True)
                 
                 # Generate base file name to use for all files
-                # base_filename = 'capture_%s_%s'%(self.info['Test Type'], dtn);
                 base_filename = fold_file_name
                 
-                # Generate test dir names
-                # wavdir = os.path.join(wav_data_dir, base_filename) 
+                # Generate wav dir names 
                 wavdir = os.path.join(self.data_dirs[itr], "wav")
                 
-                # Create test dir
+                # Create wav dir
                 os.makedirs(wavdir, exist_ok=True)
                 
                 # Get name of audio clip without path or extension
