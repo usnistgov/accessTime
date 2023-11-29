@@ -574,7 +574,7 @@ class measure(mcvqoe.base.Measure):
         #--------------------------[Fill log entries]--------------------------
 
         # Set test name, needs to match log_search.datafilenames
-        self.info["test"] = "Access2LocTx"
+        self.info["test"] = "AccessTx2Loc"
         
         # Add any extra entries
         self.log_extra()
