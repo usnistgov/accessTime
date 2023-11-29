@@ -386,7 +386,7 @@ class Measure:
         # --------------------------[Fill log entries]--------------------------
         
         # set test name, needs to match log_search.datafilenames
-        self.info["test"] = f"{self.measurement_name}TX2Loc"
+        self.info["test"] = f"{self.measurement_name}Tx2Loc"
         
         # add any extra entries
         self.log_extra()
