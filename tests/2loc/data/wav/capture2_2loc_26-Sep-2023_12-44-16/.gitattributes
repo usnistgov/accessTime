@@ -1,0 +1,9 @@
+Rx2_F1_harvard_phrases.wav filter=lfs diff=lfs merge=lfs -text
+Rx3_F1_harvard_phrases.wav filter=lfs diff=lfs merge=lfs -text
+Rx5_M1_harvard_phrases.wav filter=lfs diff=lfs merge=lfs -text
+Tx_M1_harvard_phrases.wav filter=lfs diff=lfs merge=lfs -text
+Tx_M2_harvard_phrases.wav filter=lfs diff=lfs merge=lfs -text
+Rx1_M2_harvard_phrases.wav filter=lfs diff=lfs merge=lfs -text
+Rx4_F2_harvard_phrases.wav filter=lfs diff=lfs merge=lfs -text
+Tx_F1_harvard_phrases.wav filter=lfs diff=lfs merge=lfs -text
+Tx_F2_harvard_phrases.wav filter=lfs diff=lfs merge=lfs -text
