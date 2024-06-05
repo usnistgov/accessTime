@@ -1024,7 +1024,7 @@ class measure(mcvqoe.base.Measure):
             else:
                 info = {}
             # Finish log entry
-            mcvqoe.base.post(outdir=self.outdir, info=info, test_folder=self.data_dir)
+            mcvqoe.base.post(info=info, outdir=self.outdir, test_folder=self.data_dir)
 
         return (self.data_filename,)
 
@@ -1600,7 +1600,7 @@ class measure(mcvqoe.base.Measure):
                                     pass
                                 elif (state == 'Signal Wait'):
                                     # Still waiting for start signal, give error
-                                    raise RuntimeError(f"Radio interface did not receive the start signal."+
+                                    raise RuntimeError("Radio interface did not receive the start signal."+
                                                        " Check connections and output levels.")
                                 elif (state == 'Delay'):
                                     # Still waiting for delay time to expire, give warning
@@ -1840,9 +1840,10 @@ class measure(mcvqoe.base.Measure):
             try:
                 for itrr in range(len(self.data_dirs)):
                     mcvqoe.base.post(outdir=self.outdir, info=info, test_folder=self.data_dirs[itrr])
-            except AttributeError:
+            except AttributeError as e:
                 # Haven't created the self.data_dirs yet
                 print("Error occured before testing began")
+                print(f"\n\n{e}\n\n")
                 
         # Send a list of the final data_filenames
         return self.data_files_list[-1]
@@ -2031,13 +2032,13 @@ class measure(mcvqoe.base.Measure):
         """Check all input parameters for value errors"""
         
         if ((self.auto_stop) and (self.ptt_rep < 16)):
-            raise ValueError(f"ptt_rep must be greater than 15 if autostop is used.")
+            raise ValueError("ptt_rep must be greater than 15 if autostop is used.")
         
         # Time expand check and resize if necessary
         if (len(self.time_expand) < 1):
-            raise ValueError(f"Time expand must be more at least one value")
+            raise ValueError("Time expand must be more at least one value")
         if (len(self.time_expand) > 2):
-            raise ValueError(f"Time expand can only be a maximum of two values")
+            raise ValueError("Time expand can only be a maximum of two values")
         # Check if given audio path exists
         if (self.audio_path != ""):
             if os.path.isdir(self.audio_path) is False:
