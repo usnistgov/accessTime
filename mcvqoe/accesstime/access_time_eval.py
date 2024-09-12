@@ -1,18 +1,8 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Sep  8 14:26:30 2021
-
-@author: wrm3
-"""
-# =============================================================================
-# Import statements
-# =============================================================================
 import argparse
 import json
 import os
 import pkg_resources
 import re
-import warnings
 
 import numpy as np
 import pandas as pd
@@ -22,9 +12,10 @@ import plotly.graph_objects as go
 from itertools import cycle
 from scipy.optimize import curve_fit
 from scipy.stats import norm
-import mcvqoe.math
+
 
 def find_session_csvs(session_id, data_path):
+    
     data_csvs = os.listdir(data_path)
     
     sesh_search = re.compile(f'{session_id}_.+.csv')
@@ -32,6 +23,7 @@ def find_session_csvs(session_id, data_path):
     return list(filter(sesh_search.match, data_csvs))
 
 def default_correction_data():
+    
     correction_csv_path = pkg_resources.resource_filename(
         'mcvqoe.accesstime', 'correction_data'
         )
@@ -46,7 +38,7 @@ def default_correction_data():
     
     cor_data = AccessData(sesh_csvs,
                           wav_dirs=[correction_csv_path] * len(sesh_csvs),
-                          )
+                          correction=True)
     return cor_data
     
 # =============================================================================
@@ -54,19 +46,28 @@ def default_correction_data():
 # =============================================================================
 class AccessData():
     """
-
+        While this class could possibly be called by itself, all of the recent
+        changes to it have taken place with the assumption that it will be
+        strictly used within the confines of the MCVQoE GUI itself. Call this
+        from the command line at your own risk.
+        
+        Also, it should be noted that this is used to load the correction
+        data which is stored in the Python install folders. Meaning that the
+        folder structure is different, and there needs to be paths to account
+        for that.
+        
         Parameters
         ----------
-        test_names : TYPE
-            DESCRIPTION.
-        test_path : TYPE, optional
-            DESCRIPTION. The default is ''.
+        test_names : str or list of str
+            File names of Access tests
+        test_path : str
+            Full path to directory containing the sessions within a test.
+            The default is ''.
         wav_dirs : TYPE, optional
             DESCRIPTION. The default is [].
-        use_reprocess : TYPE, optional
-            DESCRIPTION. The default is True.
-         : TYPE
-            DESCRIPTION.
+        use_reprocess : bool
+            Whether or not to use reprocessed data, if it exists.
+            The default is True.
             
         Attributes
         ----------
@@ -81,14 +82,16 @@ class AccessData():
 
         Returns
         -------
-        None.
+        None
 
     """
+    
     def __init__(self,
                  test_names,
                  test_path='',
                  wav_dirs=[],
                  use_reprocess=True,
+                 correction=False
                  ):
        
         self.use_reprocess = use_reprocess
@@ -111,9 +114,10 @@ class AccessData():
             # if it's just a name all goes into name
             dat_path, name = os.path.split(tn)
             # Split extension, ext is empty if none
-            t_name, ext = os.path.splitext(name)
+            t_name, ext = os.path.splitext(tn)
             
             # Check if a path was given to a .csv file
+            # Shouldn't ever get here since the GUI forces a .csv selection
             if not dat_path and not ext == '.csv':
                 # Generate using test_path
                 # dat_path = os.path.join(test_path, 'csv')
@@ -129,7 +133,12 @@ class AccessData():
                 if test_path == '':
                     # Assume full path given
                     dat_file = [tn]
-                    cp_path = os.path.join(os.path.dirname(dat_path), 'wav')
+                    if correction == False:
+                        cp_path = os.path.join(os.path.dirname(t_name), 'wav')
+                    else:
+                        # Split off the .csv file from cutpoint path
+                        cp_path = os.path.dirname(t_name)
+                        
                     dat_path = ''
                     
                 else:
@@ -137,28 +146,11 @@ class AccessData():
                     # dat_file = [os.path.join(test_path, 'csv', tn)]
                     dat_file = [os.path.join(test_path, tn)]
                     # cp_path = os.path.join(test_path, os.path.dirname(dat_path), 'wav')
-                    cp_path = os.path.join(test_path, 'wav')
-                    
-            
-            # Check if we were given an explicit wav directory
-            if wd:
-                # Use given path
-                cp_path = wd
-                # get test name from wav path
-                
-            else:
-                # Otherwise get path to the wav dir
-                # TODO delete? We don't use this naming convention anymore
-                
-                # Remove possible R in t_name
-                # wt_name = t_name.replace('Rcapture', 'capture')
-                wt_name = t_name.replace('R', '')
-                
-                # sesh_search_str = re.compile('(capture2?_.+_\d{2}-\w{3}-\d{4}_\d{2}-\d{2}-\d{2})')
-                sesh_search_str = re.compile('\d{2}-\w{3}-\d{4}_\d{2}-\d{2}-\d{2}_Access_.+')
-                sesh_search = sesh_search_str.search(wt_name)
-                sesh_id = sesh_search.groups()[0]
-                cp_path = os.path.join(cp_path, sesh_id)
+                    if correction == False:
+                        cp_path = os.path.join(test_path, 'wav')
+                    else:
+                        # Split off the .csv file from cutpoint path
+                        cp_path = os.path.dirname(test_path)
             
             self.test_info[t_name] = {'data_path': dat_path,
                                      'data_file': dat_file,
@@ -191,10 +183,9 @@ class AccessData():
                 
                 test = pd.read_csv(fname, skiprows=3)
                 
-                # Store test name as column in test
-                sesh_search_str = re.compile('(capture2?_.+_\d{2}-\w{3}-\d{4}_\d{2}-\d{2}-\d{2})')
-                sesh_search = sesh_search_str.search(session)
-                sesh_id = sesh_search.groups()[0]
+                # Get just the filename without the .csv and path
+                sesh_id = os.path.basename(session)
+
                 test['name'] = sesh_id
                 
                 # Extract talker word combo from file name
@@ -207,14 +198,12 @@ class AccessData():
                 talker_word = talker + ' ' +  word
                 # Store as column
                 test['talker_word'] = talker_word
-                
-                
+                    
                 # Load cutpoints, store in dict
                 cp_name = 'Tx_' + talker + bw_index + word + '.csv'
                 cp_path = os.path.join(sesh_info['cp_path'], cp_name)
                 
                 tests_cp[session][talker_word] = pd.read_csv(cp_path)
-                
                 
                 with open(fname) as head_file:
                     audio_files = head_file.readline()
@@ -257,6 +246,7 @@ class AccessData():
             Path to reprocessed file if it exits, otherwise returns fname
 
         """
+        
         dat_path, name = os.path.split(fname)
         # if 'Rcapture' not in name:
         if 'R' not in name:
@@ -273,7 +263,6 @@ class AccessData():
     def __str__(self):
         s = f'AccessData object, talker word combos: {np.unique(self.data.talker_word)}'
         return s
-    
     
 
 class FitData:
@@ -323,6 +312,7 @@ class evaluate:
     Returns
     -------
     None.
+    
     """
 
     def __init__(self,
@@ -487,7 +477,6 @@ class evaluate:
                 covar=cor_params['covar'],
                 )
             
-            
         elif fit_type == "SUT":
             talker_word_combos = np.unique(self.data['talker_word'])
             fit_data = dict()
@@ -511,9 +500,8 @@ class evaluate:
         
         return fit_data
         
-
-    def eval(self, alpha, fit_data=None, raw_intell=False, sys_dly_unc=0.07e-3/1.96,
-             p=0.95):
+    def eval(self, alpha, fit_data=None, raw_intell=False, 
+             sys_dly_unc=0.07e-3/1.96, p=0.95):
         """
         Evaluate access delay for a given value of alpha.
 
@@ -536,6 +524,7 @@ class evaluate:
             DESCRIPTION.
 
         """
+        
         if fit_data is None:
             fit_data = self.fit_data
         
@@ -589,6 +578,8 @@ class evaluate:
         None.
 
         """
+        
+        print(f"JSON filename: {filename}")
         cps = {}
         for sesh, sesh_cps in self.cps.items():
             cps[sesh] = {}
@@ -635,6 +626,7 @@ class evaluate:
             DESCRIPTION.
 
         """
+        
         # TODO: Should handle correction data too!
         if isinstance(json_data, str):
             json_data = json.loads(json_data)
@@ -677,6 +669,7 @@ class evaluate:
             DESCRIPTION.
 
         """
+        
         # Valid range of alpha values to consider
         alphas = np.arange(0.5, 1, 0.01)
         
@@ -784,7 +777,8 @@ class evaluate:
         fig : TYPE
             DESCRIPTION.
 
-        """        
+        """    
+        
         # Get individual fits for each talker word combo
         tw_fits = self.fit_curve_data("SUT")
         
@@ -883,6 +877,7 @@ def main():
     None.
 
     """
+    
     # Set up argument parser
     parser = argparse.ArgumentParser(
         description=__doc__)
