@@ -68,6 +68,9 @@ class AccessData():
         use_reprocess : bool
             Whether or not to use reprocessed data, if it exists.
             The default is True.
+        correction : bool
+            Whether or not we should use the correction data
+            folder and file structure
             
         Attributes
         ----------
